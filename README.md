@@ -64,6 +64,8 @@ to work on next.
 | Drag & drop actions | ✅ Questions, blocks, else, repeat, exit, set variable, apply-to and relative; ~90 standard actions (move, instances, sound, rooms, score/lives/health, drawing). Unknown ones are reported |
 | Built-in functions | ~350 implemented — instances, drawing, sprites, surfaces, ds_list/map/grid/stack/queue/priority, paths and path motion, mp_grid path finding, collision checks, input, sound, rooms and room order, views, strings, math |
 | Blocking dialogs | ✅ `show_menu`, `get_integer`, `get_string`, `show_question` pause the game and show an HTML dialog; the interrupted event re-runs with the answer. `show_message` pauses until dismissed |
+| Freeze-frames and waits | ✅ `screen_refresh` / `screen_redraw` capture frames; `sleep` and `keyboard_wait` hold them; messages and the high-score table queue up in order and play back before the game continues |
+| High-score table | ✅ `highscore_*` with a styled table and name entry, saved in the browser's local storage |
 | Collision events | ✅ Bounding-box only (no per-pixel masks) |
 | Particle systems | ✅ Types, emitters (burst/stream), automatic update and draw; built-in shapes are drawn procedurally |
 | Extensions | WinSkin re-implemented; others need a JS replacement |

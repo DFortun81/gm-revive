@@ -237,7 +237,7 @@ const B = (() => {
     // returned from that call. (Code before the dialog runs twice, which is harmless for the usual
     // "read state, ask, act" pattern.) show_message just pauses the game until it is dismissed.
     class ModalSuspend { constructor(req) { this.req = req; this.origin = null; } }
-    R.replay = null; R.modal = null; R.messages = [];
+    R.replay = null; R.modal = null;
     function ask(req) {
         const rp = R.replay;
         if (rp && rp.idx < rp.answers.length) return rp.answers[rp.idx++];
@@ -1108,15 +1108,17 @@ const B = (() => {
     });
 
     // ------------------------------------------------------------------ input
-    B.keyboard_check = k => (k === 1 ? R.keys.size > 0 : k === 0 ? R.keys.size === 0 : R.keys.has(Math.round(k)));
-    B.keyboard_check_pressed = k => (k === 1 ? R.pressed.size > 0 : R.pressed.has(Math.round(k)));
-    B.keyboard_check_released = k => (k === 1 ? R.released.size > 0 : R.released.has(Math.round(k)));
+    B.keyboard_check = k => (k === 1 ? R.keys.size + R.fPressed.size > 0 : k === 0 ? R.keys.size + R.fPressed.size === 0 : R.keys.has(Math.round(k)) || R.fPressed.has(Math.round(k)));
+    // pressed/released state belongs to the whole frame (step and draw events see the same presses)
+    R.fPressed = new Set(); R.fReleased = new Set(); R.fmPressed = new Set(); R.fmReleased = new Set();
+    B.keyboard_check_pressed = k => (k === 1 ? R.fPressed.size > 0 : R.fPressed.has(Math.round(k)));
+    B.keyboard_check_released = k => (k === 1 ? R.fReleased.size > 0 : R.fReleased.has(Math.round(k)));
     B.keyboard_check_direct = B.keyboard_check;
     B.keyboard_clear = k => { R.keys.delete(k); return 0; };
-    B.io_clear = () => { R.keys.clear(); R.mouse.buttons.clear(); return 0; };
+    B.io_clear = () => { for (const s of [R.keys, R.mouse.buttons, R.pressed, R.released, R.fPressed, R.fReleased, R.mouse.pressed, R.mouse.released, R.fmPressed, R.fmReleased]) s.clear(); return 0; };
     B.mouse_check_button = b => (b === -1 ? R.mouse.buttons.size > 0 : b === 0 ? R.mouse.buttons.size === 0 : R.mouse.buttons.has(b));
-    B.mouse_check_button_pressed = b => (b === -1 ? R.mouse.pressed.size > 0 : R.mouse.pressed.has(b));
-    B.mouse_check_button_released = b => (b === -1 ? R.mouse.released.size > 0 : R.mouse.released.has(b));
+    B.mouse_check_button_pressed = b => (b === -1 ? R.fmPressed.size > 0 : R.fmPressed.has(b));
+    B.mouse_check_button_released = b => (b === -1 ? R.fmReleased.size > 0 : R.fmReleased.has(b));
     B.mouse_clear = b => { R.mouse.buttons.delete(b); return 0; };
 
     // ------------------------------------------------------------------ rooms
@@ -1131,9 +1133,49 @@ const B = (() => {
     Object.defineProperty(B, 'room_last', { get: () => roomOrder()[roomOrder().length - 1] });
     B.game_restart = () => { R.pendingRestart = true; return 0; };
     // sleep() freezes the game in GameMaker; here the frame loop pauses for that long
-    B.sleep = ms => { R.sleepUntil = Math.max(R.sleepUntil || 0, performance.now() + Math.max(0, ms)); return 0; };
-    B.screen_redraw = () => { const keep = R.ctx; draw(); R.ctx = keep; return 0; };
-    B.screen_refresh = () => 0;
+    // ---- the presentation queue
+    // GameMaker games often draw, call screen_refresh() and sleep() / keyboard_wait() inside one event
+    // (fades, freeze-frames, "press any key"). The browser can't block, so those calls capture the
+    // screen into a queue of frames with hold times; show_message and the high-score table queue up
+    // in the same order. After the step, the queue plays back before the game continues.
+    R.queue = [];
+    function snapshot() {
+        const src = R.mainCtx.canvas, c = makeCanvas(src.width, src.height);
+        c.getContext('2d').drawImage(src, 0, 0);
+        R.queue.push({ kind: 'frame', canvas: c, hold: 0, waitKey: false });
+    }
+    function lastFrame() {
+        const q = R.queue[R.queue.length - 1];
+        if (q && q.kind === 'frame') return q;
+        snapshot(); return R.queue[R.queue.length - 1];
+    }
+    B.screen_refresh = () => { snapshot(); return 0; };
+    B.screen_redraw = () => { const keep = R.ctx; draw(); R.ctx = keep; snapshot(); return 0; };
+    B.sleep = ms => { lastFrame().hold += Math.max(0, ms); return 0; };
+    B.keyboard_wait = () => { lastFrame().waitKey = true; return 0; };
+    B.mouse_wait = B.keyboard_wait;
+    let pumping = false;
+    function pump() {
+        if (pumping || !R.queue.length) return;
+        pumping = true;
+        const item = R.queue[0];
+        const next = () => { R.queue.shift(); pumping = false; if (R.queue.length) pump(); };
+        if (item.kind === 'frame') {
+            const ctx = R.mainCtx; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+            ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(item.canvas, 0, 0); ctx.restore();
+            const afterHold = () => {
+                if (!item.waitKey) return next();
+                const done = e => { window.removeEventListener('keydown', done, true); R.canvas.removeEventListener('mousedown', done, true); e.preventDefault(); next(); };
+                window.addEventListener('keydown', done, true); R.canvas.addEventListener('mousedown', done, true);
+            };
+            if (item.hold > 0) setTimeout(afterHold, item.hold); else afterHold();
+        } else if (item.kind === 'message') {
+            showDialog({ kind: 'message', text: item.text }, next);
+        } else if (item.kind === 'highscore') {
+            showHighscore(item, next);
+        } else next();
+    }
+    B._pump = pump;
     B.io_handle = () => 0;
     B.window_set_caption = s => { B.room_caption = s; return 0; };
     B.window_get_caption = () => B.room_caption;
@@ -1568,6 +1610,97 @@ const B = (() => {
         B.sound_stop(i); s.url = url; s.kind = kind === 3 ? 1 : kind; return 0;
     };
 
+
+    // ------------------------------------------------------------------ high-score table (kept in localStorage)
+    const HS = { back: -1, border: true, colBack: 16777215, colNew: 255, colOther: 0, font: 'Arial', size: 10, bold: false,
+                 caption: 'Top Ten Players', nobody: '<nobody>', escape: 'press <Escape> to close' };
+    const hsKey = () => 'gm-revive-highscores:' + (R.baseTitle || document.title);
+    function hsLoad() {
+        try { const v = JSON.parse(localStorage.getItem(hsKey())); if (Array.isArray(v) && v.length === 10) return v; } catch (e) { }
+        return Array.from({ length: 10 }, () => ({ name: HS.nobody, score: 0 }));
+    }
+    function hsSave(t) { try { localStorage.setItem(hsKey(), JSON.stringify(t)); } catch (e) { } }
+    Object.assign(B, {
+        highscore_set_background: b => { HS.back = b; return 0; },
+        highscore_set_border: v => { HS.border = B.T(v); return 0; },
+        highscore_set_colors: (back, nw, other) => { Object.assign(HS, { colBack: back, colNew: nw, colOther: other }); return 0; },
+        highscore_set_font: (name, size, style) => {
+            const f = typeof name === 'string' ? name : (R.fonts[name] ? R.fonts[name].font : 'Arial');
+            Object.assign(HS, { font: f, size: size || 10, bold: (style & 1) === 1 }); return 0;
+        },
+        highscore_set_strings: (cap, nobody, esc) => { Object.assign(HS, { caption: cap, nobody, escape: esc }); return 0; },
+        highscore_clear: () => { hsSave(Array.from({ length: 10 }, () => ({ name: HS.nobody, score: 0 }))); return 0; },
+        highscore_add: (name, score) => { const t = hsLoad(); t.push({ name: B.string(name), score }); t.sort((a, b) => b.score - a.score); hsSave(t.slice(0, 10)); return 0; },
+        highscore_value: n => (hsLoad()[n - 1] || { score: 0 }).score,
+        highscore_name: n => (hsLoad()[n - 1] || { name: '' }).name,
+        highscore_show: score => { R.queue.push({ kind: 'highscore', score, opts: { ...HS } }); if (!R.inFrame) pump(); return 0; },
+        draw_highscore: (x1, y1, x2, y2) => {
+            const t = hsLoad(), h = (y2 - y1) / 10;
+            t.forEach((e, k) => { const ha = D.halign; D.halign = 0; B.draw_text(x1, y1 + k * h, e.name); D.halign = 2; B.draw_text(x2, y1 + k * h, B.string(e.score)); D.halign = ha; });
+            return 0;
+        },
+        action_highscore_show: (self, back, border, newcol, othercol, font) => {
+            const m = /^\s*"([^"]*)"\s*,\s*(\d+)\s*,\s*(\d+)/.exec(String(font || ''));
+            Object.assign(HS, { back, border: !!border, colNew: newcol, colOther: othercol });
+            if (m) Object.assign(HS, { font: m[1], size: +m[2], bold: m[3] === '1' });
+            return B.highscore_show(B.score);
+        },
+        action_highscore_clear: () => B.highscore_clear(),
+    });
+    function showHighscore(item, done) {
+        const o = item.opts, table = hsLoad();
+        let rank = table.findIndex(e => item.score > e.score);
+        if (rank >= 0) { table.splice(rank, 0, { name: '', score: item.score }); table.length = 10; }
+        const layer = dialogLayer(); layer.style.background = 'rgba(0,0,0,.35)';
+        const box = document.createElement('div');
+        const bg = R.backgrounds[o.back];
+        box.style.cssText = `min-width:300px;padding:18px 26px;color:${css(o.colOther)};background:${css(o.colBack)};` +
+            `font:${o.bold ? 'bold ' : ''}${Math.round(o.size * 96 / 72)}px "${o.font}",Arial,sans-serif;` +
+            (o.border ? 'border:2px solid #000;box-shadow:0 4px 18px rgba(0,0,0,.5);' : '');
+        if (bg && bg.image) { const c = toCanvas(bg.image); box.style.backgroundImage = `url(${c.toDataURL()})`; }
+        const h = document.createElement('div'); h.textContent = o.caption; h.style.cssText = 'text-align:center;font-weight:bold;margin-bottom:10px;';
+        box.appendChild(h);
+        let input = null;
+        table.forEach((e, k) => {
+            const row = document.createElement('div'); row.style.cssText = 'display:flex;justify-content:space-between;gap:24px;';
+            if (k === rank) row.style.color = css(o.colNew);
+            const name = document.createElement('span'), sc = document.createElement('span');
+            sc.textContent = String(e.score);
+            if (k === rank) {
+                input = document.createElement('input'); input.maxLength = 20;
+                input.style.cssText = 'font:inherit;color:inherit;background:transparent;border:0;border-bottom:1px solid currentColor;width:12em;outline:none;';
+                name.appendChild(input);
+            } else name.textContent = e.name;
+            row.appendChild(name); row.appendChild(sc); box.appendChild(row);
+        });
+        const foot = document.createElement('div'); foot.textContent = o.escape; foot.style.cssText = 'text-align:center;margin-top:12px;font-size:85%;';
+        box.appendChild(foot); layer.appendChild(box);
+        const close = () => {
+            window.removeEventListener('keydown', onKey, true);
+            layer.style.display = 'none'; layer.innerHTML = '';
+            if (rank >= 0) { table[rank].name = (input && input.value.trim()) || o.nobody; hsSave(table); }
+            done();
+        };
+        const onKey = e => {
+            if (input && document.activeElement === input) {
+                if (e.key === 'Enter') { e.preventDefault(); const v = input.value; input.replaceWith(document.createTextNode(v || o.nobody)); input = { value: v }; }
+                return;
+            }
+            if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); close(); }
+        };
+        window.addEventListener('keydown', onKey, true);
+        if (input) input.focus();
+    }
+    // file pickers and sound loading at runtime are not available in the browser build
+    B.get_open_filename = () => '';
+    B.get_save_filename = () => '';
+    B.sound_exists = i => !!R.sounds[Math.round(i)];
+    B.sound_add = (fname, kind, preload) => {
+        const url = R.extraFiles[normFile(fname)]; if (!url || typeof url !== 'string') return -1;
+        R.sounds.push({ name: fname, url, kind, volume: 1, playing: [] }); return R.sounds.length - 1;
+    };
+    B.sound_delete = i => { B.sound_stop(i); R.sounds[Math.round(i)] = null; return 0; };
+
     // ------------------------------------------------------------------ files (bundled extra files next to the game)
     function normFile(f) { return String(f).replace(/\\/g, '/').replace(/^(\.?\/)+/, '').toLowerCase(); }
     B.file_exists = f => normFile(f) in R.extraFiles;
@@ -1640,7 +1773,11 @@ const B = (() => {
     }
 
     function step() {
-        const keysDown = [...R.keys], pressed = [...R.pressed], released = [...R.released];
+        // take this frame's input; anything arriving from now on belongs to the next frame
+        R.fPressed = R.pressed; R.pressed = new Set(); R.fReleased = R.released; R.released = new Set();
+        R.fmPressed = R.mouse.pressed; R.mouse.pressed = new Set(); R.fmReleased = R.mouse.released; R.mouse.released = new Set();
+        // a key tapped between two frames still counts as held for the frame that sees the press
+        const keysDown = [...new Set([...R.keys, ...R.fPressed])], pressed = [...R.fPressed], released = [...R.fReleased];
         const m = R.mouse;
         forEachLive(i => runEvent(i, 'step_1', i));                               // begin step
         forEachLive(i => {                                                         // alarms
@@ -1664,8 +1801,8 @@ const B = (() => {
             for (const b of [1, 2, 3]) {
                 const ev = MOUSE_EV[b];
                 if (m.buttons.has(b)) { if (over) runEvent(i, 'mouse_' + ev[0], i); runEvent(i, 'mouse_' + ev[3], i); }
-                if (m.pressed.has(b)) { if (over) runEvent(i, 'mouse_' + ev[1], i); runEvent(i, 'mouse_' + ev[4], i); }
-                if (m.released.has(b)) { if (over) runEvent(i, 'mouse_' + ev[2], i); runEvent(i, 'mouse_' + ev[5], i); }
+                if (R.fmPressed.has(b)) { if (over) runEvent(i, 'mouse_' + ev[1], i); runEvent(i, 'mouse_' + ev[4], i); }
+                if (R.fmReleased.has(b)) { if (over) runEvent(i, 'mouse_' + ev[2], i); runEvent(i, 'mouse_' + ev[5], i); }
             }
             if (over && !i.__over) runEvent(i, 'mouse_10', i);
             if (!over && i.__over) runEvent(i, 'mouse_11', i);
@@ -1702,7 +1839,7 @@ const B = (() => {
         });
         R.psys.forEach((ps, k) => { if (ps && ps.autoUpdate) B.part_system_update(k); });
         compact();
-        R.pressed.clear(); R.released.clear(); m.pressed.clear(); m.released.clear(); m.wheel = 0;
+        m.wheel = 0;
     }
 
     function draw() {
@@ -1768,22 +1905,27 @@ const B = (() => {
     }
 
     function frame() {
-        if (R.modal || R.messages.length) return;          // a dialog is open: the game is paused
+        if (R.modal || R.queue.length) return;             // a dialog or captured frames are showing: paused
+        R.inFrame = true;
         try {
             if (R.pendingRestart) { R.pendingRestart = false; restartGame(); }
             if (R.pendingRoom !== null) { const r = R.pendingRoom; R.pendingRoom = null; gotoRoom(r); }
             if (R.ended) return;
             step(); draw();
         } catch (e) {
+            R.inFrame = false;
             if (e instanceof ModalSuspend) { openModal(e, []); return; }
             reportError(e); throw e;
         }
+        R.inFrame = false;
         R.frameCount++;
+        if (R.queue.length) pump();
     }
 
     function openModal(e, answers) {
         R.modal = { origin: e.origin, answers, req: e.req };
         R.pressed.clear(); R.released.clear(); R.mouse.pressed.clear(); R.mouse.released.clear();
+        R.fPressed.clear(); R.fReleased.clear(); R.fmPressed.clear(); R.fmReleased.clear();
         showDialog(e.req, value => {
             const m = R.modal; R.modal = null;
             R.mouse.buttons.clear(); R.keys.clear();
@@ -1794,6 +1936,7 @@ const B = (() => {
                 if (err instanceof ModalSuspend) { err.origin = err.origin || m.origin; openModal(err, R.replay.answers); }
                 else { reportError(err); }
             } finally { R.replay = null; }
+            pump();
         });
     }
 
@@ -1875,11 +2018,7 @@ const B = (() => {
         }
         window.addEventListener('keydown', onKey, true);
     }
-    function nextMessage() {
-        if (!R.messages.length) return;
-        showDialog({ kind: 'message', text: R.messages[0] }, () => { R.messages.shift(); nextMessage(); });
-    }
-    B.show_message = s => { R.messages.push(B.string(s)); if (R.messages.length === 1) nextMessage(); return 0; };
+    B.show_message = s => { R.queue.push({ kind: 'message', text: B.string(s) }); if (!R.inFrame) pump(); return 0; };
     B.show_menu = (str, def) => ask({ kind: 'menu', items: B.string(str).split('|'), def });
     B.show_menu_pos = (x, y, str, def) => ask({ kind: 'menu', items: B.string(str).split('|'), def });
     B.get_integer = (str, def) => ask({ kind: 'integer', text: str, def });
@@ -1901,7 +2040,7 @@ const B = (() => {
             return 0;
         };
         window.addEventListener('keydown', e => {
-            if (R.modal || R.messages.length) return;     // keys go to the open dialog
+            if (R.modal || R.queue.length) return;        // keys go to the open dialog / key wait
             const k = keyCode(e); if (!k) return;
             if ((k >= 112 && k <= 123) || (k >= 37 && k <= 40) || k === 32) e.preventDefault();
             if (!R.keys.has(k)) R.pressed.add(k);
@@ -1933,8 +2072,8 @@ const B = (() => {
             const dt = Math.min(250, now - last); last = now; acc += dt;
             const stepMs = 1000 / B.room_speed;
             let n = 0;
-            if (R.sleepUntil && now < R.sleepUntil) { acc = 0; requestAnimationFrame(loop); return; }
-            while (acc >= stepMs && n < 4) { frame(); acc -= stepMs; n++; frames++; if (R.sleepUntil > performance.now()) break; }
+            if (R.queue.length || R.modal) { acc = 0; requestAnimationFrame(loop); return; }
+            while (acc >= stepMs && n < 4) { frame(); acc -= stepMs; n++; frames++; if (R.queue.length || R.modal) break; }
             if (n === 4) acc = 0;
             if (now - R.fpsTime >= 1000) { R.fps = Math.round(frames * 1000 / (now - R.fpsTime)); frames = 0; R.fpsTime = now; }
             requestAnimationFrame(loop);
