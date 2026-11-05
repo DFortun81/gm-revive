@@ -35,7 +35,7 @@ transition_kind transition_steps error_occurred error_last debug_mode game_id se
 event_type event_number event_object event_action
 pi true false noone all
 '''.split())
-BUILTIN_PREFIXES = ('c_', 'bm_', 'fa_', 'vk_', 'pr_', 'ev_', 'mb_', 'ty_', 'se_', 'cr_', 'ef_', 'ps_', 'dll_')
+BUILTIN_PREFIXES = ('c_', 'bm_', 'fa_', 'vk_', 'pr_', 'ev_', 'mb_', 'ty_', 'se_', 'cr_', 'ef_', 'ps_', 'pt_', 'dll_', 'tr_')
 
 # Built-in array variables: used without an index they mean element 0 (view_xview == view_xview[0])
 BUILTIN_ARRAYS = set('''
@@ -53,7 +53,8 @@ instance_place move_towards_point move_snap move_wrap move_random motion_set mot
 distance_to_object distance_to_point draw_self draw_sprite draw_sprite_ext
 action_kill_object sprite_collision_mask path_start path_end timeline_set
 mp_linear_step mp_potential_step instance_nearest_self
-event_user event_perform event_perform_object collision_rectangle collision_point collision_circle collision_line
+event_user event_perform event_perform_object move_bounce_solid move_bounce_all move_contact_solid
+move_contact_all move_outside_solid move_outside_all collision_rectangle collision_point collision_circle collision_line
 collision_ellipse path_start
 '''.split())
 
@@ -526,6 +527,15 @@ def prescan_globalvars(ctx, sources):
             for n in m.group(1).split(','):
                 n = n.strip().split()[0] if n.strip() else ''
                 if n: ctx.globalvars.add(n)
+
+
+def translate_expr(ctx, src):
+    """Translate a single GML expression (used for drag & drop action arguments)."""
+    p = Parser(src)
+    e = p.expr()
+    if p.peek().t != 'eof' and not (p.peek().t == 'op' and p.peek().v == ';'):
+        raise ParseError(f'unexpected text after expression: {src!r}')
+    return Emitter(ctx, [], set(), False).ex(e)
 
 
 def translate(ctx, src, is_script, ind=1):

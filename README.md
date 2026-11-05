@@ -2,7 +2,7 @@
 
 Bring old GameMaker games back to life in the browser.
 
-gm-revive reads a GameMaker 7 or 8 project file (`.gmk`), translates its GML code into JavaScript, extracts the
+gm-revive reads a GameMaker 6, 7 or 8 project file (`.gm6` / `.gmk`), translates its GML code into JavaScript, extracts the
 sprites, sounds and fonts, and produces a folder you can open in any modern browser — no GameMaker, no Windows.
 
 It started as a way to rescue games written in college that only ran as old Windows executables.
@@ -57,13 +57,15 @@ to work on next.
 | GameMaker 8.0 `.gmk` | ✅ Reads everything: scripts, objects, events, rooms, views, tiles, backgrounds, timelines, paths, sprites, sounds, fonts, constants, game info |
 | GameMaker 7 `.gmk` | ✅ Decrypts and reads the same data (images are stored as BMPs; the transparent colour is applied) |
 | GameMaker 8.1 `.gm81` | ❌ Detected; format is close to 8.0 |
-| GameMaker 5/6 `.gm6`, `.gmd` | ❌ Detected |
+| GameMaker 6 `.gm6` | ✅ Same layout as GM7, without the encryption |
+| GameMaker 5 `.gmd` | ❌ Detected |
 | GameMaker Studio `.gmx` / `.yyp` | ❌ Detected; these are plain-text formats and should be the easiest to add |
 | GML code | ✅ Full GM8 syntax: `begin/end`, `:=`, `=` as comparison, `and/or/xor/not/div/mod`, `with`, `repeat`, `do…until`, `switch`, `var`, `globalvar`, 1D/2D arrays |
-| Drag & drop actions | ❌ Reported, not yet translated (code actions work) |
+| Drag & drop actions | ✅ Questions, blocks, else, repeat, exit, set variable, apply-to and relative; ~90 standard actions (move, instances, sound, rooms, score/lives/health, drawing). Unknown ones are reported |
 | Built-in functions | ~350 implemented — instances, drawing, sprites, surfaces, ds_list/map/grid/stack/queue/priority, paths and path motion, mp_grid path finding, collision checks, input, sound, rooms and room order, views, strings, math |
 | Blocking dialogs | ✅ `show_menu`, `get_integer`, `get_string`, `show_question` pause the game and show an HTML dialog; the interrupted event re-runs with the answer. `show_message` pauses until dismissed |
 | Collision events | ✅ Bounding-box only (no per-pixel masks) |
+| Particle systems | ✅ Types, emitters (burst/stream), automatic update and draw; built-in shapes are drawn procedurally |
 | Extensions | WinSkin re-implemented; others need a JS replacement |
 
 ## How the translation works
@@ -90,7 +92,7 @@ step → timelines → motion → collisions → end step → animation → draw
 
 ```
 gm_revive/
-  gmk.py          .gmk reader for GM7 and GM8 (and format detection)
+  gmk.py          .gm6/.gmk reader for GM6, GM7 and GM8 (and format detection)
   gml2js.py       GML parser and JavaScript emitter
   build.py        writes the HTML5 build
   report.py       compatibility report

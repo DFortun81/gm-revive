@@ -1,7 +1,7 @@
 """Reader for GameMaker project files.
 
-Supported: GameMaker 7 (.gmk, file version 701/702) and GameMaker 8.0 (.gmk, version 800).
-Detected but not yet readable: GM 5.x/6.x (.gm6), GM 8.1 (.gm81, v810),
+Supported: GameMaker 6 (.gm6, file version 600), GameMaker 7 (.gmk, 701/702) and GameMaker 8.0 (.gmk, 800).
+Detected but not yet readable: GM 5.x (.gmd), GM 8.1 (.gm81, v810),
 GameMaker Studio 1 (.gmx folders) and Studio 2 (.yyp).
 """
 import os
@@ -120,7 +120,7 @@ def load(path):
     fmt, ver = detect(path)
     if fmt is None:
         raise UnsupportedFormat(None, f'{path}: not a GameMaker project file')
-    if ver in (701, 702):
+    if ver in (600, 701, 702):
         return _load_gm7(path, fmt, ver)
     if ver != 800:
         raise UnsupportedFormat(fmt, f'{path}: {fmt} files are not supported yet')
@@ -301,7 +301,7 @@ if __name__ == '__main__':
 
 
 # ---------------------------------------------------------------------------------------------------
-# GameMaker 7 (.gmk version 701/702)
+# GameMaker 6 (.gm6, version 600) and GameMaker 7 (.gmk version 701/702)
 #
 # GM7 files are obfuscated with a byte-substitution cipher. The header holds two runs of junk ints with
 # the seed between them; everything after the first byte of the game id is encoded as
@@ -397,8 +397,11 @@ def _gm7_image(r, transparent):
 def _load_gm7(path, fmt, ver):
     with open(path, 'rb') as fh:
         raw = fh.read()
-    plain, p = _gm7_decrypt(raw)
-    f = _Reader(plain, p)
+    if ver == 600:                       # GameMaker 6 uses the same layout without the cipher
+        f = _Reader(raw, 8)
+    else:
+        plain, p = _gm7_decrypt(raw)
+        f = _Reader(plain, p)
     g = {'format': fmt, 'version': ver, 'constants': {}, 'extensions': [], 'include_files': 0}
     g['game_id'] = f.int()
     f.skip(16)

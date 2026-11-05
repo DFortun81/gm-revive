@@ -15,6 +15,9 @@ def implemented_builtins():
         src = fh.read()
     names = set(re.findall(r'\bB\.(\w+)\s*=', src))
     names |= set(re.findall(r"defineProperty\(B,\s*'(\w+)'", src))
+    for block in re.findall(r'Object\.assign\(B, \{(.*?)\n    \}\);', src, re.S):   # grouped definitions
+        names |= set(re.findall(r'^\s{8}(\w+):', block, re.M))
+        names |= set(re.findall(r'\b(\w+): -?\d', block))
     m = re.search(r'const C = \{(.*?)\n    \};', src, re.S)           # the constants table (c_red, vk_left, ...)
     if m:
         names |= set(re.findall(r'(\w+):', m.group(1)))

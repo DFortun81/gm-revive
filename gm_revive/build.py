@@ -9,7 +9,7 @@ import tempfile
 import zlib
 
 from .gmk import load, RESOURCE_KINDS
-from .gml2js import Context, translate, prescan_globalvars, ParseError
+from .gml2js import Context, translate, translate_expr, prescan_globalvars, ParseError
 from .rtf2html import rtf_to_html
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -104,26 +104,98 @@ class Conversion:
             msg = json.dumps(f'{where} failed to translate: {e}')
             return '    ' * ind + f'throw new Error({msg});\n', -1, False
 
-    def _actions(self, acts, where):
-        parts = []
-        for a in acts:
-            if a['kind'] != 7:
-                name = a['func'] or f'action {a["lib"]}/{a["id"]}'
-                if a['kind'] not in (8, 9, 10):   # placeholders, separators, labels are harmless
-                    self.dnd_actions[name] = self.dnd_actions.get(name, 0) + 1
-                parts.append(f'            // TODO: drag & drop action not converted: {name}\n')
-                continue
-            body, _, _ = self._tr(a['args'][0], False, 3, where)
+    # ---- drag & drop actions -------------------------------------------------------------------
+    # Action argument kinds: 0 expression, 1 string, 2 string or expression, 3 boolean, 4 menu,
+    # 5 sprite, 6 sound, 7 background, 8 path, 9 script, 10 object, 11 room, 12 font, 13 colour,
+    # 14 timeline, 15 font string
+    def _arg(self, kind, val, where):
+        if kind == 0 or (kind == 2 and val.strip()[:1] in ('"', "'")):
+            try:
+                return translate_expr(self.ctx, val if val.strip() else '0')
+            except ParseError as e:
+                self.errors.append(f'{where}: action argument {val!r}: {e}')
+                return '0'
+        if kind in (1, 2, 15):
+            return json.dumps(val)
+        try:
+            return str(int(float(val or 0)))
+        except ValueError:
+            return json.dumps(val)
+
+    def _call(self, a, where):
+        n = a['argc']
+        args = [self._arg(k, v, where) for k, v in zip(a['argkinds'][:n], a['args'][:n])]
+        args = ['self'] + args + (['true' if a['relative'] else 'false'] if a['relative_allowed'] else [])
+        self.ctx.used_builtins.add(a['func'])
+        return f'B.{a["func"]}({", ".join(args)})'
+
+    def _wrap_applies(self, a, js, pad):
+        """Run js for the action's 'applies to' target (self, other or every instance of an object)."""
+        if a['applies'] == -1:
+            return js
+        target = 'other.id' if a['applies'] == -2 else str(a['applies'])
+        inner = ''.join('    ' + line + '\n' for line in js.rstrip('\n').split('\n'))
+        return (f'{pad}{{ const __a = B.with({target}, self, other);\n{pad}for (const [self, other] of __a) {{\n'
+                + inner + f'{pad}}} }}\n')
+
+    def _action_block(self, acts, i, where, ind):
+        """Translate the action at acts[i] (plus any block/else that belongs to it). Returns (js, next_i)."""
+        pad = '    ' * ind
+        a = acts[i]
+        k = a['kind']
+        if k == 7:                                   # code
+            body, _, _ = self._tr(a['args'][0] if a['args'] else '', False, ind + 1, where)
+            js = f'{pad}(function () {{\n{body}{pad}}})();\n'
+            return self._wrap_applies(a, js, pad), i + 1
+        if k == 1:                                   # start of block
+            out, i = [], i + 1
+            while i < len(acts) and acts[i]['kind'] != 2:
+                js, i = self._action_block(acts, i, where, ind + 1)
+                out.append(js)
+            return f'{pad}{{\n' + ''.join(out) + f'{pad}}}\n', i + 1
+        if k in (2, 8, 9, 10):                       # stray end of block, placeholder, separator, label
+            return '', i + 1
+        if k == 3:                                   # else without an if: ignore
+            return '', i + 1
+        if k == 4:                                   # exit event
+            return f'{pad}return;\n', i + 1
+        if k == 5:                                   # repeat next action/block
+            n = self._arg(0, a['args'][0] if a['args'] else '1', where)
+            body, j = self._action_block(acts, i + 1, where, ind + 1) if i + 1 < len(acts) else ('', i + 1)
+            t = f'__r{i}'
+            return f'{pad}for (let {t} = Math.round({n}); {t} > 0; {t}--) {{\n{body}{pad}}}\n', j
+        if k == 6:                                   # set variable
+            name, val = (a['args'] + ['', ''])[:2]
+            code = f'{name} {"+=" if a["relative"] else "="} {val or 0}'
+            body, _, _ = self._tr(code, False, ind, where)
+            return self._wrap_applies(a, body, pad), i + 1
+        if k == 0 and a['exec'] == 1 and a['func']:  # library function
+            call = self._call(a, where)
+            if not a['question']:
+                return self._wrap_applies(a, f'{pad}{call};\n', pad), i + 1
             if a['applies'] != -1:
                 target = 'other.id' if a['applies'] == -2 else str(a['applies'])
-                body = (f'            for (const [self, other] of B.with({target}, __s, __o)) {{\n'
-                        + body.replace('\n            ', '\n                ') + '            }\n')
-                parts.append('            (function (__s, __o) {\n' + body + '            })(self, other);\n')
-            elif len(acts) > 1:
-                parts.append('            (function () {\n' + body + '            })();\n')
-            else:
-                parts.append(body)
-        return ''.join(parts)
+                call = f'B.withAll({target}, self, other, (self, other) => {call})'
+            cond = f'!B.T({call})' if a['not'] else f'B.T({call})'
+            then, j = self._action_block(acts, i + 1, where, ind + 1) if i + 1 < len(acts) else ('', i + 1)
+            js = f'{pad}if ({cond}) {{\n{then}{pad}}}'
+            if j < len(acts) and acts[j]['kind'] == 3:
+                els, j = self._action_block(acts, j + 1, where, ind + 1) if j + 1 < len(acts) else ('', j + 1)
+                js += f' else {{\n{els}{pad}}}'
+            return js + '\n', j
+        name = a['func'] or f'action {a["lib"]}/{a["id"]}'
+        self.dnd_actions[name] = self.dnd_actions.get(name, 0) + 1
+        return f'{pad}// TODO: drag & drop action not converted: {name}\n', i + 1
+
+    def _actions(self, acts, where):
+        if len(acts) == 1 and acts[0]['kind'] == 7 and acts[0]['applies'] == -1:
+            body, _, _ = self._tr(acts[0]['args'][0], False, 3, where)   # the common case: one code action
+            return body
+        out, i = [], 0
+        while i < len(acts):
+            js, i = self._action_block(acts, i, where, 3)
+            out.append(js)
+        return ''.join(out)
 
     def _generate(self, source_name):
         g = self.g
@@ -311,8 +383,7 @@ def convert(gmk_path, out_dir, extra_dir=None, soundfont=None, log=print):
     with open(os.path.join(out_dir, 'images.js'), 'w', encoding='utf-8') as fh:
         fh.write('// Embedded image data (generated by gm-revive)\nconst IMAGE_DATA = ' + json.dumps(imgs) + ';\n')
 
-    room0 = next((r for r in g['rooms'] if r), None)
-    title = (room0 and room0['caption']) or os.path.splitext(os.path.basename(gmk_path))[0]
+    title = os.path.splitext(os.path.basename(gmk_path))[0]
     with open(os.path.join(RUNTIME_DIR, 'index_template.html'), encoding='utf-8') as fh:
         tpl = fh.read()
     tpl = tpl.replace('{{TITLE}}', title).replace('{{INFO}}', rtf_to_html(g['game_info_rtf']))

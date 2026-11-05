@@ -80,7 +80,12 @@ const B = (() => {
     B.view_enabled = false; B.view_current = 0;
     B.room_width = 640; B.room_height = 480; B.room_speed = 30; B.room_caption = '';
     B.working_directory = '.'; B.program_directory = '.'; B.temp_directory = '.';
-    B.score = 0; B.lives = 0; B.health = 100;
+    B.score = 0; B.transition_kind = 0; B.transition_steps = 80;
+    let lives = -1, health = 100;
+    Object.defineProperty(B, 'lives', { get: () => lives, set: v => { if (v <= 0 && lives > 0) R.noMoreLives = true; lives = v; } });
+    Object.defineProperty(B, 'health', { get: () => health, set: v => { if (v <= 0 && health > 0) R.noMoreHealth = true; health = v; } });
+    B.show_score = false; B.show_lives = false; B.show_health = false;
+    B.caption_score = 'Score: '; B.caption_lives = 'Lives: '; B.caption_health = 'Health: ';
     B.keyboard_key = 0; B.keyboard_lastkey = 0; B.keyboard_lastchar = ''; B.keyboard_string = '';
     Object.defineProperty(B, 'fps', { get: () => R.fps });
     Object.defineProperty(B, 'mouse_x', { get: () => R.mouse.x + B.view_xview[0] });
@@ -314,7 +319,8 @@ const B = (() => {
     B.instance_find = function (obj, n) { const l = resolve(obj, null, null); return l[n] ? l[n].id : -4; };
     B.instance_nearest = function (x, y, obj) {
         let best = -4, bd = Infinity;
-        for (const i of resolve(obj, null, null)) { const d = Math.hypot(i.x - x, i.y - y); if (d < bd) { bd = d; best = i.id; } }
+        // ties go to the most recently created instance, as in GameMaker (games such as Ball Attak rely on it)
+        for (const i of resolve(obj, null, null)) { const d = Math.hypot(i.x - x, i.y - y); if (d <= bd) { bd = d; best = i.id; } }
         return best;
     };
     B.instance_furthest = function (x, y, obj) {
@@ -346,10 +352,81 @@ const B = (() => {
         const b = self.__bbox(); if (!b) return Math.hypot(self.x - x, self.y - y);
         const dx = Math.max(b.l - x, 0, x - b.r), dy = Math.max(b.t - y, 0, y - b.b); return Math.hypot(dx, dy);
     };
+    // Distance between bounding boxes (inclusive pixel coordinates, like GameMaker): 0 when they overlap
+    function bboxGap(a, b) {
+        const al = a.bbox_left, ar = a.bbox_right, at = a.bbox_top, ab = a.bbox_bottom;
+        const bl = b.bbox_left, br = b.bbox_right, bt = b.bbox_top, bb = b.bbox_bottom;
+        const dx = al > br ? al - br : bl > ar ? bl - ar : 0;
+        const dy = at > bb ? at - bb : bt > ab ? bt - ab : 0;
+        return Math.hypot(dx, dy);
+    }
     B.distance_to_object = function (self, obj) {
-        let best = 1e6;
-        for (const i of resolve(obj, self, null)) if (i !== self) best = Math.min(best, Math.hypot(i.x - self.x, i.y - self.y));
+        let best = 1000000;
+        for (const i of resolve(obj, self, null)) if (i !== self) best = Math.min(best, bboxGap(self, i));
         return best;
+    };
+    function meetsAt(self, x, y, test) {
+        const ox = self.x, oy = self.y; self.x = x; self.y = y;
+        const a = self.__bbox(); self.x = ox; self.y = oy;
+        if (!a) return false;
+        for (const i of R.instances) {
+            if (i === self || i.__dead || !test(i)) continue; const b = i.__bbox();
+            if (b && a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t) return true;
+        }
+        return false;
+    }
+    B.place_free = (self, x, y) => !meetsAt(self, x, y, i => i.solid);
+    B.place_empty = (self, x, y) => !meetsAt(self, x, y, () => true);
+    function bounce(self, test) {
+        const hs = self.hspeed, vs = self.vspeed;
+        const hit = (x, y) => meetsAt(self, x, y, test);
+        if (!hit(self.x + hs, self.y + vs)) return 0;
+        const hb = hit(self.x + hs, self.y), vb = hit(self.x, self.y + vs);
+        if (hb) self.hspeed = -hs;
+        if (vb) self.vspeed = -vs;
+        if (!hb && !vb) { self.hspeed = -hs; self.vspeed = -vs; }
+        return 0;
+    }
+    B.move_bounce_solid = (self, adv) => bounce(self, i => i.solid);
+    B.move_bounce_all = (self, adv) => bounce(self, () => true);
+    function contact(self, dir, maxd, test) {
+        const dx = Math.cos(dir * Math.PI / 180), dy = -Math.sin(dir * Math.PI / 180);
+        if (!(maxd > 0)) maxd = 1000;
+        if (meetsAt(self, self.x, self.y, test)) return 0;
+        for (let k = 0; k < maxd; k++) {
+            if (meetsAt(self, self.x + dx, self.y + dy, test)) break;
+            self.x += dx; self.y += dy;
+        }
+        return 0;
+    }
+    B.move_contact_solid = (self, dir, maxd) => contact(self, dir, maxd, i => i.solid);
+    B.move_contact_all = (self, dir, maxd) => contact(self, dir, maxd, () => true);
+    function outside(self, dir, maxd, test) {
+        const dx = Math.cos(dir * Math.PI / 180), dy = -Math.sin(dir * Math.PI / 180);
+        if (!(maxd > 0)) maxd = 1000;
+        for (let k = 0; k < maxd && meetsAt(self, self.x, self.y, test); k++) { self.x += dx; self.y += dy; }
+        return 0;
+    }
+    B.move_outside_solid = (self, dir, maxd) => outside(self, dir, maxd, i => i.solid);
+    B.move_outside_all = (self, dir, maxd) => outside(self, dir, maxd, () => true);
+    B.move_snap = (self, h, v) => { if (h > 0) self.x = Math.round(self.x / h) * h; if (v > 0) self.y = Math.round(self.y / v) * v; return 0; };
+    B.move_wrap = (self, hor, vert, margin) => {
+        if (B.T(hor)) { if (self.x < -margin) self.x += B.room_width + 2 * margin; else if (self.x > B.room_width + margin) self.x -= B.room_width + 2 * margin; }
+        if (B.T(vert)) { if (self.y < -margin) self.y += B.room_height + 2 * margin; else if (self.y > B.room_height + margin) self.y -= B.room_height + 2 * margin; }
+        return 0;
+    };
+    B.move_random = (self, h, v) => {
+        for (let k = 0; k < 100; k++) {
+            let x = Math.random() * B.room_width, y = Math.random() * B.room_height;
+            if (h > 0) x = Math.floor(x / h) * h; if (v > 0) y = Math.floor(y / v) * v;
+            if (B.place_free(self, x, y)) { self.x = x; self.y = y; break; }
+        }
+        return 0;
+    };
+    B.withAll = (target, self, other, fn) => {
+        const list = resolve(target, self, other); if (!list.length) return false;
+        for (const i of list) if (!B.T(fn(i, self))) return false;
+        return true;
     };
     B.place_meeting = function (self, x, y, obj) {
         const ox = self.x, oy = self.y; self.x = x; self.y = y;
@@ -753,6 +830,283 @@ const B = (() => {
     B.path_get_point_x = (id, n) => (P(id).points[n] || { x: 0 }).x;
     B.path_get_point_y = (id, n) => (P(id).points[n] || { y: 0 }).y;
 
+
+    // ------------------------------------------------------------------ particle systems
+    // Shapes are drawn procedurally (GameMaker's built-in particle textures are 64x64 images).
+    R.psys = []; R.ptypes = [];
+    Object.assign(B, {
+        pt_shape_pixel: 0, pt_shape_disk: 1, pt_shape_square: 2, pt_shape_line: 3, pt_shape_star: 4,
+        pt_shape_circle: 5, pt_shape_ring: 6, pt_shape_sphere: 7, pt_shape_flare: 8, pt_shape_spark: 9,
+        pt_shape_explosion: 10, pt_shape_cloud: 11, pt_shape_smoke: 12, pt_shape_snow: 13,
+        ps_shape_rectangle: 0, ps_shape_ellipse: 1, ps_shape_diamond: 2, ps_shape_line: 3,
+        ps_distr_linear: 0, ps_distr_gaussian: 1, ps_distr_invgaussian: 2,
+        ps_force_constant: 0, ps_force_linear: 1, ps_force_quadratic: 2, ps_change_all: 2, ps_change_shape: 1, ps_change_motion: 0,
+    });
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const newType = () => ({
+        shape: 0, sprite: -1, sizeMin: 1, sizeMax: 1, sizeIncr: 0, sizeWiggle: 0, xs: 1, ys: 1,
+        oriMin: 0, oriMax: 0, oriIncr: 0, oriRel: false, colors: [16777215], colorMode: 'list', alphas: [1], additive: false,
+        lifeMin: 100, lifeMax: 100, speedMin: 0, speedMax: 0, speedIncr: 0, dirMin: 0, dirMax: 0, dirIncr: 0,
+        grav: 0, gravDir: 270, step: null, death: null,
+    });
+    B.part_type_create = () => { R.ptypes.push(newType()); return R.ptypes.length - 1; };
+    const PT = id => R.ptypes[Math.round(id)];
+    B.part_type_destroy = id => { R.ptypes[Math.round(id)] = null; return 0; };
+    B.part_type_exists = id => !!PT(id);
+    B.part_type_clear = id => { if (PT(id)) R.ptypes[Math.round(id)] = newType(); return 0; };
+    B.part_type_shape = (id, s) => { const t = PT(id); if (t) { t.shape = s; t.sprite = -1; } return 0; };
+    B.part_type_sprite = (id, spr, anim, stretch, random) => { const t = PT(id); if (t) t.sprite = spr; return 0; };
+    B.part_type_size = (id, mn, mx, incr, wig) => { const t = PT(id); if (t) Object.assign(t, { sizeMin: mn, sizeMax: mx, sizeIncr: incr, sizeWiggle: wig }); return 0; };
+    B.part_type_scale = (id, xs, ys) => { const t = PT(id); if (t) Object.assign(t, { xs, ys }); return 0; };
+    B.part_type_orientation = (id, mn, mx, incr, wig, rel) => { const t = PT(id); if (t) Object.assign(t, { oriMin: mn, oriMax: mx, oriIncr: incr, oriRel: B.T(rel) }); return 0; };
+    B.part_type_color1 = (id, c) => { const t = PT(id); if (t) { t.colors = [c]; t.colorMode = 'list'; } return 0; };
+    B.part_type_color2 = (id, a, b) => { const t = PT(id); if (t) { t.colors = [a, b]; t.colorMode = 'list'; } return 0; };
+    B.part_type_color3 = (id, a, b, c) => { const t = PT(id); if (t) { t.colors = [a, b, c]; t.colorMode = 'list'; } return 0; };
+    B.part_type_color = B.part_type_color3;
+    B.part_type_color_mix = (id, a, b) => { const t = PT(id); if (t) { t.colors = [a, b]; t.colorMode = 'mix'; } return 0; };
+    B.part_type_color_rgb = (id, rmin, rmax, gmin, gmax, bmin, bmax) => { const t = PT(id); if (t) { t.colors = [rmin, rmax, gmin, gmax, bmin, bmax]; t.colorMode = 'rgb'; } return 0; };
+    B.part_type_alpha1 = (id, a) => { const t = PT(id); if (t) t.alphas = [a]; return 0; };
+    B.part_type_alpha2 = (id, a, b) => { const t = PT(id); if (t) t.alphas = [a, b]; return 0; };
+    B.part_type_alpha3 = (id, a, b, c) => { const t = PT(id); if (t) t.alphas = [a, b, c]; return 0; };
+    B.part_type_blend = (id, add) => { const t = PT(id); if (t) t.additive = B.T(add); return 0; };
+    B.part_type_life = (id, mn, mx) => { const t = PT(id); if (t) Object.assign(t, { lifeMin: mn, lifeMax: mx }); return 0; };
+    B.part_type_speed = (id, mn, mx, incr, wig) => { const t = PT(id); if (t) Object.assign(t, { speedMin: mn, speedMax: mx, speedIncr: incr }); return 0; };
+    B.part_type_direction = (id, mn, mx, incr, wig) => { const t = PT(id); if (t) Object.assign(t, { dirMin: mn, dirMax: mx, dirIncr: incr }); return 0; };
+    B.part_type_gravity = (id, amount, dir) => { const t = PT(id); if (t) Object.assign(t, { grav: amount, gravDir: dir }); return 0; };
+    B.part_type_step = (id, n, child) => { const t = PT(id); if (t) t.step = [n, child]; return 0; };
+    B.part_type_death = (id, n, child) => { const t = PT(id); if (t) t.death = [n, child]; return 0; };
+
+    const newSystem = () => ({ parts: [], emitters: [], depth: 0, autoUpdate: true, autoDraw: true, ox: 0, oy: 0 });
+    B.part_system_create = () => { R.psys.push(newSystem()); return R.psys.length - 1; };
+    const PS = id => R.psys[Math.round(id)];
+    B.part_system_destroy = id => { R.psys[Math.round(id)] = null; return 0; };
+    B.part_system_exists = id => !!PS(id);
+    B.part_system_clear = id => { const s = PS(id); if (s) { s.parts = []; s.emitters = []; } return 0; };
+    B.part_system_depth = (id, d) => { const s = PS(id); if (s) s.depth = d; return 0; };
+    B.part_system_position = (id, x, y) => { const s = PS(id); if (s) { s.ox = x; s.oy = y; } return 0; };
+    B.part_system_automatic_update = (id, v) => { const s = PS(id); if (s) s.autoUpdate = B.T(v); return 0; };
+    B.part_system_automatic_draw = (id, v) => { const s = PS(id); if (s) s.autoDraw = B.T(v); return 0; };
+    B.part_particles_count = id => (PS(id) ? PS(id).parts.length : 0);
+    B.part_particles_clear = id => { const s = PS(id); if (s) s.parts = []; return 0; };
+    function spawn(s, x, y, typeId, n) {
+        const t = PT(typeId); if (!s || !t) return;
+        for (let k = 0; k < n; k++) {
+            const life = Math.max(1, Math.round(rnd(t.lifeMin, t.lifeMax)));
+            let col0 = t.colors[0];
+            if (t.colorMode === 'mix') col0 = B.merge_color(t.colors[0], t.colors[1], Math.random());
+            else if (t.colorMode === 'rgb') { const c = t.colors; col0 = B.make_color_rgb(rnd(c[0], c[1]), rnd(c[2], c[3]), rnd(c[4], c[5])); }
+            s.parts.push({ t: typeId, x, y, age: 0, life, size: rnd(t.sizeMin, t.sizeMax), speed: rnd(t.speedMin, t.speedMax),
+                dir: rnd(t.dirMin, t.dirMax), ori: rnd(t.oriMin, t.oriMax), col0, vx: 0, vy: 0 });
+        }
+    }
+    B.part_particles_create = (id, x, y, type, n) => { spawn(PS(id), x, y, type, Math.round(n)); return 0; };
+    B.part_particles_create_color = (id, x, y, type, col, n) => {
+        const s = PS(id); const before = s ? s.parts.length : 0; spawn(s, x, y, type, Math.round(n));
+        if (s) for (let k = before; k < s.parts.length; k++) s.parts[k].tint = col; return 0;
+    };
+    B.part_emitter_create = id => { const s = PS(id); if (!s) return -1; s.emitters.push({ x1: 0, x2: 0, y1: 0, y2: 0, shape: 0, distr: 0, type: -1, number: 0 }); return s.emitters.length - 1; };
+    const EM = (id, e) => { const s = PS(id); return s && s.emitters[Math.round(e)]; };
+    B.part_emitter_destroy = (id, e) => { const s = PS(id); if (s) s.emitters[Math.round(e)] = null; return 0; };
+    B.part_emitter_destroy_all = id => { const s = PS(id); if (s) s.emitters = []; return 0; };
+    B.part_emitter_exists = (id, e) => !!EM(id, e);
+    B.part_emitter_clear = (id, e) => { const m = EM(id, e); if (m) Object.assign(m, { x1: 0, x2: 0, y1: 0, y2: 0, type: -1, number: 0 }); return 0; };
+    B.part_emitter_region = (id, e, x1, x2, y1, y2, shape, distr) => { const m = EM(id, e); if (m) Object.assign(m, { x1, x2, y1, y2, shape, distr }); return 0; };
+    function emitPoint(m) {
+        const r = () => {
+            if (m.distr === 1) { let v = 0; for (let k = 0; k < 3; k++) v += Math.random(); return v / 3; }
+            if (m.distr === 2) { const v = Math.random(); return v < 0.5 ? v * v * 2 : 1 - (1 - v) * (1 - v) * 2; }
+            return Math.random();
+        };
+        const cx = (m.x1 + m.x2) / 2, cy = (m.y1 + m.y2) / 2, hw = (m.x2 - m.x1) / 2, hh = (m.y2 - m.y1) / 2;
+        if (m.shape === 3) { const t = r(); return [m.x1 + (m.x2 - m.x1) * t, m.y1 + (m.y2 - m.y1) * t]; }
+        if (m.shape === 1) { const a = Math.random() * Math.PI * 2, d = Math.sqrt(r()); return [cx + Math.cos(a) * hw * d, cy + Math.sin(a) * hh * d]; }
+        if (m.shape === 2) { for (; ;) { const x = r() * 2 - 1, y = r() * 2 - 1; if (Math.abs(x) + Math.abs(y) <= 1) return [cx + x * hw, cy + y * hh]; } }
+        return [m.x1 + r() * (m.x2 - m.x1), m.y1 + r() * (m.y2 - m.y1)];
+    }
+    function burst(s, m, type, n) {
+        if (n < 0) { if (Math.random() * -n >= 1) return; n = 1; }       // negative: one particle with chance 1/-n
+        for (let k = 0; k < n; k++) { const [x, y] = emitPoint(m); spawn(s, x, y, type, 1); }
+    }
+    B.part_emitter_burst = (id, e, type, n) => { const s = PS(id), m = EM(id, e); if (s && m) burst(s, m, type, Math.round(n)); return 0; };
+    B.part_emitter_stream = (id, e, type, n) => { const m = EM(id, e); if (m) Object.assign(m, { type, number: Math.round(n) }); return 0; };
+    B.part_system_update = id => {
+        const s = PS(id); if (!s) return 0;
+        for (const m of s.emitters) if (m && m.type >= 0 && m.number) burst(s, m, m.type, m.number);
+        const keep = [];
+        for (const p of s.parts) {
+            const t = PT(p.t); if (!t) continue;
+            p.age++;
+            if (p.age >= p.life) { if (t.death) spawn(s, p.x, p.y, t.death[1], t.death[0]); continue; }
+            p.speed = Math.max(0, p.speed + t.speedIncr); p.dir += t.dirIncr; p.ori += t.oriIncr;
+            p.size = Math.max(0, p.size + t.sizeIncr);
+            if (t.grav) { const g = t.gravDir * Math.PI / 180; p.vx += Math.cos(g) * t.grav; p.vy -= Math.sin(g) * t.grav; }
+            const d = p.dir * Math.PI / 180;
+            p.x += Math.cos(d) * p.speed + p.vx; p.y += -Math.sin(d) * p.speed + p.vy;
+            if (t.step && t.step[0]) spawn(s, p.x, p.y, t.step[1], t.step[0]);
+            keep.push(p);
+        }
+        s.parts = keep;
+        return 0;
+    };
+    const lerp3 = (vals, f, mix) => {
+        if (vals.length === 1) return vals[0];
+        if (vals.length === 2) return mix(vals[0], vals[1], f);
+        return f < 0.5 ? mix(vals[0], vals[1], f * 2) : mix(vals[1], vals[2], (f - 0.5) * 2);
+    };
+    B.part_system_drawit = id => {
+        const s = PS(id); if (!s || !s.parts.length) return 0;
+        const ctx = R.ctx;
+        for (const p of s.parts) {
+            const t = PT(p.t); if (!t) continue;
+            const f = p.age / p.life;
+            const col = p.tint !== undefined ? p.tint : (t.colorMode === 'list' ? lerp3(t.colors, f, B.merge_color) : p.col0);
+            const alpha = lerp3(t.alphas, f, (a, b, k) => a + (b - a) * k);
+            ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+            ctx.globalCompositeOperation = t.additive ? 'lighter' : 'source-over';
+            const x = p.x + s.ox, y = p.y + s.oy;
+            if (t.sprite >= 0) { B.draw_sprite_ext(null, t.sprite, 0, x, y, p.size * t.xs, p.size * t.ys, p.ori, col, alpha); continue; }
+            const w = 64 * p.size * t.xs, h = 64 * p.size * t.ys;
+            ctx.fillStyle = css(col); ctx.strokeStyle = css(col);
+            switch (t.shape) {
+                case 0: ctx.fillRect(Math.round(x), Math.round(y), 1, 1); break;
+                case 2: ctx.fillRect(x - w / 2, y - h / 2, w, h); break;
+                case 3: ctx.lineWidth = Math.max(1, h / 8); ctx.beginPath(); ctx.moveTo(x - w / 2, y); ctx.lineTo(x + w / 2, y); ctx.stroke(); break;
+                case 5: case 6: ctx.lineWidth = Math.max(1, w / (t.shape === 6 ? 6 : 16)); ctx.beginPath(); ctx.ellipse(x, y, w / 2.4, h / 2.4, 0, 0, Math.PI * 2); ctx.stroke(); break;
+                case 4: {
+                    ctx.beginPath();
+                    for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = (k % 2 ? 0.2 : 0.5); ctx.lineTo(x + Math.cos(a) * w * rr, y + Math.sin(a) * h * rr); }
+                    ctx.closePath(); ctx.fill(); break;
+                }
+                case 1: ctx.beginPath(); ctx.ellipse(x, y, w / 2.2, h / 2.2, 0, 0, Math.PI * 2); ctx.fill(); break;
+                default: {                       // soft shapes: sphere, flare, spark, explosion, cloud, smoke, snow
+                    const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(1, w / 2));
+                    g.addColorStop(0, css(col, 1)); g.addColorStop(t.shape === 9 ? 0.15 : 0.5, css(col, 0.6)); g.addColorStop(1, css(col, 0));
+                    ctx.fillStyle = g; ctx.fillRect(x - w / 2, y - h / 2, w, h);
+                }
+            }
+        }
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+        return 0;
+    };
+
+    // ------------------------------------------------------------------ drag & drop action library
+    // Each takes the acting instance first; actions that support "relative" get it as the last argument.
+    const rx = (self, v, rel) => (rel ? self.x + v : v), ry = (self, v, rel) => (rel ? self.y + v : v);
+    const cmp = (a, b, op) => (op === 1 ? a < b : op === 2 ? a > b : op === 3 ? a <= b : op === 4 ? a >= b : op === 5 ? a != b : a == b);
+    Object.assign(B, {
+        // move
+        action_move: (self, dirs, speed, rel) => {
+            const opts = []; const angles = [225, 270, 315, 180, -1, 0, 135, 90, 45];
+            String(dirs).split('').forEach((c, k) => { if (c === '1') opts.push(angles[k]); });
+            if (!opts.length) return 0;
+            const a = opts[Math.floor(Math.random() * opts.length)];
+            if (a < 0) { self.speed = 0; return 0; }
+            self.speed = 0; self.direction = a; self.speed = rel ? self.speed + speed : speed; return 0;
+        },
+        action_set_motion: (self, dir, speed, rel) => { if (rel) B.motion_add(self, dir, speed); else B.motion_set(self, dir, speed); return 0; },
+        action_move_point: (self, x, y, speed) => B.move_towards_point(self, x, y, speed),
+        action_set_hspeed: (self, v, rel) => { self.hspeed = rel ? self.hspeed + v : v; return 0; },
+        action_set_vspeed: (self, v, rel) => { self.vspeed = rel ? self.vspeed + v : v; return 0; },
+        action_set_gravity: (self, dir, g, rel) => { self.gravity_direction = dir; self.gravity = rel ? self.gravity + g : g; return 0; },
+        action_set_friction: (self, f, rel) => { self.friction = rel ? self.friction + f : f; return 0; },
+        action_reverse_xdir: self => { self.hspeed = -self.hspeed; return 0; },
+        action_reverse_ydir: self => { self.vspeed = -self.vspeed; return 0; },
+        action_move_to: (self, x, y, rel) => { self.x = rx(self, x, rel); self.y = ry(self, y, rel); return 0; },
+        action_move_start: self => { self.x = self.xstart; self.y = self.ystart; return 0; },
+        action_move_random: (self, h, v) => B.move_random(self, h, v),
+        action_snap: (self, h, v) => B.move_snap(self, h, v),
+        action_wrap: (self, dir) => B.move_wrap(self, dir !== 1, dir >= 1, 0),
+        action_move_contact: (self, dir, maxd, against) => (against ? B.move_contact_all : B.move_contact_solid)(self, dir, maxd),
+        action_bounce: (self, precise, against) => (against ? B.move_bounce_all : B.move_bounce_solid)(self, precise),
+        action_path: (self, path, speed, end, abs) => B.path_start(self, path, speed, end, abs),
+        action_path_end: self => B.path_end(self),
+        // instances
+        action_create_object: (self, obj, x, y, rel) => { B.instance_create(rx(self, x, rel), ry(self, y, rel), obj); return 0; },
+        action_create_object_motion: (self, obj, x, y, speed, dir, rel) => {
+            const i = B.I(B.instance_create(rx(self, x, rel), ry(self, y, rel), obj)); B.motion_set(i, dir, speed); return 0;
+        },
+        action_create_object_random: (self, o1, o2, o3, o4, x, y, rel) => {
+            const l = [o1, o2, o3, o4].filter(o => o >= 0); if (l.length) B.instance_create(rx(self, x, rel), ry(self, y, rel), l[Math.floor(Math.random() * l.length)]); return 0;
+        },
+        action_change_object: (self, obj, perf) => B.instance_change(self, obj, perf),
+        action_kill_object: self => B.instance_destroy(self),
+        action_kill_position: (self, x, y, rel) => {
+            const px = rx(self, x, rel), py = ry(self, y, rel);
+            for (const i of [...R.instances]) { const b = i.__bbox(); if (!i.__dead && b && px >= b.l && px < b.r && py >= b.t && py < b.b) B.instance_destroy(i); }
+            return 0;
+        },
+        action_sprite_set: (self, spr, sub, speed) => { self.sprite_index = spr; if (sub >= 0) self.image_index = sub; self.image_speed = speed; return 0; },
+        action_sprite_transform: (self, xs, ys, angle, mirror) => {
+            self.image_xscale = xs * (mirror === 1 || mirror === 3 ? -1 : 1); self.image_yscale = ys * (mirror >= 2 ? -1 : 1); self.image_angle = angle; return 0;
+        },
+        action_sprite_color: (self, col, alpha) => { self.image_blend = col; self.image_alpha = alpha; return 0; },
+        // sound
+        action_sound: (self, snd, loop) => (B.T(loop) ? B.sound_loop(snd) : B.sound_play(snd)),
+        action_end_sound: (self, snd) => B.sound_stop(snd),
+        action_if_sound: (self, snd) => B.sound_isplaying(snd),
+        // rooms & game
+        action_previous_room: () => B.room_goto_previous(),
+        action_next_room: () => B.room_goto_next(),
+        action_current_room: () => B.room_restart(),
+        action_another_room: (self, room) => B.room_goto(room),
+        action_if_previous_room: () => B.room_previous(R.room) >= 0,
+        action_if_next_room: () => B.room_next(R.room) >= 0,
+        action_restart_game: () => B.game_restart(),
+        action_end_game: () => B.game_end(),
+        action_set_alarm: (self, steps, n, rel) => { self.alarm[n] = rel ? self.alarm[n] + steps : steps; return 0; },
+        action_sleep: (self, ms, redraw) => { if (B.T(redraw)) B.screen_redraw(); return B.sleep(ms); },
+        action_set_timeline: (self, tl, pos) => { self.timeline_index = tl; self.timeline_position = pos; return 0; },
+        action_set_timeline_position: (self, pos, rel) => { self.timeline_position = rel ? self.timeline_position + pos : pos; return 0; },
+        action_message: (self, msg) => B.show_message(msg),
+        action_show_info: () => B.show_info(),
+        action_execute_script: (self, scr, a0, a1, a2, a3, a4) => B.script_execute(self, self, scr, a0, a1, a2, a3, a4),
+        action_inherited: self => B.event_inherited(self, self),
+        action_set_cursor: (self, spr, show) => { B.cursor_sprite = spr; if (R.canvas) R.canvas.style.cursor = B.T(show) ? '' : 'none'; return 0; },
+        // questions
+        action_if_empty: (self, x, y, objs, rel) => (objs ? B.place_empty : B.place_free)(self, rx(self, x, rel), ry(self, y, rel)),
+        action_if_collision: (self, x, y, objs, rel) => !(objs ? B.place_empty : B.place_free)(self, rx(self, x, rel), ry(self, y, rel)),
+        action_if_object: (self, obj, x, y, rel) => B.place_meeting(self, rx(self, x, rel), ry(self, y, rel), obj),
+        action_if_number: (self, obj, n, op) => cmp(B.instance_number(obj), n, op),
+        action_if_dice: (self, sides) => Math.random() * sides < 1,
+        action_if_question: (self, msg) => B.show_question(msg),
+        action_if: (self, v) => v,
+        action_if_mouse: (self, b) => B.mouse_check_button(b),
+        action_if_aligned: (self, h, v) => (h <= 0 || Math.abs(self.x / h - Math.round(self.x / h)) < 1e-6) && (v <= 0 || Math.abs(self.y / v - Math.round(self.y / v)) < 1e-6),
+        action_if_variable: (self, a, b, op) => cmp(a, b, op),
+        // score, lives, health
+        action_set_score: (self, v, rel) => { B.score = rel ? B.score + v : v; return 0; },
+        action_if_score: (self, v, op) => cmp(B.score, v, op),
+        action_set_lives: (self, v, rel) => { B.lives = rel ? B.lives + v : v; return 0; },
+        action_if_lives: (self, v, op) => cmp(B.lives, v, op),
+        action_set_health: (self, v, rel) => { B.health = rel ? B.health + v : v; return 0; },
+        action_if_health: (self, v, op) => cmp(B.health, v, op),
+        action_set_caption: (self, ss, sc, sl, lc, sh, hc) => {
+            Object.assign(B, { show_score: !!ss, caption_score: sc, show_lives: !!sl, caption_lives: lc, show_health: !!sh, caption_health: hc }); return 0;
+        },
+        action_draw_score: (self, x, y, cap, rel) => B.draw_text(rx(self, x, rel), ry(self, y, rel), cap + B.string(B.score)),
+        action_draw_lives: (self, x, y, cap, rel) => B.draw_text(rx(self, x, rel), ry(self, y, rel), cap + B.string(B.lives)),
+        action_draw_life_images: (self, x, y, spr, rel) => {
+            const w = B.sprite_get_width(spr); for (let k = 0; k < B.lives; k++) B.draw_sprite(self, spr, 0, rx(self, x, rel) + k * w, ry(self, y, rel)); return 0;
+        },
+        action_draw_health: (self, x1, y1, x2, y2, back, bar, rel) => {
+            const cols = [0, 255, 65280, 16711680, 65535, 16711935, 16776960, 16777215];
+            const b2 = [[255, 65280], [16777215, 0], [0, 0], [8421504, 8421504], [255, 255], [65280, 65280], [16711680, 16711680]][bar] || [255, 65280];
+            return B.draw_healthbar(rx(self, x1, rel), ry(self, y1, rel), rx(self, x2, rel), ry(self, y2, rel), B.health, back < 0 ? 0 : cols[back] || 0, b2[0], b2[1], 0, back >= 0, true);
+        },
+        // drawing
+        action_draw_sprite: (self, spr, x, y, sub, rel) => B.draw_sprite(self, spr, sub, rx(self, x, rel), ry(self, y, rel)),
+        action_draw_background: (self, bg, x, y, tiled, rel) => B.draw_background(bg, rx(self, x, rel), ry(self, y, rel)),
+        action_draw_text: (self, text, x, y, rel) => B.draw_text(rx(self, x, rel), ry(self, y, rel), text),
+        action_draw_text_transformed: (self, text, x, y, xs, ys, ang, rel) => B.draw_text_transformed(rx(self, x, rel), ry(self, y, rel), text, xs, ys, ang),
+        action_draw_variable: (self, v, x, y, rel) => B.draw_text(rx(self, x, rel), ry(self, y, rel), B.string(v)),
+        action_draw_rectangle: (self, x1, y1, x2, y2, filled, rel) => B.draw_rectangle(rx(self, x1, rel), ry(self, y1, rel), rx(self, x2, rel), ry(self, y2, rel), filled === 1),
+        action_draw_ellipse: (self, x1, y1, x2, y2, filled, rel) => B.draw_ellipse(rx(self, x1, rel), ry(self, y1, rel), rx(self, x2, rel), ry(self, y2, rel), filled === 1),
+        action_draw_line: (self, x1, y1, x2, y2, rel) => B.draw_line(rx(self, x1, rel), ry(self, y1, rel), rx(self, x2, rel), ry(self, y2, rel)),
+        action_color: (self, col) => B.draw_set_color(col),
+        action_font: (self, font, align) => { B.draw_set_font(font); B.draw_set_halign(align); return 0; },
+        action_fullscreen: () => 0,
+    });
+
     // ------------------------------------------------------------------ input
     B.keyboard_check = k => (k === 1 ? R.keys.size > 0 : k === 0 ? R.keys.size === 0 : R.keys.has(Math.round(k)));
     B.keyboard_check_pressed = k => (k === 1 ? R.pressed.size > 0 : R.pressed.has(Math.round(k)));
@@ -775,7 +1129,16 @@ const B = (() => {
     B.room_goto_previous = () => { const n = B.room_previous(R.room); if (n >= 0) R.pendingRoom = n; return 0; };
     Object.defineProperty(B, 'room_first', { get: () => roomOrder()[0] });
     Object.defineProperty(B, 'room_last', { get: () => roomOrder()[roomOrder().length - 1] });
-    B.game_restart = () => { location.reload(); return 0; };
+    B.game_restart = () => { R.pendingRestart = true; return 0; };
+    // sleep() freezes the game in GameMaker; here the frame loop pauses for that long
+    B.sleep = ms => { R.sleepUntil = Math.max(R.sleepUntil || 0, performance.now() + Math.max(0, ms)); return 0; };
+    B.screen_redraw = () => { const keep = R.ctx; draw(); R.ctx = keep; return 0; };
+    B.screen_refresh = () => 0;
+    B.io_handle = () => 0;
+    B.window_set_caption = s => { B.room_caption = s; return 0; };
+    B.window_get_caption = () => B.room_caption;
+    B.cursor_sprite = -1;
+    B.window_set_cursor = c => { if (R.canvas) R.canvas.style.cursor = c === -1 ? 'none' : ''; return 0; };
     B.game_end = () => { R.ended = true; return 0; };
 
     function gotoRoom(index) {
@@ -788,7 +1151,7 @@ const B = (() => {
         const rm = ROOMS[index];
         R.room = index; R.roomData = rm;
         B.room_width = rm.width; B.room_height = rm.height; B.room_speed = rm.speed; B.room_caption = rm.caption;
-        document.title = rm.caption || document.title;
+        if (!R.baseTitle) R.baseTitle = document.title;
         B.view_enabled = !!rm.views_enabled;
         (rm.views || []).forEach((v, k) => {
             B.view_visible[k] = v.visible; B.view_xview[k] = v.x; B.view_yview[k] = v.y; B.view_wview[k] = v.w;
@@ -810,6 +1173,16 @@ const B = (() => {
         if (first) for (const i of [...R.instances]) runEvent(i, 'other_2', i);   // game start
         if (rm.code) rm.code(DUMMY, DUMMY);
         for (const i of [...R.instances]) runEvent(i, 'other_4', i);              // room start
+    }
+
+    function restartGame() {
+        for (const i of [...R.instances]) if (!i.__dead) runEvent(i, 'other_3', i);   // game end
+        for (const i of R.instances) killInstance(i);
+        compact();
+        for (const k of Object.keys(G)) delete G[k];
+        B.score = 0; lives = -1; health = 100;
+        R.room = -1;
+        gotoRoom(roomOrder()[0]);
     }
 
     function compact() {
@@ -1300,6 +1673,8 @@ const B = (() => {
             if (m.wheel < 0) runEvent(i, 'mouse_60', i); else if (m.wheel > 0) runEvent(i, 'mouse_61', i);
         });
         forEachLive(i => runEvent(i, 'step_0', i));                               // step
+        if (R.noMoreLives) { R.noMoreLives = false; forEachLive(i => runEvent(i, 'other_6', i)); }
+        if (R.noMoreHealth) { R.noMoreHealth = false; forEachLive(i => runEvent(i, 'other_9', i)); }
         forEachLive(i => {                                                         // timelines
             if (i.timeline_index < 0 || !TIMELINES[i.timeline_index]) return;
             const tl = TIMELINES[i.timeline_index], from = i.timeline_position, to = from + i.timeline_speed;
@@ -1325,6 +1700,7 @@ const B = (() => {
             if (i.image_index >= n) { i.image_index -= n; runEvent(i, 'other_7', i); }
             else if (i.image_index < 0) { i.image_index += n; runEvent(i, 'other_7', i); }
         });
+        R.psys.forEach((ps, k) => { if (ps && ps.autoUpdate) B.part_system_update(k); });
         compact();
         R.pressed.clear(); R.released.clear(); m.pressed.clear(); m.released.clear(); m.wheel = 0;
     }
@@ -1343,9 +1719,11 @@ const B = (() => {
         drawRoomBackgrounds(false);
         const list = R.instances.filter(i => !i.__dead && i.visible);
         for (const t of R.roomData.tiles || []) list.push(t.__d || (t.__d = { __tile: t, depth: t.depth, __order: -1 }));
+        R.psys.forEach((ps, k) => { if (ps && ps.autoDraw) list.push({ __psys: k, depth: ps.depth, __order: -2 }); });
         list.sort((a, b) => (b.depth - a.depth) || (a.__order - b.__order));
         for (const i of list) {
-            if (i.__tile) {
+            if (!(i instanceof Instance) && i.__psys !== undefined) { B.part_system_drawit(i.__psys); continue; }
+            if (!(i instanceof Instance) && i.__tile) {
                 const t = i.__tile, bg = R.backgrounds[t.bg];
                 if (bg && bg.image) { ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(bg.image, t.tx, t.ty, t.w, t.h, t.x, t.y, t.w, t.h); }
                 continue;
@@ -1357,7 +1735,14 @@ const B = (() => {
             R.ctx = ctx; R.surfaceTarget = null;
         }
         drawRoomBackgrounds(true);
+        if (B.cursor_sprite >= 0) B.draw_sprite(null, B.cursor_sprite, R.frameCount / 2, B.mouse_x, B.mouse_y);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
+        let cap = B.room_caption;
+        if (B.show_score) cap += ' ' + B.caption_score + B.score;
+        if (B.show_lives) cap += ' ' + B.caption_lives + lives;
+        if (B.show_health) cap += ' ' + B.caption_health + Math.round(health);
+        if (!cap) cap = R.baseTitle;
+        if (cap && document.title !== cap) document.title = cap;
     }
 
     function drawRoomBackgrounds(fore) {
@@ -1385,6 +1770,7 @@ const B = (() => {
     function frame() {
         if (R.modal || R.messages.length) return;          // a dialog is open: the game is paused
         try {
+            if (R.pendingRestart) { R.pendingRestart = false; restartGame(); }
             if (R.pendingRoom !== null) { const r = R.pendingRoom; R.pendingRoom = null; gotoRoom(r); }
             if (R.ended) return;
             step(); draw();
@@ -1547,7 +1933,8 @@ const B = (() => {
             const dt = Math.min(250, now - last); last = now; acc += dt;
             const stepMs = 1000 / B.room_speed;
             let n = 0;
-            while (acc >= stepMs && n < 4) { frame(); acc -= stepMs; n++; frames++; }
+            if (R.sleepUntil && now < R.sleepUntil) { acc = 0; requestAnimationFrame(loop); return; }
+            while (acc >= stepMs && n < 4) { frame(); acc -= stepMs; n++; frames++; if (R.sleepUntil > performance.now()) break; }
             if (n === 4) acc = 0;
             if (now - R.fpsTime >= 1000) { R.fps = Math.round(frames * 1000 / (now - R.fpsTime)); frames = 0; R.fpsTime = now; }
             requestAnimationFrame(loop);
