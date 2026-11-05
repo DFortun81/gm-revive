@@ -54,7 +54,7 @@ def main(argv=None):
     sub = p.add_subparsers(dest='cmd', required=True)
 
     c = sub.add_parser('convert', help='convert one project into an HTML5 folder')
-    c.add_argument('project', help='path to a GameMaker 8.0 .gmk file')
+    c.add_argument('project', help='path to a GameMaker 7 or 8.0 .gmk file')
     c.add_argument('out', help='output folder (created if needed)')
     c.add_argument('--files', help='folder with extra files the game loads at runtime '
                                    '(default: the folder the project is in)')

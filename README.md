@@ -2,7 +2,7 @@
 
 Bring old GameMaker games back to life in the browser.
 
-gm-revive reads a GameMaker 8 project file (`.gmk`), translates its GML code into JavaScript, extracts the
+gm-revive reads a GameMaker 7 or 8 project file (`.gmk`), translates its GML code into JavaScript, extracts the
 sprites, sounds and fonts, and produces a folder you can open in any modern browser — no GameMaker, no Windows.
 
 It started as a way to rescue games written in college that only ran as old Windows executables.
@@ -55,7 +55,7 @@ to work on next.
 | | Status |
 |---|---|
 | GameMaker 8.0 `.gmk` | ✅ Reads everything: scripts, objects, events, rooms, views, tiles, backgrounds, timelines, paths, sprites, sounds, fonts, constants, game info |
-| GameMaker 7 `.gmk` | ❌ Detected; files are encrypted, needs a decryptor |
+| GameMaker 7 `.gmk` | ✅ Decrypts and reads the same data (images are stored as BMPs; the transparent colour is applied) |
 | GameMaker 8.1 `.gm81` | ❌ Detected; format is close to 8.0 |
 | GameMaker 5/6 `.gm6`, `.gmd` | ❌ Detected |
 | GameMaker Studio `.gmx` / `.yyp` | ❌ Detected; these are plain-text formats and should be the easiest to add |
@@ -89,7 +89,7 @@ step → timelines → motion → collisions → end step → animation → draw
 
 ```
 gm_revive/
-  gmk.py          .gmk reader (and format detection)
+  gmk.py          .gmk reader for GM7 and GM8 (and format detection)
   gml2js.py       GML parser and JavaScript emitter
   build.py        writes the HTML5 build
   report.py       compatibility report

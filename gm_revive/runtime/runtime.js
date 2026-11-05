@@ -575,6 +575,8 @@ const B = (() => {
         if (xo !== undefined) { sp.xoffset = xo; sp.yoffset = yo; }
         invalidateTint(ind); return 0;
     };
+    B.sprite_replace_alpha = (ind, fname, imgnumb, precise, preload, xo, yo) =>
+        B.sprite_replace(ind, fname, imgnumb, precise, 0, 0, preload, xo, yo);
     B.background_get_width = b => (R.backgrounds[b] ? R.backgrounds[b].width : 0);
     B.background_get_height = b => (R.backgrounds[b] ? R.backgrounds[b].height : 0);
     B.background_create_color = (w, h, col) => {

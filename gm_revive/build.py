@@ -1,4 +1,4 @@
-"""Convert a GameMaker 8.0 project into a self-contained HTML5 build directory."""
+"""Convert a GameMaker 7 or 8.0 project into a self-contained HTML5 build directory."""
 import base64
 import json
 import os
