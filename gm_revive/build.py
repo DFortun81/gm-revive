@@ -222,6 +222,7 @@ class Conversion:
                 f'  backgrounds: {json.dumps(rm["backgrounds"])},\n  tiles: {json.dumps(rm["tiles"])},\n'
                 f'  code: {rcode},\n  instances: [\n    ' + ',\n    '.join(inst) + ']}')
         js.append('const ROOMS = [\n' + ',\n'.join(rooms) + '];')
+        js.append('const ROOM_ORDER = ' + json.dumps(g.get('room_order') or [r['index'] for r in g['rooms'] if r]) + ';')
         return js
 
 

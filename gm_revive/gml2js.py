@@ -37,6 +37,15 @@ pi true false noone all
 '''.split())
 BUILTIN_PREFIXES = ('c_', 'bm_', 'fa_', 'vk_', 'pr_', 'ev_', 'mb_', 'ty_', 'se_', 'cr_', 'ef_', 'ps_', 'dll_')
 
+# Built-in array variables: used without an index they mean element 0 (view_xview == view_xview[0])
+BUILTIN_ARRAYS = set('''
+view_visible view_xview view_yview view_wview view_hview view_xport view_yport view_wport view_hport
+view_angle view_hborder view_vborder view_hspeed view_vspeed view_object
+background_visible background_foreground background_index background_x background_y background_width
+background_height background_htiled background_vtiled background_xscale background_yscale background_hspeed
+background_vspeed background_blend background_alpha alarm
+'''.split())
+
 # Built-ins that act on the calling instance: emitted as B.fn(self, ...)
 SELF_FUNCS = set('''
 instance_destroy instance_change instance_copy place_free place_empty place_meeting position_meeting
@@ -44,6 +53,8 @@ instance_place move_towards_point move_snap move_wrap move_random motion_set mot
 distance_to_object distance_to_point draw_self draw_sprite draw_sprite_ext
 action_kill_object sprite_collision_mask path_start path_end timeline_set
 mp_linear_step mp_potential_step instance_nearest_self
+event_user event_perform event_perform_object collision_rectangle collision_point collision_circle collision_line
+collision_ellipse path_start
 '''.split())
 
 
@@ -326,7 +337,7 @@ class Emitter:
         if n in s.globalvars or n in ctx.globalvars: return f'G.{n}'
         if n in ctx.constants: return f'K.{n}'
         if n in ctx.resources: return n
-        if n in GLOBAL_BUILTINS or n.startswith(BUILTIN_PREFIXES):
+        if n in GLOBAL_BUILTINS or n in BUILTIN_ARRAYS and n != 'alarm' or n.startswith(BUILTIN_PREFIXES):
             ctx.used_builtins.add(n); return f'B.{n}'
         return f'self.{s.safe_field(n)}'
 
@@ -349,11 +360,13 @@ class Emitter:
         k = e[0]
         if k == 'num': return e[1]
         if k == 'str': return json.dumps(e[1], ensure_ascii=False)
-        if k == 'name': return s.name(e[1])
+        if k == 'name':
+            if e[1] in BUILTIN_ARRAYS and e[1] not in s.locals: return s.name(e[1]) + '[0]'
+            return s.name(e[1])
         if k == 'paren': return '(' + s.ex(e[1]) + ')'
         if k == 'field': return f'{s.base(e[1])}.{e[2]}'
         if k == 'index':
-            arr = s.ex(e[1]); idx = [s.ex(i) for i in e[2]]
+            arr = s.name(e[1][1]) if e[1][0] == 'name' else s.ex(e[1]); idx = [s.ex(i) for i in e[2]]
             return f'B.aget({arr}, {", ".join(idx)})'
         if k == 'call': return s.call(e[1], e[2])
         if k == 'not': return '!' + s.paren_if(s.bool(e[1]))
@@ -418,6 +431,7 @@ class Emitter:
             n = e[1]
             if n in ('self', 'other', 'global', 'id'):
                 raise ParseError(f'cannot assign to {n}')
+            if n in BUILTIN_ARRAYS and n not in s.locals: return ('simple', s.name(n) + '[0]')
             return ('simple', s.name(n))
         if k == 'field':
             if s.is_direct_base(e[1]): return ('simple', f'{s.base(e[1])}.{e[2]}')

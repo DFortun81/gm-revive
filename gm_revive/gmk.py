@@ -274,7 +274,22 @@ def load(path):
     text = gi.b.decode('cp1252', errors='replace')
     i = text.find('{\\rtf')
     g['game_info_rtf'] = text[i:] if i >= 0 else ''
+    _read_room_order(f, g)
     return g
+
+
+def _read_room_order(f, g):
+    """Library creation code, then the room execution order (the game starts in the first room)."""
+    try:
+        f.int()
+        for _ in range(f.int()):
+            f.str()
+        f.int()
+        g['room_order'] = [f.int() for _ in range(f.int())]
+    except struct.error:
+        g['room_order'] = []
+    if not g['room_order']:
+        g['room_order'] = [r['index'] for r in g['rooms'] if r]
 
 
 if __name__ == '__main__':
@@ -603,4 +618,5 @@ def _load_gm7(path, fmt, ver):
     if True:
         f.str(); f.int(); f.int(); f.int(); f.int(); f.bool(); f.bool(); f.bool(); f.bool()
     g['game_info_rtf'] = f.str()
+    _read_room_order(f, g)
     return g

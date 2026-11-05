@@ -81,6 +81,11 @@ class SyntaxTests(unittest.TestCase):
         self.assertIn('for (const [self, other] of', js)
         self.assertIn('self.hp = other.dmg', js)
 
+    def test_builtin_arrays_without_index_mean_element_zero(self):
+        js, _ = tr('view_object = obj; a = view_xview + view_yview[1];', resources={'obj': 2})
+        self.assertIn('B.view_object[0] = obj', js)
+        self.assertIn('B.view_xview[0] + B.aget(B.view_yview, 1)', js)
+
     def test_js_reserved_words_are_renamed(self):
         js, _ = tr('var new, class; new = 1; class = new;')
         self.assertIn('l_new', js)
@@ -115,6 +120,23 @@ class SemanticTests(unittest.TestCase):
 
     def test_string_formatting_matches_gm8(self):
         self.assertEqual(run_script('return string(2.8) + "|" + string(3) + "|" + string(true);'), '2.80|3|1')
+
+    def test_mp_grid_path_goes_around_walls(self):
+        code = ('var g, p; g = mp_grid_create(0, 0, 5, 5, 32, 32); mp_grid_add_rectangle(g, 64, 0, 95, 127);'
+                'p = path_add(); if (!mp_grid_path(g, p, 16, 16, 144, 16, 0)) return -1;'
+                'return string(path_get_number(p)) + "," + string(round(path_get_length(p)));')
+        self.assertEqual(run_script(code), '13,384')   # 13 cell centres, 12 orthogonal steps of 32px
+
+    def test_mp_grid_path_blocked(self):
+        code = ('var g, p; g = mp_grid_create(0, 0, 5, 5, 32, 32); mp_grid_add_rectangle(g, 64, 0, 95, 159);'
+                'p = path_add(); return mp_grid_path(g, p, 16, 16, 144, 16, 1);')
+        self.assertEqual(run_script(code), False)
+
+    def test_ds_grid_and_map(self):
+        code = ('var g, m; g = ds_grid_create(3, 3); ds_grid_set_region(g, 0, 0, 1, 1, 2); ds_grid_add(g, 2, 2, 5);'
+                'm = ds_map_create(); ds_map_add(m, "a", 1); ds_map_add(m, "a", 9); ds_map_replace(m, "a", 4);'
+                'return ds_grid_get_sum(g, 0, 0, 2, 2) + ds_map_find_value(m, "a");')
+        self.assertEqual(run_script(code), 8 + 5 + 4)
 
     def test_arrays(self):
         self.assertEqual(run_script('a[2] = 5; b[1, 3] = 4; return a[2] + b[1, 3] + a[7];'), 9)

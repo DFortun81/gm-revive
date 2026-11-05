@@ -36,6 +36,18 @@ const B = (() => {
         vk_numpad0: 96, vk_numpad1: 97, vk_numpad2: 98, vk_numpad3: 99, vk_numpad4: 100, vk_numpad5: 101,
         vk_numpad6: 102, vk_numpad7: 103, vk_numpad8: 104, vk_numpad9: 105,
         pi: Math.PI,
+        ev_create: 0, ev_destroy: 1, ev_alarm: 2, ev_step: 3, ev_collision: 4, ev_keyboard: 5, ev_mouse: 6,
+        ev_other: 7, ev_draw: 8, ev_keypress: 9, ev_keyrelease: 10, ev_trigger: 11,
+        ev_step_normal: 0, ev_step_begin: 1, ev_step_end: 2,
+        ev_outside: 0, ev_boundary: 1, ev_game_start: 2, ev_game_end: 3, ev_room_start: 4, ev_room_end: 5,
+        ev_no_more_lives: 6, ev_animation_end: 7, ev_end_of_path: 8, ev_no_more_health: 9,
+        ev_user0: 10, ev_user1: 11, ev_user2: 12, ev_user3: 13, ev_user4: 14, ev_user5: 15, ev_user6: 16, ev_user7: 17,
+        ev_user8: 18, ev_user9: 19, ev_user10: 20, ev_user11: 21, ev_user12: 22, ev_user13: 23, ev_user14: 24, ev_user15: 25,
+        ev_left_button: 0, ev_right_button: 1, ev_middle_button: 2, ev_no_button: 3, ev_left_press: 4, ev_right_press: 5,
+        ev_middle_press: 6, ev_left_release: 7, ev_right_release: 8, ev_middle_release: 9, ev_mouse_enter: 10,
+        ev_mouse_leave: 11, ev_global_left_button: 50, ev_global_right_button: 51, ev_global_middle_button: 52,
+        ev_global_left_press: 53, ev_global_right_press: 54, ev_global_middle_press: 55, ev_global_left_release: 56,
+        ev_global_right_release: 57, ev_global_middle_release: 58,
     };
     Object.assign(B, C);
 
@@ -213,6 +225,21 @@ const B = (() => {
     }
     B._Instance = Instance;
 
+    // ------------------------------------------------------------------ blocking dialogs
+    // GameMaker's show_menu / get_integer / show_question block until the player answers. Browsers
+    // can't block, so the first call throws ModalSuspend; the game pauses and shows the dialog, and
+    // when the player answers, the interrupted event is run again from the start with the answer
+    // returned from that call. (Code before the dialog runs twice, which is harmless for the usual
+    // "read state, ask, act" pattern.) show_message just pauses the game until it is dismissed.
+    class ModalSuspend { constructor(req) { this.req = req; this.origin = null; } }
+    R.replay = null; R.modal = null; R.messages = [];
+    function ask(req) {
+        const rp = R.replay;
+        if (rp && rp.idx < rp.answers.length) return rp.answers[rp.idx++];
+        throw new ModalSuspend(req);
+    }
+    B._ask = ask;
+
     // ------------------------------------------------------------------ events
     function findHandler(obj, key) {
         while (obj >= 0) {
@@ -229,6 +256,10 @@ const B = (() => {
         if (owner < 0) return false;
         R.eventStack.push([owner, key]);
         try { OBJECTS[owner].events[key](inst, other || inst); }
+        catch (e) {
+            if (e instanceof ModalSuspend && R.eventStack.length === 1 && !e.origin) e.origin = { inst, key, other: other || inst };
+            throw e;
+        }
         finally { R.eventStack.pop(); }
         return true;
     }
@@ -244,6 +275,13 @@ const B = (() => {
         if (h < 0) return 0;
         R.eventStack.push([h, key]);
         try { OBJECTS[h].events[key](self, other); } finally { R.eventStack.pop(); }
+        return 0;
+    };
+    B.event_user = function (self, n) { runEvent(self, 'other_' + (10 + Math.round(n)), self); return 0; };
+    B.event_perform_object = function (self, obj, type, num) {
+        const names = ['create', 'destroy', 'alarm', 'step', 'collision', 'keyboard', 'mouse', 'other', 'draw', 'keypress', 'keyrelease'];
+        const key = names[type] + '_' + num, h = findHandler(obj, key);
+        if (h >= 0) { R.eventStack.push([h, key]); try { OBJECTS[h].events[key](self, self); } finally { R.eventStack.pop(); } }
         return 0;
     };
     B.event_perform = function (self, type, num) {
@@ -323,6 +361,36 @@ const B = (() => {
         }
         return false;
     };
+    function rectHits(self, l, t, rr, b, obj, notme) {
+        if (l > rr) [l, rr] = [rr, l]; if (t > b) [t, b] = [b, t];
+        for (const i of resolve(obj, self, null)) {
+            if (notme && i === self) continue; const q = i.__bbox();
+            if (q && l <= q.r - 1 && rr >= q.l && t <= q.b - 1 && b >= q.t) return i.id;
+        }
+        return -4;
+    }
+    B.collision_rectangle = (self, x1, y1, x2, y2, obj, prec, notme) => rectHits(self, x1, y1, x2, y2, obj, B.T(notme));
+    B.collision_point = (self, x, y, obj, prec, notme) => rectHits(self, x, y, x, y, obj, B.T(notme));
+    B.collision_circle = (self, x, y, rad, obj, prec, notme) => {
+        for (const i of resolve(obj, self, null)) {
+            if (B.T(notme) && i === self) continue; const q = i.__bbox(); if (!q) continue;
+            const dx = Math.max(q.l - x, 0, x - q.r), dy = Math.max(q.t - y, 0, y - q.b);
+            if (dx * dx + dy * dy <= rad * rad) return i.id;
+        }
+        return -4;
+    };
+    B.collision_line = (self, x1, y1, x2, y2, obj, prec, notme) => {
+        const steps = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1)));
+        for (const i of resolve(obj, self, null)) {
+            if (B.T(notme) && i === self) continue; const q = i.__bbox(); if (!q) continue;
+            for (let k = 0; k <= steps; k++) {
+                const px = x1 + (x2 - x1) * k / steps, py = y1 + (y2 - y1) * k / steps;
+                if (px >= q.l && px < q.r && py >= q.t && py < q.b) return i.id;
+            }
+        }
+        return -4;
+    };
+    B.collision_ellipse = (self, x1, y1, x2, y2, obj, prec, notme) => rectHits(self, x1, y1, x2, y2, obj, B.T(notme));
     B.position_meeting = (x, y, obj) => B.instance_position(x, y, obj) !== -4;
     B.move_towards_point = function (self, x, y, sp) {
         self.hspeed = 0; self.vspeed = 0; self.__dir = B.point_direction(self.x, self.y, x, y);
@@ -387,7 +455,6 @@ const B = (() => {
     B.date_current_time = () => Date.now() / 86400000 + 25569;
     B.date_current_datetime = B.date_current_time;
     B.show_debug_message = s => { console.log('[GM]', s); return 0; };
-    B.show_message = s => { alert(String(s).replace(/#/g, '\n')); return 0; };
 
     // ------------------------------------------------------------------ colors
     const clampByte = v => Math.max(0, Math.min(255, Math.round(v)));
@@ -431,6 +498,175 @@ const B = (() => {
     B.ds_list_shuffle = id => { const l = L(id); for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return 0; };
     B.ds_list_copy = (dst, src) => { R.dsLists[dst] = [...L(src)]; return 0; };
 
+    // ------------------------------------------------------------------ ds_grid
+    R.grids = [];
+    const GR = id => R.grids[Math.round(id)];
+    B.ds_grid_create = (w, h) => { w = Math.max(0, Math.round(w)); h = Math.max(0, Math.round(h)); R.grids.push({ w, h, d: new Array(w * h).fill(0) }); return R.grids.length - 1; };
+    B.ds_grid_destroy = id => { R.grids[Math.round(id)] = null; return 0; };
+    B.ds_grid_exists = id => !!GR(id);
+    B.ds_grid_width = id => (GR(id) ? GR(id).w : 0);
+    B.ds_grid_height = id => (GR(id) ? GR(id).h : 0);
+    B.ds_grid_resize = (id, w, h) => {
+        const g = GR(id); if (!g) return 0; w = Math.round(w); h = Math.round(h);
+        const d = new Array(w * h).fill(0);
+        for (let y = 0; y < Math.min(h, g.h); y++) for (let x = 0; x < Math.min(w, g.w); x++) d[y * w + x] = g.d[y * g.w + x];
+        g.w = w; g.h = h; g.d = d; return 0;
+    };
+    const inGrid = (g, x, y) => g && x >= 0 && y >= 0 && x < g.w && y < g.h;
+    B.ds_grid_clear = (id, v) => { const g = GR(id); if (g) g.d.fill(v); return 0; };
+    B.ds_grid_get = (id, x, y) => { const g = GR(id); x = Math.floor(x); y = Math.floor(y); return inGrid(g, x, y) ? g.d[y * g.w + x] : 0; };
+    B.ds_grid_set = (id, x, y, v) => { const g = GR(id); x = Math.floor(x); y = Math.floor(y); if (inGrid(g, x, y)) g.d[y * g.w + x] = v; return 0; };
+    B.ds_grid_add = (id, x, y, v) => { const g = GR(id); x = Math.floor(x); y = Math.floor(y); if (inGrid(g, x, y)) g.d[y * g.w + x] += v; return 0; };
+    B.ds_grid_multiply = (id, x, y, v) => { const g = GR(id); x = Math.floor(x); y = Math.floor(y); if (inGrid(g, x, y)) g.d[y * g.w + x] *= v; return 0; };
+    function gridRegion(id, x1, y1, x2, y2, fn) {
+        const g = GR(id); if (!g) return;
+        [x1, x2] = [Math.max(0, Math.min(x1, x2)), Math.min(g.w - 1, Math.max(x1, x2))];
+        [y1, y2] = [Math.max(0, Math.min(y1, y2)), Math.min(g.h - 1, Math.max(y1, y2))];
+        for (let y = Math.floor(y1); y <= y2; y++) for (let x = Math.floor(x1); x <= x2; x++) fn(g, y * g.w + x, x, y);
+    }
+    B.ds_grid_set_region = (id, x1, y1, x2, y2, v) => { gridRegion(id, x1, y1, x2, y2, (g, k) => { g.d[k] = v; }); return 0; };
+    B.ds_grid_add_region = (id, x1, y1, x2, y2, v) => { gridRegion(id, x1, y1, x2, y2, (g, k) => { g.d[k] += v; }); return 0; };
+    const regionVals = (id, x1, y1, x2, y2) => { const out = []; gridRegion(id, x1, y1, x2, y2, (g, k) => out.push(g.d[k])); return out; };
+    B.ds_grid_get_max = (...a) => { const v = regionVals(...a); return v.length ? Math.max(...v) : 0; };
+    B.ds_grid_get_min = (...a) => { const v = regionVals(...a); return v.length ? Math.min(...v) : 0; };
+    B.ds_grid_get_sum = (...a) => regionVals(...a).reduce((s, v) => s + v, 0);
+    B.ds_grid_get_mean = (...a) => { const v = regionVals(...a); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : 0; };
+    B.ds_grid_value_exists = (id, x1, y1, x2, y2, val) => regionVals(id, x1, y1, x2, y2).includes(val);
+    B.ds_grid_copy = (dst, src) => { const s = GR(src); if (s) R.grids[Math.round(dst)] = { w: s.w, h: s.h, d: [...s.d] }; return 0; };
+
+    // ------------------------------------------------------------------ ds_map / ds_stack / ds_queue / ds_priority
+    R.maps = []; R.stacks = []; R.queues = []; R.prios = [];
+    const MP = id => R.maps[Math.round(id)] || new Map();
+    B.ds_map_create = () => { R.maps.push(new Map()); return R.maps.length - 1; };
+    B.ds_map_destroy = id => { R.maps[Math.round(id)] = null; return 0; };
+    B.ds_map_clear = id => { MP(id).clear(); return 0; };
+    B.ds_map_size = id => MP(id).size;
+    B.ds_map_empty = id => MP(id).size === 0;
+    B.ds_map_add = (id, k, v) => { if (!MP(id).has(k)) MP(id).set(k, v); return 0; };
+    B.ds_map_replace = (id, k, v) => { if (MP(id).has(k)) MP(id).set(k, v); return 0; };
+    B.ds_map_delete = (id, k) => { MP(id).delete(k); return 0; };
+    B.ds_map_exists = (id, k) => MP(id).has(k);
+    B.ds_map_find_value = (id, k) => { const v = MP(id).get(k); return v === undefined ? 0 : v; };
+    const mapKeys = id => [...MP(id).keys()].sort((a, b) => (typeof a === 'string' || typeof b === 'string') ? String(a).localeCompare(String(b)) : a - b);
+    B.ds_map_find_first = id => { const k = mapKeys(id); return k.length ? k[0] : 0; };
+    B.ds_map_find_last = id => { const k = mapKeys(id); return k.length ? k[k.length - 1] : 0; };
+    B.ds_map_find_next = (id, key) => { const k = mapKeys(id), i = k.indexOf(key); return i >= 0 && i + 1 < k.length ? k[i + 1] : 0; };
+    B.ds_map_find_previous = (id, key) => { const k = mapKeys(id), i = k.indexOf(key); return i > 0 ? k[i - 1] : 0; };
+    B.ds_stack_create = () => { R.stacks.push([]); return R.stacks.length - 1; };
+    B.ds_stack_destroy = id => { R.stacks[id] = null; return 0; };
+    B.ds_stack_push = (id, ...v) => { R.stacks[id].push(...v); return 0; };
+    B.ds_stack_pop = id => { const v = R.stacks[id].pop(); return v === undefined ? 0 : v; };
+    B.ds_stack_top = id => { const s = R.stacks[id]; return s.length ? s[s.length - 1] : 0; };
+    B.ds_stack_size = id => R.stacks[id].length; B.ds_stack_empty = id => R.stacks[id].length === 0;
+    B.ds_stack_clear = id => { R.stacks[id].length = 0; return 0; };
+    B.ds_queue_create = () => { R.queues.push([]); return R.queues.length - 1; };
+    B.ds_queue_destroy = id => { R.queues[id] = null; return 0; };
+    B.ds_queue_enqueue = (id, ...v) => { R.queues[id].push(...v); return 0; };
+    B.ds_queue_dequeue = id => { const v = R.queues[id].shift(); return v === undefined ? 0 : v; };
+    B.ds_queue_head = id => (R.queues[id].length ? R.queues[id][0] : 0);
+    B.ds_queue_tail = id => { const q = R.queues[id]; return q.length ? q[q.length - 1] : 0; };
+    B.ds_queue_size = id => R.queues[id].length; B.ds_queue_empty = id => R.queues[id].length === 0;
+    B.ds_queue_clear = id => { R.queues[id].length = 0; return 0; };
+    B.ds_priority_create = () => { R.prios.push([]); return R.prios.length - 1; };
+    B.ds_priority_destroy = id => { R.prios[id] = null; return 0; };
+    B.ds_priority_clear = id => { R.prios[id].length = 0; return 0; };
+    B.ds_priority_size = id => R.prios[id].length; B.ds_priority_empty = id => R.prios[id].length === 0;
+    B.ds_priority_add = (id, v, p) => { R.prios[id].push([v, p]); return 0; };
+    B.ds_priority_change_priority = (id, v, p) => { const e = R.prios[id].find(e => e[0] === v); if (e) e[1] = p; return 0; };
+    B.ds_priority_find_priority = (id, v) => { const e = R.prios[id].find(e => e[0] === v); return e ? e[1] : 0; };
+    B.ds_priority_delete_value = (id, v) => { const q = R.prios[id], i = q.findIndex(e => e[0] === v); if (i >= 0) q.splice(i, 1); return 0; };
+    const prioPick = (id, best, del) => {
+        const q = R.prios[id]; if (!q.length) return 0;
+        let k = 0; for (let i = 1; i < q.length; i++) if (best(q[i][1], q[k][1])) k = i;
+        const v = q[k][0]; if (del) q.splice(k, 1); return v;
+    };
+    B.ds_priority_find_min = id => prioPick(id, (a, b) => a < b, false);
+    B.ds_priority_find_max = id => prioPick(id, (a, b) => a > b, false);
+    B.ds_priority_delete_min = id => prioPick(id, (a, b) => a < b, true);
+    B.ds_priority_delete_max = id => prioPick(id, (a, b) => a > b, true);
+
+    // ------------------------------------------------------------------ mp_grid (A* path finding on a cell grid)
+    R.mpGrids = [];
+    const MG = id => R.mpGrids[Math.round(id)];
+    B.mp_grid_create = (left, top, hcells, vcells, cw, ch) => {
+        hcells = Math.max(1, Math.round(hcells)); vcells = Math.max(1, Math.round(vcells));
+        R.mpGrids.push({ left, top, w: hcells, h: vcells, cw, ch, cells: new Uint8Array(hcells * vcells) });
+        return R.mpGrids.length - 1;
+    };
+    B.mp_grid_destroy = id => { R.mpGrids[Math.round(id)] = null; return 0; };
+    B.mp_grid_clear_all = id => { const g = MG(id); if (g) g.cells.fill(0); return 0; };
+    const mgSet = (g, cx, cy, v) => { cx = Math.floor(cx); cy = Math.floor(cy); if (g && cx >= 0 && cy >= 0 && cx < g.w && cy < g.h) g.cells[cy * g.w + cx] = v; };
+    B.mp_grid_add_cell = (id, cx, cy) => { mgSet(MG(id), cx, cy, 1); return 0; };
+    B.mp_grid_clear_cell = (id, cx, cy) => { mgSet(MG(id), cx, cy, 0); return 0; };
+    function mgRect(id, x1, y1, x2, y2, v) {
+        const g = MG(id); if (!g) return;
+        if (x1 > x2) [x1, x2] = [x2, x1]; if (y1 > y2) [y1, y2] = [y2, y1];
+        const c1 = Math.floor((x1 - g.left) / g.cw), c2 = Math.floor((x2 - g.left) / g.cw);
+        const r1 = Math.floor((y1 - g.top) / g.ch), r2 = Math.floor((y2 - g.top) / g.ch);
+        for (let cy = r1; cy <= r2; cy++) for (let cx = c1; cx <= c2; cx++) mgSet(g, cx, cy, v);
+    }
+    B.mp_grid_add_rectangle = (id, x1, y1, x2, y2) => { mgRect(id, x1, y1, x2, y2, 1); return 0; };
+    B.mp_grid_clear_rectangle = (id, x1, y1, x2, y2) => { mgRect(id, x1, y1, x2, y2, 0); return 0; };
+    B.mp_grid_add_instances = (id, obj, prec) => {
+        const g = MG(id); if (!g) return 0;
+        for (const i of resolve(obj, null, null)) {
+            const b = i.__bbox(); if (!b) continue;
+            // a cell is blocked when the instance's bounding box overlaps its interior
+            const c1 = Math.floor((b.l - g.left) / g.cw), c2 = Math.ceil((b.r - g.left) / g.cw) - 1;
+            const r1 = Math.floor((b.t - g.top) / g.ch), r2 = Math.ceil((b.b - g.top) / g.ch) - 1;
+            for (let cy = r1; cy <= r2; cy++) for (let cx = c1; cx <= c2; cx++) mgSet(g, cx, cy, 1);
+        }
+        return 0;
+    };
+    B.mp_grid_get_cell = (id, cx, cy) => { const g = MG(id); cx = Math.floor(cx); cy = Math.floor(cy); return g && cx >= 0 && cy >= 0 && cx < g.w && cy < g.h ? (g.cells[cy * g.w + cx] ? -1 : 0) : -1; };
+    B.mp_grid_path = (id, path, xs, ys, xg, yg, diag) => {
+        const g = MG(id), p = R.paths[Math.round(path)]; if (!g || !p) return false;
+        const cs = [Math.floor((xs - g.left) / g.cw), Math.floor((ys - g.top) / g.ch)];
+        const cg = [Math.floor((xg - g.left) / g.cw), Math.floor((yg - g.top) / g.ch)];
+        const ok = (x, y) => x >= 0 && y >= 0 && x < g.w && y < g.h && !g.cells[y * g.w + x];
+        if (!ok(...cs) || !ok(...cg)) return false;
+        const key = (x, y) => y * g.w + x, start = key(...cs), goal = key(...cg);
+        const gs = new Map([[start, 0]]), came = new Map(), open = [[start, 0]], closed = new Set();
+        const hfun = k => { const x = k % g.w, y = Math.floor(k / g.w); return Math.hypot(x - cg[0], y - cg[1]); };
+        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        if (B.T(diag)) dirs.push([1, 1], [1, -1], [-1, 1], [-1, -1]);
+        while (open.length) {
+            let bi = 0; for (let i = 1; i < open.length; i++) if (open[i][1] < open[bi][1]) bi = i;
+            const [cur] = open.splice(bi, 1)[0];
+            if (cur === goal) break;
+            if (closed.has(cur)) continue; closed.add(cur);
+            const cx = cur % g.w, cy = Math.floor(cur / g.w);
+            for (const [dx, dy] of dirs) {
+                const nx = cx + dx, ny = cy + dy;
+                if (!ok(nx, ny)) continue;
+                if (dx && dy && (!ok(cx + dx, cy) || !ok(cx, cy + dy))) continue;   // no corner cutting
+                const nk = key(nx, ny), ng = gs.get(cur) + (dx && dy ? Math.SQRT2 : 1);
+                if (ng < (gs.has(nk) ? gs.get(nk) : Infinity)) { gs.set(nk, ng); came.set(nk, cur); open.push([nk, ng + hfun(nk)]); }
+            }
+        }
+        if (!gs.has(goal)) return false;
+        const cellsPath = []; for (let k = goal; k !== undefined; k = came.get(k)) { cellsPath.push(k); if (k === start) break; }
+        cellsPath.reverse();
+        p.points = cellsPath.map((k, i) => {
+            if (i === 0) return { x: xs, y: ys, sp: 100 };
+            if (i === cellsPath.length - 1) return { x: xg, y: yg, sp: 100 };
+            return { x: g.left + (k % g.w + 0.5) * g.cw, y: g.top + (Math.floor(k / g.w) + 0.5) * g.ch, sp: 100 };
+        });
+        if (cellsPath.length === 1) p.points = [{ x: xs, y: ys, sp: 100 }, { x: xg, y: yg, sp: 100 }];
+        p.closed = false;
+        return true;
+    };
+    B.mp_grid_draw = id => {
+        const g = MG(id); if (!g) return 0;
+        withAlpha(ctx => {
+            for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+                ctx.fillStyle = g.cells[y * g.w + x] ? 'rgb(255,0,0)' : 'rgb(0,255,0)';
+                ctx.fillRect(g.left + x * g.cw, g.top + y * g.ch, g.cw, g.ch);
+            }
+        });
+        return 0;
+    };
+
     // ------------------------------------------------------------------ paths
     B.path_add = () => { R.paths.push({ points: [], closed: true }); return R.paths.length - 1; };
     const P = id => R.paths[Math.round(id)] || { points: [], closed: false };
@@ -468,6 +704,52 @@ const B = (() => {
     B.path_get_x = (id, pos) => pathAt(id, pos).x;
     B.path_get_y = (id, pos) => pathAt(id, pos).y;
     B.path_get_speed = (id, pos) => pathAt(id, pos).sp;
+    B.path_assign = (target, src) => {
+        const s = R.paths[Math.round(src)]; if (!s) return 0;
+        R.paths[Math.round(target)] = { points: s.points.map(q => ({ ...q })), closed: s.closed }; return 0;
+    };
+    B.path_append = (target, src) => { const s = P(src); P(target).points.push(...s.points.map(q => ({ ...q }))); return 0; };
+    B.path_reverse = id => { P(id).points.reverse(); return 0; };
+    B.path_set_kind = (id, k) => 0;      // smooth paths are drawn as straight segments
+    B.path_set_precision = (id, p) => 0;
+    B.path_get_closed = id => P(id).closed;
+    B.path_get_point_speed = (id, n) => (P(id).points[n] || { sp: 0 }).sp;
+    B.path_change_point = (id, n, x, y, sp) => { const q = P(id).points[n]; if (q) Object.assign(q, { x, y, sp }); return 0; };
+    B.path_delete_point = (id, n) => { P(id).points.splice(n, 1); return 0; };
+    B.path_insert_point = (id, n, x, y, sp) => { P(id).points.splice(n, 0, { x, y, sp }); return 0; };
+    B.path_shift = (id, dx, dy) => { for (const q of P(id).points) { q.x += dx; q.y += dy; } return 0; };
+    // path motion for instances (path_start / path_end; advanced in the step loop)
+    B.path_start = (self, path, speed, endaction, absolute) => {
+        self.path_index = Math.round(path); self.path_position = 0; self.path_speed = speed;
+        self.path_endaction = Math.round(endaction); self.__pathAbs = B.T(absolute);
+        const p0 = pathAt(path, 0);
+        self.__pathOx = self.__pathAbs ? 0 : self.x - p0.x; self.__pathOy = self.__pathAbs ? 0 : self.y - p0.y;
+        if (self.__pathAbs) { self.x = p0.x; self.y = p0.y; }
+        return 0;
+    };
+    B.path_end = self => { self.path_index = -1; return 0; };
+    B._pathStep = function (i) {
+        if (i.path_index < 0 || !R.paths[i.path_index]) return;
+        const len = B.path_get_length(i.path_index);
+        if (len <= 0) { i.path_index = -1; return; }
+        const here = pathAt(i.path_index, i.path_position);
+        i.path_position += i.path_speed * (here.sp / 100) / len;
+        let ended = false;
+        if (i.path_position >= 1 || i.path_position <= 0) {
+            const act = i.path_endaction || 0;
+            if (act === 1) i.path_position = i.path_position >= 1 ? i.path_position - 1 : i.path_position + 1;
+            else if (act === 2) {
+                const end = pathAt(i.path_index, 1), st = pathAt(i.path_index, 0);
+                i.__pathOx += end.x - st.x; i.__pathOy += end.y - st.y; i.path_position -= Math.floor(i.path_position);
+            } else if (act === 3) { i.path_speed = -i.path_speed; i.path_position = Math.max(0, Math.min(1, i.path_position)); }
+            else { i.path_position = Math.max(0, Math.min(1, i.path_position)); ended = true; }
+        }
+        const q = pathAt(i.path_index, i.path_position);
+        const nx = q.x + i.__pathOx, ny = q.y + i.__pathOy;
+        if (nx !== i.x || ny !== i.y) i.__dir = B.point_direction(i.x, i.y, nx, ny);
+        i.x = nx; i.y = ny;
+        if (ended) { i.path_index = -1; runEvent(i, 'other_8', i); }
+    };
     B.path_get_point_x = (id, n) => (P(id).points[n] || { x: 0 }).x;
     B.path_get_point_y = (id, n) => (P(id).points[n] || { y: 0 }).y;
 
@@ -486,8 +768,13 @@ const B = (() => {
     // ------------------------------------------------------------------ rooms
     B.room_restart = () => { R.pendingRoom = R.room; return 0; };
     B.room_goto = r => { R.pendingRoom = r; return 0; };
-    B.room_goto_next = () => { R.pendingRoom = R.room + 1; return 0; };
-    B.room_goto_previous = () => { R.pendingRoom = R.room - 1; return 0; };
+    const roomOrder = () => (typeof ROOM_ORDER !== 'undefined' && ROOM_ORDER.length ? ROOM_ORDER : ROOMS.map((r, i) => r ? i : -1).filter(i => i >= 0));
+    B.room_next = r => { const o = roomOrder(), k = o.indexOf(r); return k >= 0 && k + 1 < o.length ? o[k + 1] : -1; };
+    B.room_previous = r => { const o = roomOrder(), k = o.indexOf(r); return k > 0 ? o[k - 1] : -1; };
+    B.room_goto_next = () => { const n = B.room_next(R.room); if (n >= 0) R.pendingRoom = n; return 0; };
+    B.room_goto_previous = () => { const n = B.room_previous(R.room); if (n >= 0) R.pendingRoom = n; return 0; };
+    Object.defineProperty(B, 'room_first', { get: () => roomOrder()[0] });
+    Object.defineProperty(B, 'room_last', { get: () => roomOrder()[roomOrder().length - 1] });
     B.game_restart = () => { location.reload(); return 0; };
     B.game_end = () => { R.ended = true; return 0; };
 
@@ -544,6 +831,10 @@ const B = (() => {
     B.sprite_get_yoffset = s => (R.sprites[s] ? R.sprites[s].yoffset : 0);
     B.sprite_get_name = s => (R.sprites[s] ? R.sprites[s].name : '');
     B.sprite_set_offset = (s, x, y) => { const sp = R.sprites[s]; if (sp) { sp.xoffset = x; sp.yoffset = y; } return 0; };
+    function toCanvas(img) {
+        if (img instanceof HTMLCanvasElement) return img;
+        const c = makeCanvas(img.width, img.height); c.getContext('2d').drawImage(img, 0, 0); return c;
+    }
     function intensityAlpha(dstCanvas, srcCanvas) {
         const w = dstCanvas.width, h = dstCanvas.height;
         const tmp = makeCanvas(w, h), t = tmp.getContext('2d');
@@ -577,6 +868,7 @@ const B = (() => {
     };
     B.sprite_replace_alpha = (ind, fname, imgnumb, precise, preload, xo, yo) =>
         B.sprite_replace(ind, fname, imgnumb, precise, 0, 0, preload, xo, yo);
+    B.background_exists = b => !!R.backgrounds[Math.round(b)];
     B.background_get_width = b => (R.backgrounds[b] ? R.backgrounds[b].width : 0);
     B.background_get_height = b => (R.backgrounds[b] ? R.backgrounds[b].height : 0);
     B.background_create_color = (w, h, col) => {
@@ -589,8 +881,8 @@ const B = (() => {
         R.backgrounds.push({ name: 'bg_surface', image: c, width: w, height: h }); return R.backgrounds.length - 1;
     };
     B.background_set_alpha_from_background = (dst, src) => {
-        const d = R.backgrounds[dst], s = R.backgrounds[src]; if (!d || !s) return 0;
-        intensityAlpha(d.image, s.image); d.__tint = null; return 0;
+        const d = R.backgrounds[dst], s = R.backgrounds[src]; if (!d || !s || !d.image || !s.image) return 0;
+        d.image = toCanvas(d.image); intensityAlpha(d.image, s.image); invalidateTint('bg' + dst); return 0;
     };
     B.background_delete = b => { R.backgrounds[b] = null; return 0; };
 
@@ -1023,6 +1315,7 @@ const B = (() => {
             }
             if (i.gravity) { const d = i.gravity_direction * Math.PI / 180; i.hspeed += Math.cos(d) * i.gravity; i.vspeed -= Math.sin(d) * i.gravity; }
             if (i.hspeed || i.vspeed) { i.x += i.hspeed; i.y += i.vspeed; }
+            if (i.path_index >= 0) B._pathStep(i);
         });
         collisions();                                                              // collision events
         forEachLive(i => runEvent(i, 'step_2', i));                               // end step
@@ -1090,12 +1383,122 @@ const B = (() => {
     }
 
     function frame() {
-        if (R.pendingRoom !== null) { const r = R.pendingRoom; R.pendingRoom = null; gotoRoom(r); }
-        if (R.ended) return;
-        try { step(); draw(); }
-        catch (e) { reportError(e); throw e; }
+        if (R.modal || R.messages.length) return;          // a dialog is open: the game is paused
+        try {
+            if (R.pendingRoom !== null) { const r = R.pendingRoom; R.pendingRoom = null; gotoRoom(r); }
+            if (R.ended) return;
+            step(); draw();
+        } catch (e) {
+            if (e instanceof ModalSuspend) { openModal(e, []); return; }
+            reportError(e); throw e;
+        }
         R.frameCount++;
     }
+
+    function openModal(e, answers) {
+        R.modal = { origin: e.origin, answers, req: e.req };
+        R.pressed.clear(); R.released.clear(); R.mouse.pressed.clear(); R.mouse.released.clear();
+        showDialog(e.req, value => {
+            const m = R.modal; R.modal = null;
+            R.mouse.buttons.clear(); R.keys.clear();
+            if (!m.origin) return;
+            R.replay = { answers: [...m.answers, value], idx: 0 };
+            try { runEvent(m.origin.inst, m.origin.key, m.origin.other); }
+            catch (err) {
+                if (err instanceof ModalSuspend) { err.origin = err.origin || m.origin; openModal(err, R.replay.answers); }
+                else { reportError(err); }
+            } finally { R.replay = null; }
+        });
+    }
+
+    // DOM dialogs drawn over the canvas
+    function dialogLayer() {
+        let el = document.getElementById('gm-dialog');
+        if (!el) {
+            el = document.createElement('div'); el.id = 'gm-dialog';
+            el.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;font:14px Arial,sans-serif;';
+            (R.canvas.parentNode || document.body).appendChild(el);
+        }
+        el.innerHTML = ''; el.style.display = 'flex'; return el;
+    }
+    const BOX = 'background:#f0f0f0;color:#000;border:1px solid #888;box-shadow:0 4px 18px rgba(0,0,0,.5);border-radius:4px;';
+    function showDialog(req, done) {
+        const layer = dialogLayer();
+        const finish = v => { layer.style.display = 'none'; layer.innerHTML = ''; window.removeEventListener('keydown', onKey, true); done(v); };
+        let onKey = () => { };
+        if (req.kind === 'menu') {
+            // popup menu at the mouse position, like GameMaker's show_menu
+            layer.style.alignItems = 'flex-start'; layer.style.justifyContent = 'flex-start';
+            const back = document.createElement('div'); back.style.cssText = 'position:absolute;inset:0;';
+            back.onmousedown = ev => { ev.preventDefault(); finish(req.def); };
+            back.oncontextmenu = ev => ev.preventDefault();
+            layer.appendChild(back);
+            const menu = document.createElement('div');
+            menu.style.cssText = BOX + 'position:absolute;padding:3px 0;min-width:120px;';
+            const cr = R.canvas.getBoundingClientRect(), lr = layer.getBoundingClientRect();
+            const vw = B.view_enabled ? B.view_wview[0] : R.canvas.width, vh = B.view_enabled ? B.view_hview[0] : R.canvas.height;
+            menu.style.left = (cr.left - lr.left + R.mouse.x * cr.width / vw) + 'px';
+            menu.style.top = (cr.top - lr.top + R.mouse.y * cr.height / vh) + 'px';
+            let sel = 0; const rows = [];
+            const paint = () => rows.forEach((row, k) => { row.style.background = k === sel ? '#3366cc' : ''; row.style.color = k === sel ? '#fff' : '#000'; });
+            req.items.forEach((label, k) => {
+                const row = document.createElement('div'); row.textContent = label;
+                row.style.cssText = 'padding:4px 16px;cursor:pointer;white-space:nowrap;';
+                row.onmouseenter = () => { sel = k; paint(); };
+                row.onmouseup = ev => { ev.stopPropagation(); finish(k); };
+                menu.appendChild(row); rows.push(row);
+            });
+            layer.appendChild(menu); paint();
+            const mr = menu.getBoundingClientRect();
+            if (mr.right > lr.right) menu.style.left = Math.max(0, parseFloat(menu.style.left) - (mr.right - lr.right)) + 'px';
+            if (mr.bottom > lr.bottom) menu.style.top = Math.max(0, parseFloat(menu.style.top) - (mr.bottom - lr.bottom)) + 'px';
+            onKey = ev => {
+                ev.preventDefault(); ev.stopPropagation();
+                if (ev.key === 'ArrowDown') { sel = (sel + 1) % rows.length; paint(); }
+                else if (ev.key === 'ArrowUp') { sel = (sel - 1 + rows.length) % rows.length; paint(); }
+                else if (ev.key === 'Enter' || ev.key === ' ') finish(sel);
+                else if (ev.key === 'Escape') finish(req.def);
+            };
+        } else {
+            layer.style.background = 'rgba(0,0,0,.25)';
+            const box = document.createElement('div'); box.style.cssText = BOX + 'padding:16px 18px;max-width:70%;min-width:220px;';
+            const text = document.createElement('div'); text.style.cssText = 'white-space:pre-wrap;margin-bottom:12px;';
+            text.textContent = String(req.text).replace(/#/g, '\n'); box.appendChild(text);
+            let input = null;
+            if (req.kind === 'integer' || req.kind === 'string') {
+                input = document.createElement('input'); input.value = String(req.def);
+                input.style.cssText = 'width:100%;box-sizing:border-box;padding:4px;margin-bottom:12px;font:inherit;';
+                box.appendChild(input);
+            }
+            const buttons = document.createElement('div'); buttons.style.cssText = 'text-align:right;';
+            const button = (label, value) => {
+                const b = document.createElement('button'); b.textContent = label;
+                b.style.cssText = 'margin-left:8px;padding:4px 16px;font:inherit;cursor:pointer;';
+                b.onclick = () => finish(typeof value === 'function' ? value() : value); buttons.appendChild(b); return b;
+            };
+            const value = () => req.kind === 'integer' ? (isNaN(parseFloat(input.value)) ? req.def : parseFloat(input.value)) : input ? input.value : 0;
+            let first;
+            if (req.kind === 'question') { first = button('Yes', true); button('No', false); }
+            else { first = button('OK', value); if (input) button('Cancel', req.def); }
+            box.appendChild(buttons); layer.appendChild(box);
+            (input || first).focus(); if (input) input.select();
+            onKey = ev => {
+                if (ev.key === 'Enter') { ev.preventDefault(); finish(req.kind === 'question' ? true : value()); }
+                else if (ev.key === 'Escape') { ev.preventDefault(); finish(req.kind === 'question' ? false : req.def); }
+            };
+        }
+        window.addEventListener('keydown', onKey, true);
+    }
+    function nextMessage() {
+        if (!R.messages.length) return;
+        showDialog({ kind: 'message', text: R.messages[0] }, () => { R.messages.shift(); nextMessage(); });
+    }
+    B.show_message = s => { R.messages.push(B.string(s)); if (R.messages.length === 1) nextMessage(); return 0; };
+    B.show_menu = (str, def) => ask({ kind: 'menu', items: B.string(str).split('|'), def });
+    B.show_menu_pos = (x, y, str, def) => ask({ kind: 'menu', items: B.string(str).split('|'), def });
+    B.get_integer = (str, def) => ask({ kind: 'integer', text: str, def });
+    B.get_string = (str, def) => ask({ kind: 'string', text: str, def });
+    B.show_question = str => ask({ kind: 'question', text: str });
 
     function reportError(e) {
         console.error(e);
@@ -1112,6 +1515,7 @@ const B = (() => {
             return 0;
         };
         window.addEventListener('keydown', e => {
+            if (R.modal || R.messages.length) return;     // keys go to the open dialog
             const k = keyCode(e); if (!k) return;
             if ((k >= 112 && k <= 123) || (k >= 37 && k <= 40) || k === 32) e.preventDefault();
             if (!R.keys.has(k)) R.pressed.add(k);
@@ -1134,7 +1538,7 @@ const B = (() => {
         R.canvas.addEventListener('contextmenu', e => e.preventDefault());
         R.canvas.addEventListener('wheel', e => { R.mouse.wheel = Math.sign(e.deltaY); e.preventDefault(); }, { passive: false });
 
-        gotoRoom(0);
+        gotoRoom(roomOrder()[0]);
         // fixed-rate loop at room_speed
         let last = performance.now(), acc = 0;
         R.fpsTime = last; let frames = 0;

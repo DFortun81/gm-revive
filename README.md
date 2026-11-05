@@ -61,7 +61,8 @@ to work on next.
 | GameMaker Studio `.gmx` / `.yyp` | ❌ Detected; these are plain-text formats and should be the easiest to add |
 | GML code | ✅ Full GM8 syntax: `begin/end`, `:=`, `=` as comparison, `and/or/xor/not/div/mod`, `with`, `repeat`, `do…until`, `switch`, `var`, `globalvar`, 1D/2D arrays |
 | Drag & drop actions | ❌ Reported, not yet translated (code actions work) |
-| Built-in functions | ~200 implemented — instances, drawing, sprites, surfaces, ds_list, paths, input, sound, rooms, views, strings, math |
+| Built-in functions | ~350 implemented — instances, drawing, sprites, surfaces, ds_list/map/grid/stack/queue/priority, paths and path motion, mp_grid path finding, collision checks, input, sound, rooms and room order, views, strings, math |
+| Blocking dialogs | ✅ `show_menu`, `get_integer`, `get_string`, `show_question` pause the game and show an HTML dialog; the interrupted event re-runs with the answer. `show_message` pauses until dismissed |
 | Collision events | ✅ Bounding-box only (no per-pixel masks) |
 | Extensions | WinSkin re-implemented; others need a JS replacement |
 
