@@ -7,6 +7,9 @@ _health = _maxhealth;
 _manatype_maxmana = 450;
 _manatype_mana = _manatype_maxmana;
 _manatype = manatype_mana;
+// (gm-revive overrides) A trickle of mana regeneration, so a Caster who has run dry can still throw a
+// Fireball every couple of seconds instead of standing idle until Evocation comes back.
+_mana_regen = 1.5; // mana per second (a Fireball costs 3 and normally goes out every 0.6 s)
 
 _normal_movespeed = 1;
 _movespeed = _normal_movespeed; // This value changes

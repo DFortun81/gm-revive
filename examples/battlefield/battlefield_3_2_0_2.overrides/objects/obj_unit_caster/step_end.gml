@@ -10,6 +10,9 @@ _fireblast_cooldown -= 1;
 _manashield_cooldown -= 1;
 
 if(dead) exit;
+
+// Mana regeneration (gm-revive overrides)
+unit_mana(id, _mana_regen / room_speed);
 if(_stunned) {
     // A stun breaks Polymorph and Blizzard casts (added by gm-revive overrides)
     if(_polymorph_casting || _blizzard_casting) {
