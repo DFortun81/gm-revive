@@ -6,5 +6,6 @@ switch(argument0) {
     case 2: return "5v5";
     case 3: return "10v10";
     case 4: return "20v20";
+    case 5: return "Boss";
 }
 return "?";

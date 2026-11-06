@@ -49,14 +49,21 @@ game.overrides/
   scripts/my_script.gml              replaces that script, or adds a new one
   objects/obj_player/create.gml      replaces that event, or adds it
   objects/obj_player/step_end.gml
+  objects/obj_boss_new/object.json   creates a new object (or changes an existing one's properties)
+  objects/obj_boss_new/create.gml    ...and its events go next to it, as for any object
 ```
+
+`object.json` takes any of `sprite`, `parent`, `mask` (resource names, or `null`), `depth`, `visible`, `solid`
+and `persistent`, e.g. `{"sprite": "spr_boss_zio", "parent": "obj_boss"}`. It's required for an object the
+project doesn't have; new objects can be parents of other new objects, and inheritance loops are refused.
 
 Event file names: `create`, `destroy`, `step`, `step_begin`, `step_end`, `draw`, `alarm0`–`alarm11`,
 `user0`–`user15`, `room_start`, `room_end`, `game_start`, `game_end`, `animation_end`, `end_of_path`, or the raw
 `<type>_<number>` form used in `game.js` (`keypress_32`, `collision_4`). `event_inherited()` works as usual.
 Use `--no-overrides` to build the original game.
 
-`examples/battlefield/battlefield_3_2_0_2.overrides` finishes the Battlefield Paladin class this way.
+`examples/battlefield/battlefield_3_2_0_2.overrides` finishes the Battlefield Paladin and Druid classes this way,
+reworks the other classes and adds a new boss object (`obj_boss_stitchgut`).
 
 ## Compatibility report
 

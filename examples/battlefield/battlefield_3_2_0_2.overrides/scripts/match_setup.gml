@@ -1,6 +1,7 @@
 // match_setup();
 // Called when the battlefield starts (and on every reset): picks a format and spawns the armies.
-// Formats: 0 the original army, 1-4 a 3v3 / 5v5 / 10v10 / 20v20 where every unit on each side is a
+// Formats: 0 the original army, 5 a random 15-unit raid against Stitchgut (the tank-and-spank
+// boss), 1-4 a 3v3 / 5v5 / 10v10 / 20v20 where every unit on each side is a
 // random class, in mirrored formations (Alliance on the left, Horde on the right).
 ////////////////////////////////////////////////////////////////////////////////////////////
 var f, n, k, c, cols, rows, col, row, dx, yy, side_a, side_h;
@@ -8,14 +9,15 @@ if(!variable_global_exists("match_count")) match_load();
 if(!variable_global_exists("match_auto")) global.match_auto = true;
 if(!variable_global_exists("match_show")) global.match_show = false;
 
-f = irandom(4);
-if(f == global.match_format) f = irandom(4); // a repeat is less likely
+f = irandom(5);
+if(f == global.match_format) f = irandom(5); // a repeat is less likely
 global.match_format = f;
 switch(f) {
     case 1: n = 3; break;
     case 2: n = 5; break;
     case 3: n = 10; break;
     case 4: n = 20; break;
+    case 5: n = 15; break; // Boss: a random 15-unit raid against Stitchgut
     default: n = 0; break;
 }
 global.match_over = false;
@@ -42,9 +44,11 @@ for(k = 0; k < n; k += 1) {
     c = choose(class_warrior, class_caster, class_healer, class_shaman, class_rogue, class_druid, class_paladin);
     ds_list_add(side_a, c);
     global.match_comp_a[c] += 1;
-    c = choose(class_warrior, class_caster, class_healer, class_shaman, class_rogue, class_druid, class_paladin);
-    ds_list_add(side_h, c);
-    global.match_comp_h[c] += 1;
+    if(f != 5) {
+        c = choose(class_warrior, class_caster, class_healer, class_shaman, class_rogue, class_druid, class_paladin);
+        ds_list_add(side_h, c);
+        global.match_comp_h[c] += 1;
+    }
 }
 match_formation_sort(side_a);
 match_formation_sort(side_h);
@@ -56,7 +60,8 @@ for(k = 0; k < n; k += 1) {
     dx = 100 + col * 40;         // front ranks start 200 px apart, ranks 40 px deep
     yy = room_height / 2 + (row - (rows - 1) / 2) * 48;
     create_unit(room_width / 2 - dx, yy, ds_list_find_value(side_a, k), "Alliance");
-    create_unit(room_width / 2 + dx, yy, ds_list_find_value(side_h, k), "Horde");
+    if(f != 5) create_unit(room_width / 2 + dx, yy, ds_list_find_value(side_h, k), "Horde");
 }
+if(f == 5) spawn_boss(room_width / 2 + 100, room_height / 2, global.boss_stitchgut, "Abomination");
 ds_list_destroy(side_a);
 ds_list_destroy(side_h);

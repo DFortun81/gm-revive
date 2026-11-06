@@ -23,7 +23,11 @@ draw_text(cx, view_yview[0] + 2, s);
 // Winner banner (the results panel shows it instead while it's open)
 if(global.match_over && !global.match_show) {
     cy = view_yview[0] + view_hview[0] / 2 - 40;
-    if(global.match_winner == "") { s = "DRAW"; col = c_white; }
+    if(global.match_format == 5) {
+        if(global.match_winner == "Alliance") { s = "STITCHGUT DEFEATED!"; col = c_lime; }
+        else { s = "RAID WIPED"; col = c_red; }
+    }
+    else if(global.match_winner == "") { s = "DRAW"; col = c_white; }
     else { s = string_upper(global.match_winner) + " WINS!"; col = faction_get_color(global.match_winner); }
     draw_set_font(fnt_victory);
     draw_set_color(c_black);
@@ -37,8 +41,8 @@ if(global.match_over && !global.match_show) {
     draw_text(cx, cy + 56, s);
 }
 
-// Results panel
-if(global.match_show) {
+// Results panel, page 1: matches (key 5; pressing it again shows page 2, the boss)
+if(global.match_show == 1) {
     w = 600; h = 22 + 16 * (2 + 7 + 1 + 5 + 1 + 2 * min(5, global.match_recent_n)) + 10;
     x1 = cx - w / 2; y1 = view_yview[0] + view_hview[0] / 2 - h / 2;
     draw_set_alpha(.8);
@@ -49,7 +53,7 @@ if(global.match_show) {
     draw_set_halign(fa_left);
     draw_set_color(c_white);
     row = y1 + 10;
-    s = "Results: " + string(global.match_count) + " matches (saved in this browser)      [5] close   [7] twice: clear";
+    s = "Results: " + string(global.match_count) + " matches (saved in this browser)    [5] boss page   [7] twice: clear";
     if(global.match_over) {
         if(global.match_winner == "") s = "Draw!   " + s; else s = global.match_winner + " wins!   " + s;
     }
@@ -86,11 +90,13 @@ if(global.match_show) {
     }
     row += 6;
     draw_set_color(c_ltgray);
-    draw_text(x1 + 12, row, "Formats (Alliance - Horde - draw)");
+    draw_text(x1 + 12, row, "Formats (Alliance - Horde - draw; Boss: kills - wipes)");
     row += 16;
     draw_set_color(c_white);
-    for(f = 0; f < 5; f += 1) {
-        draw_text(x1 + 20 + (f mod 3) * 190, row + (f div 3) * 16, match_format_name(f) + ":  " + string(global.match_fmt_a[f]) + " - " + string(global.match_fmt_h[f]) + " - " + string(global.match_fmt_d[f]));
+    for(f = 0; f < 6; f += 1) {
+        s = match_format_name(f) + ":  " + string(global.match_fmt_a[f]) + " - " + string(global.match_fmt_h[f]);
+        if(f != 5) s += " - " + string(global.match_fmt_d[f]);
+        draw_text(x1 + 20 + (f mod 3) * 190, row + (f div 3) * 16, s);
     }
     row += 40;
     draw_set_color(c_ltgray);
@@ -104,6 +110,9 @@ if(global.match_show) {
         row += 32;
     }
 }
+
+// Results panel, page 2: Stitchgut
+if(global.match_show == 2) match_draw_boss(cx);
 draw_set_halign(fa_left);
 draw_set_color(c_white);
 draw_set_alpha(1);

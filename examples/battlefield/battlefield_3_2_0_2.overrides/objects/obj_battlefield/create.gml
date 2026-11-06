@@ -94,6 +94,9 @@ faction_set_unit_sprite("Alliance", class_paladin, spr_blue_paladin);
 
 boss_create("Zio", obj_boss_zio, snd_ziointro, snd_zioboss);
 boss_create("Elmdor", obj_boss_elmdor, snd_elmdor_main, snd_elmdor_main);
+// (gm-revive overrides) the tank-and-spank training boss; key 8 spawns it
+global.boss_stitchgut = ds_list_size(global.boss_name);
+boss_create("Stitchgut", obj_boss_stitchgut, snd_zioboss, snd_zioboss);
 
 // (gm-revive overrides) The armies now come from match_setup: each reset picks one of several
 // formats (the original army, or 3v3 / 5v5 / 10v10 / 20v20 of random classes) and keeps a record
