@@ -10,6 +10,12 @@ _manatype = manatype_mana;
 // (gm-revive overrides) A trickle of mana regeneration, so a Caster who has run dry can still throw a
 // Fireball every couple of seconds instead of standing idle until Evocation comes back.
 _mana_regen = 1.5; // mana per second (a Fireball costs 3 and normally goes out every 0.6 s)
+// Mana Gem: an instant mana potion on a cooldown. Used once the Caster drops to 40% mana, so it
+// comes before Evocation (which waits for 20%). Usable while casting, but not while stunned or sheeped.
+_managem_cooldown = 0;
+_managem_cooldown_time = room_speed * 60;
+_managem_amount = 0.35;    // fraction of maximum mana restored (about 157 of 450)
+_managem_threshold = 0.4;  // used at or below this fraction of maximum mana
 
 _normal_movespeed = 1;
 _movespeed = _normal_movespeed; // This value changes

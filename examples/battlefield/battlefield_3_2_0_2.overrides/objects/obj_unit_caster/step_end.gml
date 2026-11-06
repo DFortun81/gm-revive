@@ -8,11 +8,22 @@ _mirrorimage_cooldown -= 1;
 _blizzard_cooldown -= 1;
 _fireblast_cooldown -= 1;
 _manashield_cooldown -= 1;
+_managem_cooldown -= 1;
 
 if(dead) exit;
 
 // Mana regeneration (gm-revive overrides)
 unit_mana(id, _mana_regen / room_speed);
+
+// Mana Gem (gm-revive overrides): instant, so it can be used mid-cast; not while stunned or sheeped
+if(_managem_cooldown <= 0 && !_stunned && !_polymorphed && !_evocation_casting && (_manatype_mana / _manatype_maxmana) <= _managem_threshold) {
+    var gem;
+    gem = _manatype_maxmana * _managem_amount;
+    unit_mana(id, gem);
+    _managem_cooldown = _managem_cooldown_time;
+    create_text_effect(x, y, c_aqua, "-mana gem-");
+    repeat(6) create_evocation_effect(x, y, make_color_rgb(40, random(80) + 120, 255));
+}
 if(_stunned) {
     // A stun breaks Polymorph and Blizzard casts (added by gm-revive overrides)
     if(_polymorph_casting || _blizzard_casting) {

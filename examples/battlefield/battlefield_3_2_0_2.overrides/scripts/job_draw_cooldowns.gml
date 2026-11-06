@@ -26,7 +26,8 @@ switch(argument0._jobclass) {
         names[4] = "Mana Shield"; vars[4] = "_manashield";
         names[5] = "Mirror Images"; vars[5] = "_mirrorimage";
         names[6] = "Evocation"; vars[6] = "_evocation";
-        n = 7;
+        names[7] = "Mana Gem"; vars[7] = "_managem";
+        n = 8;
     break;
     case class_shaman:
         names[0] = "Shock"; vars[0] = "_shock";
