@@ -107,3 +107,56 @@ class NewObjectTests(unittest.TestCase):
                 ov.apply(self.proj(), d)
             self.assertIn(msg, str(cm.exception))
             self.tmp.cleanup(); del self.tmp
+
+
+class SpriteOverrideTests(unittest.TestCase):
+    def sheet(self, d, name, w, h, pixel):
+        # write an RGBA PNG with the build's own encoder; pixel(x, y) -> (r, g, b, a)
+        from gm_revive.build import png_from_bgra
+        raw = bytearray()
+        for y in range(h):
+            for x in range(w):
+                r, g, b, a = pixel(x, y)
+                raw += bytes((b, g, r, a))
+        os.makedirs(os.path.join(d, 'sprites'), exist_ok=True)
+        with open(os.path.join(d, 'sprites', name + '.png'), 'wb') as fh:
+            fh.write(png_from_bgra(w, h, bytes(raw)))
+
+    def test_sheet_is_cut_into_frames_with_origin_bbox_and_colour_key(self):
+        with tempfile.TemporaryDirectory() as d:
+            # 2 x 2 sheet of 4x3 frames on a magenta background; frame k has one red pixel at (k, 1)
+            def px(x, y):
+                fx, fy = x % 4, y % 3
+                k = (y // 3) * 2 + x // 4
+                return (255, 0, 0, 255) if (fx, fy) == (k, 1) else (255, 0, 255, 255)
+            self.sheet(d, 'spr_new', 8, 6, px)
+            with open(os.path.join(d, 'sprites', 'spr_new.json'), 'w') as fh:
+                fh.write('{"columns": 2, "rows": 2, "frames": 3, "origin": "bottom-center", "transparent": "#ff00ff"}')
+            g = project(); g['sprites'] = []
+            changes = ov.apply(g, d)
+            sp = g['sprites'][0]
+            self.assertEqual((sp['name'], sp['index'], len(sp['frames']), sp['ox'], sp['oy']), ('spr_new', 0, 3, 2, 2))
+            self.assertEqual(sp['bbox'], [0, 2, 1, 1])               # left, right, bottom, top over all frames
+            w, h, raw = sp['frames'][2]
+            self.assertEqual((w, h), (4, 3))
+            alpha = [raw[i * 4 + 3] for i in range(w * h)]
+            self.assertEqual([i for i, a in enumerate(alpha) if a], [1 * 4 + 2])   # only (2, 1) visible
+            self.assertEqual(raw[(1 * 4 + 2) * 4:(1 * 4 + 2) * 4 + 4], bytes((0, 0, 255, 255)))  # BGRA red
+            self.assertIn('sprite spr_new (added, 3 frames of 4x3)', changes)
+
+    def test_new_object_can_use_a_new_sprite_and_bad_sheets_are_reported(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.sheet(d, 'spr_boss', 4, 4, lambda x, y: (0, 0, 0, 255))
+            os.makedirs(os.path.join(d, 'objects', 'obj_b'))
+            with open(os.path.join(d, 'objects', 'obj_b', 'object.json'), 'w') as fh:
+                fh.write('{"sprite": "spr_boss"}')
+            g = project(); g['sprites'] = []
+            ov.apply(g, d)
+            self.assertEqual(g['objects'][1]['sprite'], 0)
+        with tempfile.TemporaryDirectory() as d:
+            self.sheet(d, 'spr_odd', 5, 4, lambda x, y: (0, 0, 0, 255))
+            with open(os.path.join(d, 'sprites', 'spr_odd.json'), 'w') as fh:
+                fh.write('{"columns": 2}')
+            with self.assertRaises(ov.OverrideError) as cm:
+                ov.apply(project(), d)
+            self.assertIn('does not divide', str(cm.exception))

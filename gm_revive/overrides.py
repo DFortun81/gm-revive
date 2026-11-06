@@ -6,11 +6,21 @@ Layout (default folder: <project name>.overrides next to the project file):
     objects/<object_name>/<event>.gml       replaces that event's actions with this code, or adds the event
     objects/<object_name>/object.json       creates the object if the project doesn't have it (required then),
                                             or changes an existing object's properties
+    sprites/<sprite_name>.png               replaces that sprite's images, or adds a new sprite
+    sprites/<sprite_name>.json              (optional) how to cut the PNG into frames, see below
 
 object.json keys (all optional; names refer to resources in the project or to other new objects):
     {"sprite": "spr_name", "parent": "obj_name", "mask": "spr_name", "depth": 0,
      "visible": true, "solid": false, "persistent": false}
 A new object without "sprite" has none; "parent" and "mask" can be null.
+
+Sprite .json keys (all optional):
+    {"columns": 4, "rows": 4,            the PNG is a sheet of columns x rows frames, read row by row
+     "frames": 16,                       how many of those cells to use (default: all)
+     "origin": [20, 52],                 [x, y], or "top-left" (default), "center", "bottom-center"
+     "transparent": "#ff00ff"}           a colour to make see-through, or "top-left" (that pixel's colour)
+An RPG Maker character sheet (4 x 4, rows facing down, left, right, up) gives a GameMaker sprite with
+the same 16 frames in the same order. The bounding box is worked out from the visible pixels.
 
 Event file names: create, destroy, step, step_begin, step_end, draw, alarm0..alarm11, user0..user15,
 room_start, room_end, game_start, game_end, animation_end, end_of_path, outside, boundary,
@@ -20,6 +30,8 @@ Lines starting with // in an override are kept as comments; nothing else is spec
 import json
 import os
 import re
+
+from . import png
 
 EVENT_TYPES = {'create': 0, 'destroy': 1, 'alarm': 2, 'step': 3, 'collision': 4, 'keyboard': 5, 'mouse': 6,
                'other': 7, 'draw': 8, 'keypress': 9, 'keyrelease': 10, 'trigger': 11}
@@ -77,6 +89,9 @@ def apply(g, folder):
             else:
                 g['scripts'].append({'name': name, 'index': len(g['scripts']), 'code': code})
                 changes.append(f'script {name} (added)')
+    spdir = os.path.join(folder, 'sprites')
+    if os.path.isdir(spdir):
+        changes += _apply_sprites(g, spdir)
     odir = os.path.join(folder, 'objects')
     if os.path.isdir(odir):
         objects = {o['name']: o for o in g['objects'] if o}
@@ -170,3 +185,93 @@ def _apply_object_files(g, odir, objects):
         if f'{oname} (new object)' not in changes:
             changes.append(f'{oname} properties (object.json)')
     return changes
+
+
+SPRITE_KEYS = {'columns', 'rows', 'frames', 'origin', 'transparent'}
+
+
+def _apply_sprites(g, spdir):
+    changes = []
+    g.setdefault('sprites', [])
+    by_name = {sp['name']: sp for sp in g['sprites'] if sp}
+    for f in sorted(os.listdir(spdir)):
+        if not f.lower().endswith('.png'):
+            continue
+        name = f[:-4]
+        if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name):
+            raise OverrideError(f'overrides: {f!r}: sprite names must be valid identifiers')
+        opts = {}
+        jpath = os.path.join(spdir, name + '.json')
+        if os.path.isfile(jpath):
+            try:
+                with open(jpath, encoding='utf-8') as fh:
+                    opts = json.load(fh)
+            except ValueError as e:
+                raise OverrideError(f'overrides: sprites/{name}.json is not valid JSON: {e}')
+            bad = set(opts) - SPRITE_KEYS
+            if bad:
+                raise OverrideError(f'overrides: sprites/{name}.json: unknown keys {sorted(bad)} (allowed: {sorted(SPRITE_KEYS)})')
+        try:
+            w, h, rgba = png.read(os.path.join(spdir, f))
+        except (png.PNGError, zlib_error()) as e:
+            raise OverrideError(f'overrides: sprites/{f}: {e}')
+        cols, rows = int(opts.get('columns', 1)), int(opts.get('rows', 1))
+        if cols < 1 or rows < 1 or w % cols or h % rows:
+            raise OverrideError(f'overrides: sprites/{f} is {w}x{h}, which does not divide into {cols} x {rows} frames')
+        fw, fh = w // cols, h // rows
+        count = int(opts.get('frames', cols * rows))
+        key = opts.get('transparent')
+        if key == 'top-left':
+            key = rgba[:3]
+        elif isinstance(key, str):
+            m = re.fullmatch(r'#?([0-9a-fA-F]{6})', key)
+            if not m:
+                raise OverrideError(f'overrides: sprites/{name}.json: "transparent" must be "#rrggbb" or "top-left"')
+            key = bytes.fromhex(m.group(1))
+        elif key is not None:
+            raise OverrideError(f'overrides: sprites/{name}.json: "transparent" must be "#rrggbb" or "top-left"')
+        frames = []
+        left, top, right, bottom = fw, fh, -1, -1
+        for k in range(count):
+            cx, cy = (k % cols) * fw, (k // cols) * fh
+            out = bytearray(fw * fh * 4)
+            for y in range(fh):
+                for x in range(fw):
+                    i = ((cy + y) * w + cx + x) * 4
+                    r, gg, b, a = rgba[i:i + 4]
+                    if key is not None and bytes((r, gg, b)) == key:
+                        a = 0
+                    o = (y * fw + x) * 4
+                    out[o:o + 4] = bytes((b, gg, r, a))           # GameMaker keeps BGRA
+                    if a:
+                        left, right, top, bottom = min(left, x), max(right, x), min(top, y), max(bottom, y)
+            frames.append((fw, fh, bytes(out)))
+        if right < 0:
+            left = top = right = bottom = 0
+        origin = opts.get('origin', 'top-left')
+        if origin == 'top-left':
+            ox, oy = 0, 0
+        elif origin == 'center':
+            ox, oy = fw // 2, fh // 2
+        elif origin == 'bottom-center':
+            ox, oy = fw // 2, fh - 1
+        elif isinstance(origin, list) and len(origin) == 2:
+            ox, oy = int(origin[0]), int(origin[1])
+        else:
+            raise OverrideError(f'overrides: sprites/{name}.json: "origin" must be [x, y], "top-left", "center" or "bottom-center"')
+        if name in by_name:
+            sp = by_name[name]
+            sp.update({'frames': frames, 'ox': ox, 'oy': oy, 'bbox': [left, right, bottom, top]})
+            changes.append(f'sprite {name} (replaced, {count} frames of {fw}x{fh})')
+        else:
+            sp = {'name': name, 'index': len(g['sprites']), 'ox': ox, 'oy': oy, 'frames': frames, 'shape': 1,
+                  'tol': 0, 'sepmask': False, 'bboxmode': 0, 'bbox': [left, right, bottom, top]}
+            g['sprites'].append(sp)
+            by_name[name] = sp
+            changes.append(f'sprite {name} (added, {count} frames of {fw}x{fh})')
+    return changes
+
+
+def zlib_error():
+    import zlib
+    return zlib.error

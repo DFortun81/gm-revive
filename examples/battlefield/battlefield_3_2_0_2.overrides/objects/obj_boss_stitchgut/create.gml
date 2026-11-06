@@ -11,7 +11,7 @@ global.cutscene_focus = -1;
 _canbepolymorphed = false;
 _interuptimmune = true;
 
-_blendcolor = make_color_rgb(150, 205, 120);
+_blendcolor = c_white; // its own sprite now (052-Undead02 from the RPG sprite collection)
 
 // Health is set when the fight starts: _health_per_enemy for every unit in the raid, so a bigger
 // raid doesn't mean a shorter fight

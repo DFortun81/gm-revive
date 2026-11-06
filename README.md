@@ -51,11 +51,19 @@ game.overrides/
   objects/obj_player/step_end.gml
   objects/obj_boss_new/object.json   creates a new object (or changes an existing one's properties)
   objects/obj_boss_new/create.gml    ...and its events go next to it, as for any object
+  sprites/spr_boss_new.png           replaces that sprite's images, or adds a new sprite
+  sprites/spr_boss_new.json          (optional) how to cut the PNG into frames
 ```
 
 `object.json` takes any of `sprite`, `parent`, `mask` (resource names, or `null`), `depth`, `visible`, `solid`
 and `persistent`, e.g. `{"sprite": "spr_boss_zio", "parent": "obj_boss"}`. It's required for an object the
 project doesn't have; new objects can be parents of other new objects, and inheritance loops are refused.
+
+A sprite's `.json` can give `columns` and `rows` (a sheet read row by row), `frames` (how many cells to use),
+`origin` (`[x, y]`, `"top-left"`, `"center"` or `"bottom-center"`) and `transparent` (`"#rrggbb"` or
+`"top-left"`). An RPG Maker XP character sheet is `{"columns": 4, "rows": 4}`: its rows face down, left, right
+and up, the usual GameMaker 4-direction order. PNGs are read by gm-revive itself (`png.py`, no extra
+libraries); the bounding box comes from the visible pixels.
 
 Event file names: `create`, `destroy`, `step`, `step_begin`, `step_end`, `draw`, `alarm0`–`alarm11`,
 `user0`–`user15`, `room_start`, `room_end`, `game_start`, `game_end`, `animation_end`, `end_of_path`, or the raw
