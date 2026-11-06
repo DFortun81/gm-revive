@@ -6,6 +6,7 @@ var u;
 u = _target;
 if(units_exists(u)) {
     if(!u.dead && !u._polymorphed && !u._stunned) {
+        u._polymorphed_sprite = u.sprite_index; // restored when it ends (broodlings etc. have no class sprite)
         u._polymorphed = true;
         u._polymorphed_timer = _polymorph_duration;
         u._polymorphed_health = u._health;

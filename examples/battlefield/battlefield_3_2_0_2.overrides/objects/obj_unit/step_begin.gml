@@ -91,7 +91,9 @@ if(_polymorphed) {
     if(_polymorphed_timer <= 0 || _health < _polymorphed_health) {
         _polymorphed = false;
         _polymorphed_timer = 0;
-        sprite_index = faction_get_unit_sprite(_faction, _jobclass);
+        // Put back whatever sprite it had before the sheep. Looking it up by class only knows the
+        // playable classes, so a polymorphed broodling used to come back wearing Zio's sprite.
+        sprite_index = _polymorphed_sprite;
     }
     else exit;
 }
