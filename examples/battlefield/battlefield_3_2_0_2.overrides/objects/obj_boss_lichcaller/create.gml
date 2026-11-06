@@ -9,6 +9,7 @@ _interuptimmune = false;      // Dark Mending and Shadow Volley can be interrupt
 _health_per_enemy = 4000;
 _melee = false;
 _keep_range = range_cast * 0.6;
+_idle_animate = true;          // it floats
 
 // Shadow Bolt: its normal attack on the threat target
 _bolt_damage = 85;

@@ -21,6 +21,7 @@ _manatype = -1;
 _normal_movespeed = 1;
 _movespeed = _normal_movespeed;
 _animate = true;
+_idle_animate = false;         // true: keeps animating while standing still (flying or floating bosses)
 
 _melee = true;                 // false: keeps _keep_range from its target instead of closing in
 _keep_range = range_cast * 0.75;

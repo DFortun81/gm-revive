@@ -73,7 +73,7 @@ if((_melee && d > range_melee) || (!_melee && d > _keep_range)) {
 else {
     _destx = x;
     _desty = y;
-    image_single = _dir * 4;
+    if(_idle_animate) image_single = _dir * 4 + floor(_subindex mod 4); else image_single = _dir * 4;
     if(_melee && _swing_cooldown <= 0) {
         unit_damage(_target, c_red, _swing_damage * (0.9 + random(0.2)));
         _swing_cooldown = _swing_speed;

@@ -33,7 +33,7 @@ if(d > _attackrange) {
 else {
     _destx = x;
     _desty = y;
-    image_single = _dir * 4;
+    image_single = _dir * 4 + floor(_subindex mod 4); // flying: keeps flapping while it attacks
     if(_attackcooldown <= 0) {
         unit_damage(best, c_orange, _attackdamage);
         _attackcooldown = _attackspeed;
