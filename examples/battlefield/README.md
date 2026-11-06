@@ -48,3 +48,20 @@ Nourish, Innervate) and finish the other two forms:
   healer is left. Shapeshifting now has a 3-second cooldown so the Druid commits to a form.
 - Fixes in the original healer code: Nourish no longer piles onto a target another healer is already healing
   (`_healer_count` typo), and a `_nourish_castig` typo.
+
+## The Caster
+
+The original Caster's create event set up Polymorph, Blink and Blizzard (cooldowns, cast times, mana costs), and
+the rest of the game already reacted to them (units avoid sheeped targets, Warriors rush mages casting
+Polymorph), but the Caster's step never cast any of the three. The overrides add them:
+
+- **Polymorph** (1 s cast): sheeps the melee unit on the mage, an enemy healer, or a caster nobody on our side
+  is hitting, since any damage breaks it. One sheep at a time, never the last enemy, reaches healing range.
+- **Blink:** when melee is on the mage and Mana Shield is down, teleports about casting range away from the
+  attackers and leaves a Mirror Image behind, which takes over everything that was targeting the mage.
+- **Blizzard** (10 s channel): on a spot with 3+ enemies; damages everything in the storm that isn't sheeped
+  and stops early once only one enemy is left in it.
+- Fixes the long-range target picking, which compared against an uninitialised `maxhp`.
+
+In 300 headless 7 v 7 fights (new Caster on one side, original on the other) the new side won 185.
+The game now has its own repository; this copy stays as gm-revive's test case.

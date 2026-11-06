@@ -1911,7 +1911,7 @@ const B = (() => {
             if (R.pendingRestart) { R.pendingRestart = false; restartGame(); }
             if (R.pendingRoom !== null) { const r = R.pendingRoom; R.pendingRoom = null; gotoRoom(r); }
             if (R.ended) return;
-            step(); draw();
+            step(); if (!R.noDraw) draw();   // R.noDraw: headless testing can skip rendering
         } catch (e) {
             R.inFrame = false;
             if (e instanceof ModalSuspend) { openModal(e, []); return; }
