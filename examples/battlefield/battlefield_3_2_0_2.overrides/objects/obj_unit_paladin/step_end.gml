@@ -46,7 +46,7 @@ if(_bop_timer > 0) {
 if(_hoj_timer > 0) {
     _hoj_timer -= 1;
     if(_hoj_timer <= 0 || !instance_exists(_hoj_target)) {
-        if(instance_exists(_hoj_target)) _hoj_target._stunned = false;
+        if(instance_exists(_hoj_target)) { if(_hoj_target._stun_timer <= 0) _hoj_target._stunned = false; } // a Rogue's stun may still hold it
         _hoj_timer = 0;
         _hoj_target = -1;
     }

@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 var i, size, u, n, best, bestscore, sc, taken, hitters, dist;
 
-if(_polymorph_cooldown > 0 || _manatype_mana < _polymorph_manacost) return -1;
+if(_polymorph_cooldown > 0 || _manatype_mana < _polymorph_manacost || _silenced > 0) return -1;
 // One sheep at a time
 if(units_exists(_polymorph_victim)) {
     if(_polymorph_victim._polymorphed) return -1;

@@ -1,5 +1,20 @@
 if(global.toggle_pause || global.cutscene_ending) exit;
 
+// (gm-revive overrides) Stuns from unit_stun (Cheap Shot, Kidney Shot) and Kick's spell lockout
+if(_stun_timer > 0) {
+    _stun_timer -= 1;
+    if(_stun_timer <= 0) {
+        var held;
+        held = false;
+        with(obj_unit_paladin) if(_hoj_timer > 0 && _hoj_target == other.id) held = true;
+        if(!held) _stunned = false;
+    }
+}
+if(_silenced > 0) {
+    _silenced -= 1;
+    _attackcastwait = 0;
+}
+
 _message = "";
 _attackcooldown -= 1; // Decrement the restricter
 if(global.cutscene_active) _message = _cutscenemessage;

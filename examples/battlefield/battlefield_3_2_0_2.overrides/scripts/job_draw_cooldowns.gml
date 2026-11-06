@@ -45,7 +45,10 @@ switch(argument0._jobclass) {
         names[3] = "Bandage"; vars[3] = "_bandage";
         names[4] = "Adrenaline Rush"; vars[4] = "_adrenaline_rush";
         names[5] = "Vanish"; vars[5] = "_vanish";
-        n = 6;
+        names[6] = "Kick"; vars[6] = "_kick";
+        names[7] = "Kidney Shot"; vars[7] = "_kidneyshot";
+        names[8] = "Evasion"; vars[8] = "_evasion";
+        n = 9;
     break;
     case class_druid:
         names[0] = "Shapeshift"; vars[0] = "_shapeshift";

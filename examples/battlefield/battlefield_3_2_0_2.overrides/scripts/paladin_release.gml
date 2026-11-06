@@ -17,7 +17,7 @@ for(i = 0; i < ds_list_size(_aura_list); i += 1) {
 ds_list_clear(_aura_list);
 
 if(_hoj_timer > 0) {
-    if(instance_exists(_hoj_target)) _hoj_target._stunned = false;
+    if(instance_exists(_hoj_target)) { if(_hoj_target._stun_timer <= 0) _hoj_target._stunned = false; }
     _hoj_timer = 0;
     _hoj_target = -1;
 }

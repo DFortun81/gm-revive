@@ -1,7 +1,20 @@
 if(global.toggle_pause) exit;
+
+// (gm-revive overrides) Evasion wears off even while stunned
+if(_evasion_timer > 0) {
+    _evasion_timer -= 1;
+    if(_evasion_timer <= 0) {
+        _damagereduction -= _evasion_reduction;
+        create_text_effect(x, y, c_white, "-evasion faded-");
+    }
+}
+
 if(dead || _stunned) exit;
 
 // Decrement Cooldowns
+_kick_cooldown -= 1;
+_kidneyshot_cooldown -= 1;
+_evasion_cooldown -= 1;
 _mainhand_cooldown -= 1;
 _offhand_cooldown -= 1;
 _stealth_cooldown -= 1;
@@ -133,6 +146,29 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
             _destx = x;
             _desty = y;
             
+            // Rogue Special Ability: Kick (gm-revive overrides)
+            // Interrupt the target, or anyone else within reach, in the middle of a spell
+            if(_kick_cooldown <= 0 && _manatype_energy >= _kick_cost) {
+                var kt;
+                kt = -1;
+                if(unit_is_casting(_target)) kt = _target;
+                else {
+                    for(i = 0; i < enemies; i += 1) {
+                        index = ds_list_find_value(_enemylist, i);
+                        if(point_distance(x, y, index.x, index.y) < _attackrange && unit_is_casting(index)) {
+                            kt = index;
+                            break;
+                        }
+                    }
+                }
+                if(kt != -1) {
+                    create_text_effect(x, y, c_white, "-kick-");
+                    unit_interrupt(kt, _kick_lockout);
+                    unit_mana(id, -_kick_cost);
+                    _kick_cooldown = _kick_cooldown_time;
+                }
+            }
+            
             // Attack them!
             if(_mainhand_cooldown <= 0) {
                 // Attack with the main hand weapon
@@ -167,6 +203,18 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
                 _combo_points = 0;
                 _mainhand_attackspeed *= (1 - _slice_and_dice_modifier);
                 _offhand_attackspeed *= (1 - _slice_and_dice_modifier);
+            }
+            else if(_kidneyshot_cooldown <= 0 && _manatype_energy >= _kidneyshot_cost && _target == _combo_target && _combo_points >= _kidneyshot_min_points && !_target._stunned && !_target._stunimmune
+                    && (_target._jobclass == class_healer || _target._jobclass == class_shaman || _target._jobclass == class_paladin || _target._jobclass == class_caster
+                        || (_target._jobclass == class_druid && _target._shapeshift_form == druid_form_normal) || unit_is_casting(_target))) {
+                // Rogue Special Ability: Kidney Shot (gm-revive overrides)
+                // Finishing move: lock down a healer or caster for 1 second plus 1 per combo point
+                if(unit_stun(_target, room_speed * (1 + _combo_points))) {
+                    create_text_effect(x, y, c_white, "-kidney shot-");
+                    unit_mana(id, -_kidneyshot_cost);
+                    _combo_points = 0;
+                    _kidneyshot_cooldown = _kidneyshot_cooldown_time;
+                }
             }
             else if(_manatype_energy >= _eviscerate_cost && (_target == _combo_target && (_combo_points == 5 || _target._health < _eviscerate_damage * _combo_points))) {
                 // Rogue Special Ability: Eviscerate
@@ -214,6 +262,23 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
             dir = point_direction(x, y, _target.x, _target.y);
             _destx = round(x + cos(degtorad(dir)) * _movespeed);
             _desty = round(y - sin(degtorad(dir)) * _movespeed);
+        }
+        
+        // Rogue Special Ability: Evasion (gm-revive overrides)
+        // Halve incoming damage for a while when something is beating on me in melee and I'm hurt
+        if(_evasion_cooldown <= 0 && _evasion_timer <= 0 && _health < _maxhealth * _evasion_threshold) {
+            var mt;
+            mt = false;
+            for(i = 0; i < target_amount; i += 1) {
+                index = ds_list_find_value(_targetlist, i);
+                if(point_distance(x, y, index.x, index.y) <= range_melee + 8) mt = true;
+            }
+            if(mt) {
+                _evasion_timer = _evasion_duration;
+                _evasion_cooldown = _evasion_cooldown_time;
+                _damagereduction += _evasion_reduction;
+                create_text_effect(x, y, c_white, "-evasion-");
+            }
         }
         
         // Am I damaged? Should I GTFO?
@@ -277,6 +342,19 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
             if(dist < _attackrange) {
                 // Ambush the bastard!
                 if(_health > (_maxhealth * .4) || !_vanish_active) {
+                    // Rogue Special Ability: Cheap Shot (gm-revive overrides)
+                    // Open with a 3 second stun (and 2 combo points), then Ambush if there's Energy left
+                    if(_manatype_energy >= _cheapshot_cost && !_target._stunned && !_target._stunimmune) {
+                        if(unit_stun(_target, _cheapshot_duration)) {
+                            create_text_effect(x, y, c_white, "-cheap shot-");
+                            unit_mana(id, -_cheapshot_cost);
+                            if(_combo_target != _target) {
+                                _combo_target = _target;
+                                _combo_points = 0;
+                            }
+                            _combo_points = min(5, _combo_points + _cheapshot_combo_points);
+                        }
+                    }
                     // Rogue Special Ability: Ambush
                     if(_manatype_energy > _ambush_cost) {
                         create_text_effect(x, y, c_white, "-ambush-");
