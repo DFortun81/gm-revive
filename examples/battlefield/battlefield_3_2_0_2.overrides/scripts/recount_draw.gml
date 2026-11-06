@@ -29,6 +29,7 @@ rows = min(10, ds_priority_size(pq));
 w = 260; rh = 16;
 x1 = view_xview[0] + view_wview[0] / 2 - w / 2;
 y1 = view_yview[0] + 20; // below the match label
+if(instance_exists(obj_boss)) y1 = view_yview[0] + 74; // ...and below the boss health window
 draw_set_alpha(.5);
 draw_set_color(c_black);
 draw_window_skinned(x1, y1, x1 + w, y1 + 30 + max(1, rows) * rh);

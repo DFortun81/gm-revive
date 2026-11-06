@@ -12,7 +12,7 @@ else {
     o = recount_owner(argument0);
     if(o != -1) {
         recount_add(global._recount_healing_done, o._jobclass, o._faction, argument2);
-        stitchgut_threat(o, argument2, true);
+        raid_threat(o, argument2, true);
     }
 }
 if(argument1._jobclass != class_mirrorimage && argument1._bossid == -1) {

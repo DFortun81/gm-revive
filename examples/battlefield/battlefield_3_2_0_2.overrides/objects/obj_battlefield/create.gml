@@ -94,9 +94,18 @@ faction_set_unit_sprite("Alliance", class_paladin, spr_blue_paladin);
 
 boss_create("Zio", obj_boss_zio, snd_ziointro, snd_zioboss);
 boss_create("Elmdor", obj_boss_elmdor, snd_elmdor_main, snd_elmdor_main);
-// (gm-revive overrides) the tank-and-spank training boss; key 8 spawns it
+// (gm-revive overrides) the raid bosses (key 8 spawns them in turn): Stitchgut the tank-and-spank,
+// Lichcaller the interrupt check, Broodmother the adds fight
 global.boss_stitchgut = ds_list_size(global.boss_name);
 boss_create("Stitchgut", obj_boss_stitchgut, snd_zioboss, snd_zioboss);
+global.boss_lichcaller = ds_list_size(global.boss_name);
+boss_create("Lichcaller", obj_boss_lichcaller, snd_zioboss, snd_zioboss);
+global.boss_broodmother = ds_list_size(global.boss_name);
+boss_create("Broodmother", obj_boss_broodmother, snd_zioboss, snd_zioboss);
+global.raid_boss_ids[0] = global.boss_stitchgut;
+global.raid_boss_ids[1] = global.boss_lichcaller;
+global.raid_boss_ids[2] = global.boss_broodmother;
+if(!variable_global_exists("raid_boss_next")) global.raid_boss_next = 0;
 
 // (gm-revive overrides) The armies now come from match_setup: each reset picks one of several
 // formats (the original army, or 3v3 / 5v5 / 10v10 / 20v20 of random classes) and keeps a record

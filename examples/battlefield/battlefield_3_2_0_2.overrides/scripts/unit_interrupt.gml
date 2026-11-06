@@ -11,6 +11,7 @@ with(u) {
         if(_evocation_casting) _evocation_cooldown = _evocation_cooldown_time;
         if(_blizzard_casting) _blizzard_cooldown = _blizzard_cooldown_time;
     }
+    if(_raid_casting) _raid_cast_interrupted = true; // a raid boss cancels its own cast
     _casting = false;
     _attackcastwait = 0;
     _attackcasttime = _normal_attackcasttime;

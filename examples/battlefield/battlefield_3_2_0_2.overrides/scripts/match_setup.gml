@@ -1,7 +1,7 @@
 // match_setup();
 // Called when the battlefield starts (and on every reset): picks a format and spawns the armies.
-// Formats: 0 the original army, 5 a random 15-unit raid against Stitchgut (the tank-and-spank
-// boss), 1-4 a 3v3 / 5v5 / 10v10 / 20v20 where every unit on each side is a
+// Formats: 0 the original army, 5 a random 15-unit raid against a raid boss (Stitchgut,
+// Lichcaller or Broodmother), 1-4 a 3v3 / 5v5 / 10v10 / 20v20 where every unit on each side is a
 // random class, in mirrored formations (Alliance on the left, Horde on the right).
 ////////////////////////////////////////////////////////////////////////////////////////////
 var f, n, k, c, cols, rows, col, row, dx, yy, side_a, side_h;
@@ -17,9 +17,10 @@ switch(f) {
     case 2: n = 5; break;
     case 3: n = 10; break;
     case 4: n = 20; break;
-    case 5: n = 15; break; // Boss: a random 15-unit raid against Stitchgut
+    case 5: n = 15; break; // Boss: a random 15-unit raid against one of the raid bosses
     default: n = 0; break;
 }
+global.match_boss = irandom(2); // which raid boss, if this is a Boss match
 global.match_over = false;
 global.match_end_timer = 0;
 global.match_steps = 0;
@@ -62,6 +63,6 @@ for(k = 0; k < n; k += 1) {
     create_unit(room_width / 2 - dx, yy, ds_list_find_value(side_a, k), "Alliance");
     if(f != 5) create_unit(room_width / 2 + dx, yy, ds_list_find_value(side_h, k), "Horde");
 }
-if(f == 5) spawn_boss(room_width / 2 + 100, room_height / 2, global.boss_stitchgut, "Abomination");
+if(f == 5) spawn_boss(room_width / 2 + 100, room_height / 2, global.raid_boss_ids[global.match_boss], "Abomination");
 ds_list_destroy(side_a);
 ds_list_destroy(side_h);

@@ -2,7 +2,7 @@
 // Draws the match label at the top of the screen, the winner banner between matches, and the
 // results panel (key 5).
 ////////////////////////////////////////////////////////////////////////////////////////////
-var cx, cy, s, secs, col, i, j, best, order, used, w, h, x1, y1, row, pct, n, f;
+var cx, cy, s, secs, col, i, j, best, order, used, w, h, x1, y1, row, pct, n, f, yy;
 if(!variable_global_exists("match_count")) exit;
 cx = view_xview[0] + view_wview[0] / 2;
 draw_set_font(fnt_normal);
@@ -10,21 +10,26 @@ draw_set_alpha(1);
 
 // Label
 secs = floor(global.match_steps / room_speed);
-s = "Match " + string(global.match_count + !global.match_over) + "  -  " + match_format_name(global.match_format) + "  -  " + string(secs div 60) + ":";
+s = "Match " + string(global.match_count + !global.match_over) + "  -  " + match_format_name(global.match_format);
+if(global.match_format == 5) s += ": " + boss_get_name(global.raid_boss_ids[global.match_boss]);
+s += "  -  " + string(secs div 60) + ":";
 if(secs mod 60 < 10) s += "0";
 s += string(secs mod 60) + "      [5] results   [6] auto-reset ";
 if(global.match_auto) s += "on"; else s += "off";
+// (below the game's own boss health window while a boss is out)
+yy = view_yview[0] + 2;
+if(instance_exists(obj_boss)) yy = view_yview[0] + 56;
 draw_set_halign(fa_center);
 draw_set_color(c_black);
-draw_text(cx + 1, view_yview[0] + 3, s);
+draw_text(cx + 1, yy + 1, s);
 draw_set_color(c_white);
-draw_text(cx, view_yview[0] + 2, s);
+draw_text(cx, yy, s);
 
 // Winner banner (the results panel shows it instead while it's open)
 if(global.match_over && !global.match_show) {
     cy = view_yview[0] + view_hview[0] / 2 - 40;
     if(global.match_format == 5) {
-        if(global.match_winner == "Alliance") { s = "STITCHGUT DEFEATED!"; col = c_lime; }
+        if(global.match_winner == "Alliance") { s = string_upper(boss_get_name(global.raid_boss_ids[global.match_boss])) + " DEFEATED!"; col = c_lime; }
         else { s = "RAID WIPED"; col = c_red; }
     }
     else if(global.match_winner == "") { s = "DRAW"; col = c_white; }
@@ -53,7 +58,7 @@ if(global.match_show == 1) {
     draw_set_halign(fa_left);
     draw_set_color(c_white);
     row = y1 + 10;
-    s = "Results: " + string(global.match_count) + " matches (saved in this browser)    [5] boss page   [7] twice: clear";
+    s = "Results: " + string(global.match_count) + " matches (saved in this browser)    [5] boss pages   [7] twice: clear";
     if(global.match_over) {
         if(global.match_winner == "") s = "Draw!   " + s; else s = global.match_winner + " wins!   " + s;
     }
@@ -111,8 +116,8 @@ if(global.match_show == 1) {
     }
 }
 
-// Results panel, page 2: Stitchgut
-if(global.match_show == 2) match_draw_boss(cx);
+// Results panel, pages 2-4: the raid bosses
+if(global.match_show >= 2) match_draw_boss(cx, global.match_show - 2);
 draw_set_halign(fa_left);
 draw_set_color(c_white);
 draw_set_alpha(1);

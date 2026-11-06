@@ -23,7 +23,7 @@ with(obj_unit) {
 if(global.match_format == 5) {
     // Boss: the raid wins when Stitchgut dies, loses if it wipes or after 5 minutes
     bossup = false;
-    with(obj_boss_stitchgut) if(!dead) bossup = true;
+    with(obj_boss_raid) if(!dead) bossup = true;
     if(!bossup || a == 0 || global.match_steps > room_speed * 300) {
         if(!bossup) global.match_winner = "Alliance";
         else global.match_winner = "Stitchgut";

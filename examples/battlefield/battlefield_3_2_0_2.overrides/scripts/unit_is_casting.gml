@@ -6,6 +6,8 @@ var u;
 u = argument0;
 if(!units_exists(u)) return false;
 if(u.dead || u._attackcastwait <= 0) return false;
+// Raid bosses say for themselves which casts can be stopped
+if(object_is_ancestor(u.object_index, obj_boss_raid)) return (u._raid_casting && !u._interuptimmune);
 switch(u._jobclass) {
     case class_healer:
     case class_caster:
