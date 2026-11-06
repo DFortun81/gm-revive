@@ -105,6 +105,10 @@ boss_create("Broodmother", obj_boss_broodmother, snd_zioboss, snd_zioboss);
 global.raid_boss_ids[0] = global.boss_stitchgut;
 global.raid_boss_ids[1] = global.boss_lichcaller;
 global.raid_boss_ids[2] = global.boss_broodmother;
+// The faction each one spawns as; the game shows it in front of the name ("Dark Prophet Zio")
+global.raid_boss_titles[0] = "Abomination";
+global.raid_boss_titles[1] = "Undying";
+global.raid_boss_titles[2] = "Hive";
 if(!variable_global_exists("raid_boss_next")) global.raid_boss_next = 0;
 
 // (gm-revive overrides) The armies now come from match_setup: each reset picks one of several

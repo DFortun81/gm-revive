@@ -63,6 +63,6 @@ for(k = 0; k < n; k += 1) {
     create_unit(room_width / 2 - dx, yy, ds_list_find_value(side_a, k), "Alliance");
     if(f != 5) create_unit(room_width / 2 + dx, yy, ds_list_find_value(side_h, k), "Horde");
 }
-if(f == 5) spawn_boss(room_width / 2 + 100, room_height / 2, global.raid_boss_ids[global.match_boss], "Abomination");
+if(f == 5) spawn_boss(room_width / 2 + 100, room_height / 2, global.raid_boss_ids[global.match_boss], global.raid_boss_titles[global.match_boss]);
 ds_list_destroy(side_a);
 ds_list_destroy(side_h);
