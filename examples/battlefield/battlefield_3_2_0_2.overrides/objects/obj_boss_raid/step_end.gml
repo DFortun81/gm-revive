@@ -32,7 +32,7 @@ if(!_enraged && _fight_steps > _enrage_time) {
     _swing_speed = round(_swing_speed / 1.5);
     _blendcolor = make_color_rgb(255, 110, 80);
     create_text_effect(x, y, c_red, "-enraged-");
-    _message = boss_get_name(_bossid) + " goes into a berserker rage!";
+    _message = raid_boss_display_name(_bossid) + " goes into a berserker rage!";
 }
 
 // Threat: keep the current target unless someone passes it by 10% (or it's gone)

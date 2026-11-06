@@ -3,7 +3,7 @@
 // damage meter) and its unit-seconds (units of that class x fight length) to that boss's record, so the
 // results pages can show damage and healing per unit per second. Kill times feed the best and average
 // kill; each boss also keeps two counts of its own (Lichcaller: interrupts and Dark Mendings that got
-// through; Broodmother: broodlings killed and hatched).
+// through; Broodmother: broodlings killed and hatched; The Blighted: raid deaths and disease bursts).
 ////////////////////////////////////////////////////////////////////////////////////////////
 var j, f, secs, d, h, l, b;
 b = global.match_boss;
@@ -21,6 +21,12 @@ with(obj_boss_lichcaller) {
 with(obj_boss_broodmother) {
     global.boss_extra[2] += _broodlings_killed;
     global.boss_extra2[2] += _broodlings_hatched;
+}
+// The Blighted: raid deaths and disease bursts
+if(b == 3) {
+    with(obj_boss_blighted) global.boss_extra2[3] += _bursts;
+    for(j = 0; j < 8; j += 1) global.boss_extra[3] += global.match_comp_a[j];
+    with(obj_unit) if(_faction == "Alliance" && !dead && _jobclass != class_mirrorimage) global.boss_extra[3] -= 1;
 }
 for(j = 0; j < 8; j += 1) {
     if(j == class_mirrorimage || global.match_comp_a[j] <= 0) continue;

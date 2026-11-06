@@ -1,10 +1,10 @@
 // match_draw_boss(center_x, boss);
-// A results page for one raid boss (0 Stitchgut, 1 Lichcaller, 2 Broodmother): kills, wipes, kill
+// A results page for one raid boss (0 Stitchgut, 1 Lichcaller, 2 Broodmother, 3 The Blighted): kills, wipes, kill
 // times, the boss's own counts, and each class's damage and healing per unit per second against it.
 ////////////////////////////////////////////////////////////////////////////////////////////
 var cx, b, w, h, x1, y1, row, i, j, best, used, v, top, s, fights, col, name, yy;
 cx = argument0; b = argument1;
-name = boss_get_name(global.raid_boss_ids[b]);
+name = global.raid_boss_display[b];
 w = 600; h = 22 + 16 * 23;
 x1 = cx - w / 2; y1 = view_yview[0] + view_hview[0] / 2 - h / 2;
 draw_set_alpha(.8);
@@ -30,6 +30,10 @@ if(b == 0) s = "Tank and spank: sustained single-target damage, healing and tank
 if(b == 1) {
     s = "Interrupt check";
     if(fights > 0) s += ":  " + string_format(global.boss_extra[b] / fights, 1, 1) + " interrupts a fight (Kick, Wind Shear),  " + string_format(global.boss_extra2[b] / fights, 1, 1) + " Dark Mendings got through";
+}
+if(b == 3) {
+    s = "Healing check";
+    if(fights > 0) s += ":  " + string_format(global.boss_extra[b] / fights, 1, 1) + " raid deaths a fight,  " + string_format(global.boss_extra2[b] / fights, 1, 1) + " disease bursts";
 }
 if(b == 2) {
     s = "Adds fight";

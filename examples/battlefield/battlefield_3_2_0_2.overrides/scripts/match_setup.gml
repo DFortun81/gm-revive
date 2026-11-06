@@ -1,7 +1,7 @@
 // match_setup();
 // Called when the battlefield starts (and on every reset): picks a format and spawns the armies.
 // Formats: 0 the original army, 5 a random 15-unit raid against a raid boss (Stitchgut,
-// Lichcaller or Broodmother), 1-4 a 3v3 / 5v5 / 10v10 / 20v20 where every unit on each side is a
+// Lichcaller, Broodmother or The Blighted), 1-4 a 3v3 / 5v5 / 10v10 / 20v20 where every unit on each side is a
 // random class, in mirrored formations (Alliance on the left, Horde on the right).
 ////////////////////////////////////////////////////////////////////////////////////////////
 var f, n, k, c, cols, rows, col, row, dx, yy, side_a, side_h;
@@ -20,7 +20,7 @@ switch(f) {
     case 5: n = 15; break; // Boss: a random 15-unit raid against one of the raid bosses
     default: n = 0; break;
 }
-global.match_boss = irandom(2); // which raid boss, if this is a Boss match
+global.match_boss = irandom(3); // which raid boss, if this is a Boss match
 global.match_over = false;
 global.match_end_timer = 0;
 global.match_steps = 0;

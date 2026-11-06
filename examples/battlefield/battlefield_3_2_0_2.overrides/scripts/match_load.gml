@@ -18,9 +18,9 @@ for(i = 0; i < 8; i += 1) {
     global.match_cls_units[i] = ini_read_real("classes", "units" + string(i), 0);
     global.match_cls_wins[i] = ini_read_real("classes", "wins" + string(i), 0);
 }
-// Raid bosses: 0 Stitchgut, 1 Lichcaller, 2 Broodmother. Saves from before there were three keep
+// Raid bosses: 0 Stitchgut, 1 Lichcaller, 2 Broodmother, 3 The Blighted. Saves from before there were three keep
 // Stitchgut's numbers in the [boss] section; they are read as boss 0.
-for(b = 0; b < 3; b += 1) {
+for(b = 0; b < 4; b += 1) {
     sec = "boss" + string(b);
     if(b == 0 && !ini_section_exists("boss0")) sec = "boss";
     global.boss_kills[b] = ini_read_real(sec, "kills", 0);

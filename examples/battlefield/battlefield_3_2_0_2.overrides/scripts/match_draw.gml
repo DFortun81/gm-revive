@@ -11,7 +11,7 @@ draw_set_alpha(1);
 // Label
 secs = floor(global.match_steps / room_speed);
 s = "Match " + string(global.match_count + !global.match_over) + "  -  " + match_format_name(global.match_format);
-if(global.match_format == 5) s += ": " + boss_get_name(global.raid_boss_ids[global.match_boss]);
+if(global.match_format == 5) s += ": " + global.raid_boss_display[global.match_boss];
 s += "  -  " + string(secs div 60) + ":";
 if(secs mod 60 < 10) s += "0";
 s += string(secs mod 60) + "      [5] results   [6] auto-reset ";
@@ -29,7 +29,7 @@ draw_text(cx, yy, s);
 if(global.match_over && !global.match_show) {
     cy = view_yview[0] + view_hview[0] / 2 - 40;
     if(global.match_format == 5) {
-        if(global.match_winner == "Alliance") { s = string_upper(boss_get_name(global.raid_boss_ids[global.match_boss])) + " DEFEATED!"; col = c_lime; }
+        if(global.match_winner == "Alliance") { s = string_upper(global.raid_boss_display[global.match_boss]) + " DEFEATED!"; col = c_lime; }
         else { s = "RAID WIPED"; col = c_red; }
     }
     else if(global.match_winner == "") { s = "DRAW"; col = c_white; }

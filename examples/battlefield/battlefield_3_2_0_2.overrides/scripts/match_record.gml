@@ -26,8 +26,8 @@ if(f > 0 && f < 5 && w != "") {
 
 line = "Match " + string(global.match_count) + ":  " + match_format_name(f) + ",  "; // (no "#": GM draws it as a line break)
 if(f == 5) {
-    if(w == "Alliance") line += boss_get_name(global.raid_boss_ids[global.match_boss]) + " killed in " + string(floor(global.match_steps / room_speed)) + "s";
-    else line += "raid wiped on " + boss_get_name(global.raid_boss_ids[global.match_boss]) + " after " + string(floor(global.match_steps / room_speed)) + "s";
+    if(w == "Alliance") line += global.raid_boss_display[global.match_boss] + " killed in " + string(floor(global.match_steps / room_speed)) + "s";
+    else line += "raid wiped on " + global.raid_boss_display[global.match_boss] + " after " + string(floor(global.match_steps / room_speed)) + "s";
 }
 else {
     if(w == "") line += "draw (time limit)";
