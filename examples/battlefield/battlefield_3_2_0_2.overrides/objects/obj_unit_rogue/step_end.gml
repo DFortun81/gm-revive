@@ -112,16 +112,18 @@ target_amount = ds_list_size(_targetlist);
 
 // (added by gm-revive overrides) A stealthed Rogue only attacks when its side has the numbers, so one
 // whose team is gone used to hide forever and the battle never ended. A Rogue that is the last of its
-// side, or has been waiting in stealth for 12 seconds, stops waiting for backup.
+// side, or has been waiting in stealth for 12 seconds, stops waiting for backup. Once it's back to
+// full health (after Vanish and a Bandage, say) it goes straight back in, even while Vanish lasts.
 // (_stealth_wait starts at 0: the project treats uninitialised variables as 0)
-var alone, brave;
+var alone, brave, healthy;
 alone = true;
 with(obj_unit) {
     if(_faction == other._faction && id != other.id && !dead && _jobclass != class_mirrorimage) alone = false;
 }
 if(_stealthed && !_vanish_active) _stealth_wait += 1;
 else _stealth_wait = 0;
-brave = alone || _stealth_wait > room_speed * 12;
+healthy = _health >= _maxhealth * 0.95;
+brave = alone || _stealth_wait > room_speed * 12 || healthy;
 
 // Does a target exist?
 if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
@@ -378,7 +380,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
             }
             else {
                 // Move closer
-                if(!_vanish_active && (enemies <= 1 || allies > 1 || brave)) {
+                if((!_vanish_active || healthy) && (enemies <= 1 || allies > 1 || brave)) {
                     dir = point_direction(x, y, _target.x, _target.y);
                     _destx = round(x + cos(degtorad(dir)) * _movespeed);
                     _desty = round(y - sin(degtorad(dir)) * _movespeed);
