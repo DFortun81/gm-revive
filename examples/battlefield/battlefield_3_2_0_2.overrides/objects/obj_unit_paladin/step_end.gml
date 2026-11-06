@@ -52,6 +52,7 @@ if(_hoj_timer > 0) {
 }
 
 // Running effects: Consecration (damages every half second)
+// Each damage tick sends a golden pulse across the consecrated ground, so it visibly throbs while active
 if(_consecration_timer > 0) {
     _consecration_timer -= 1;
     if(_consecration_timer mod (room_speed / 2) == 0) {
@@ -62,8 +63,8 @@ if(_consecration_timer > 0) {
                 }
             }
         }
+        if(_consecration_timer > 0) paladin_consecration_pulse(_consecration_x, _consecration_y, _consecration_range);
     }
-    if(_consecration_timer mod (room_speed * 2) == 0) create_thunderclap_effect(_consecration_x, _consecration_y);
 }
 
 // Devotion Aura (refreshed four times a second)
@@ -339,7 +340,7 @@ if(units_exists(_target)) {
             _consecration_timer = _consecration_duration;
             _consecration_cooldown = _consecration_cooldown_time;
             unit_mana(id, -_consecration_cost);
-            create_thunderclap_effect(x, y);
+            paladin_consecration_pulse(x, y, _consecration_range);
             create_text_effect(x, y, c_yellow, "-consecration-");
         }
         else if(_judgement_cooldown <= 0 && _manatype_mana >= _judgement_cost) {

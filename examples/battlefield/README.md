@@ -21,7 +21,7 @@ The original project left the Paladin as a stub (stats only, no AI — Paladins 
 `battlefield_3_2_0_2.overrides/` finishes it in GML without changing the `.gmk`:
 
 - **Judgement** — holy damage burst on the melee target (8 s cooldown)
-- **Consecration** — damages enemies on the consecrated ground for 8 s; used when 2+ enemies are close
+- **Consecration** — damages enemies on the consecrated ground for 8 s, which pulses gold on every damage tick; used when 2+ enemies are close
 - **Holy Light / Flash of Light** — heals an ally under 45% (Flash when under 25%)
 - **Divine Shield** — immune for 8 s below 20% health (2 min cooldown)
 - **Blessing of Protection** — makes an endangered Healer, Caster or Shaman immune for 6 s
