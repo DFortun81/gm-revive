@@ -167,3 +167,10 @@ class ExampleBuildTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_variable_local_functions_get_self():
+    js, _ = tr('a = variable_local_get("hp"); variable_local_set("hp", 3); b = variable_local_exists("hp");')
+    assert 'B.variable_local_get(self, "hp")' in js
+    assert 'B.variable_local_set(self, "hp", 3)' in js
+    assert 'B.variable_local_exists(self, "hp")' in js

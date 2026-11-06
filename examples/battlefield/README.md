@@ -65,3 +65,16 @@ Polymorph), but the Caster's step never cast any of the three. The overrides add
 
 In 300 headless 7 v 7 fights (new Caster on one side, original on the other) the new side won 185.
 The game now has its own repository; this copy stays as gm-revive's test case.
+
+## Rogue and Druid stalemates, damage meter, cooldowns
+
+- **Rogue:** a stealthed Rogue only attacked when its side had the numbers, so the last Rogue of a team hid
+  forever. It now goes in when it's the last of its side or has waited 12 s in stealth.
+- **Druid alone:** with no other healer around it stayed in human form healing itself forever. It now fights
+  in Bear or Cat form when nobody needs healing.
+- **Damage meter** (key 4): fills in the empty `recount_damage` stub using the `global._recount_*` lists the
+  original already created, plus `recount_draw` for a Recount-style panel. Fireballs, Mirror Images, totems
+  and heal-over-time ticks are credited to the unit that cast them.
+- **Cooldowns:** fills in the empty `job_draw_cooldowns` stub, shown for the selected unit (uses
+  `variable_local_get`, which the runtime now implements).
+- **J + click** spawns a Paladin (the other classes already had spawn keys).

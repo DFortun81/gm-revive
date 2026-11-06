@@ -56,6 +56,7 @@ mp_linear_step mp_potential_step instance_nearest_self
 event_user event_perform event_perform_object move_bounce_solid move_bounce_all move_contact_solid
 move_contact_all move_outside_solid move_outside_all collision_rectangle collision_point collision_circle collision_line
 collision_ellipse path_start
+variable_local_exists variable_local_get variable_local_set variable_local_array_get variable_local_array_set
 '''.split())
 
 

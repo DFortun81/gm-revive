@@ -179,6 +179,14 @@ if(_shapeshift_form == druid_form_normal) {
                 else unit_druid_shapeshift(id, druid_form_kitty);
                 exit;
             }
+            else if(enemies > 0 && weakest > 0.8 && _health / _maxhealth > 0.8) {
+                // Nobody needs healing right now, even with no other healer around: go help fight.
+                // Bear when being attacked or fighting alone, Cat otherwise. Without this a lone Druid
+                // stood in human form healing itself forever.
+                if(target_amount > 0 || allies <= 1) unit_druid_shapeshift(id, druid_form_bear);
+                else unit_druid_shapeshift(id, druid_form_kitty);
+                exit;
+            }
         }
         
         // Move into range of a water totem when able to.
@@ -273,12 +281,12 @@ else if(_shapeshift_form == druid_form_kitty) {
             unit_druid_shapeshift(id, druid_form_bear);
             exit;
         }
-        else if(other_healers == 0 || weakest < 0.5) {
-            // Nobody else to heal, or an ally is in trouble: back to normal form to heal
+        else if(weakest < 0.5 || (other_healers == 0 && weakest < 0.8)) {
+            // An ally is in trouble, or hurt with nobody else to heal them: back to normal form to heal
             unit_druid_shapeshift(id, druid_form_normal);
             exit;
         }
-        else if(_health / _maxhealth < 0.75 && healer_count == 0) {
+        else if(_health / _maxhealth < 0.5 && healer_count == 0) {
             // Nobody around to heal me: go back to normal form and heal myself
             unit_druid_shapeshift(id, druid_form_normal);
             exit;
@@ -399,6 +407,11 @@ else if(_shapeshift_form == druid_form_bear) {
     // Druid Special Ability: Shapeshift
     // The druid transforms into an animal in order to better match the situation at hand.
     // (Not while Ironskin or Survival Instincts are running: those belong to the bear)
+    if(_shapeshift_cooldown <= 0 && !_ironskin_active && !_survivalinstincts_active && other_healers == 0 && _health / _maxhealth < 0.3) {
+        // Nearly dead with nobody to heal me and the defensives used up: drop out of bear to heal
+        unit_druid_shapeshift(id, druid_form_normal);
+        exit;
+    }
     if(_shapeshift_cooldown <= 0 && !_ironskin_active && !_survivalinstincts_active) {
         if(target_amount <= 0) {
             if(other_healers >= 1 && weakest >= 0.5) {

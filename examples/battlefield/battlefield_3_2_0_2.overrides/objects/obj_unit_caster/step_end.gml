@@ -326,6 +326,7 @@ if(_casting) {
                     _x = other._target.x;
                     _y = other._target.y;
                     _attackdamage = other._attackdamage;
+                    _source = other.id; // (gm-revive overrides) so the damage meter can credit the Caster
                 }
                 unit_mana(id, -_fireball_manacost);
                 _attackcastwait = 0;

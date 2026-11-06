@@ -344,6 +344,15 @@ const B = (() => {
     B.object_is_ancestor = (a, b) => a !== b && objIsA(a, b);
     B.variable_global_exists = name => Object.prototype.hasOwnProperty.call(G, name);
     B.variable_local_exists = (self, name) => Object.prototype.hasOwnProperty.call(self, name);
+    B.variable_global_get = name => G[name];
+    B.variable_global_set = (name, v) => { G[name] = v; return 0; };
+    const varArr = (o, name) => { if (!Array.isArray(o[name])) o[name] = o[name] === undefined || o[name] === 0 ? [] : [o[name]]; return o[name]; };
+    B.variable_global_array_get = (name, i) => varArr(G, name)[Math.round(i)] ?? 0;
+    B.variable_global_array_set = (name, i, v) => { varArr(G, name)[Math.round(i)] = v; return 0; };
+    B.variable_local_get = (self, name) => self[name];
+    B.variable_local_set = (self, name, v) => { self[name] = v; return 0; };
+    B.variable_local_array_get = (self, name, i) => varArr(self, name)[Math.round(i)] ?? 0;
+    B.variable_local_array_set = (self, name, i, v) => { varArr(self, name)[Math.round(i)] = v; return 0; };
     B.script_execute = function (self, other, scr, ...args) {
         const sc = SCRIPT_LIST[Math.round(scr)];
         return sc ? sc(self, other, ...args) : 0;
