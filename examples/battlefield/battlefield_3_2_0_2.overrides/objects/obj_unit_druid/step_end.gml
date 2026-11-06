@@ -233,6 +233,30 @@ if(_shapeshift_form == druid_form_normal) {
             depth = -y;
             exit;
         }
+
+        // (gm-revive overrides) Nothing to heal and no enemy in sight: follow an ally that is heading
+        // somewhere, otherwise wander like the other classes. Human form used to just stand still.
+        if(enemies == 0) {
+            var fi, fu, following;
+            following = false;
+            for(fi = 0; fi < allies; fi += 1) {
+                fu = ds_list_find_value(_allylist, fi);
+                if(fu != id && fu._jobclass != class_healer && (fu._destx != fu.x || fu._desty != fu.y)) {
+                    _destx = fu._destx;
+                    _desty = fu._desty;
+                    following = true;
+                    break;
+                }
+            }
+            if(!following && _destx == x && _desty == y) {
+                _pause -= 1;
+                if(_pause <= 0) {
+                    _destx = round(_sightdistance / 2 + random(room_width - _sightdistance));
+                    _desty = round(_sightdistance / 2 + random(room_height - _sightdistance));
+                    _pause = room_speed * (1 + random(4));
+                }
+            }
+        }
     }
     else {
         _destx = x;
