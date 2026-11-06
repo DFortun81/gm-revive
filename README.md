@@ -38,6 +38,26 @@ Many games load files from their own folder at runtime (`sprite_replace`, `sound
 `convert` copies images and audio from the project's folder into the build. Use `--files DIR` to choose another
 folder, or `--no-files` to skip it.
 
+## Overrides: changing a game without GameMaker
+
+Put `.gml` files in a folder named after the project with `.overrides` on the end, next to the project file
+(or pass `--overrides DIR`). They replace or add code at build time; the project file is never touched.
+
+```
+game.gmk
+game.overrides/
+  scripts/my_script.gml              replaces that script, or adds a new one
+  objects/obj_player/create.gml      replaces that event, or adds it
+  objects/obj_player/step_end.gml
+```
+
+Event file names: `create`, `destroy`, `step`, `step_begin`, `step_end`, `draw`, `alarm0`–`alarm11`,
+`user0`–`user15`, `room_start`, `room_end`, `game_start`, `game_end`, `animation_end`, `end_of_path`, or the raw
+`<type>_<number>` form used in `game.js` (`keypress_32`, `collision_4`). `event_inherited()` works as usual.
+Use `--no-overrides` to build the original game.
+
+`examples/battlefield/battlefield_3_2_0_2.overrides` finishes the Battlefield Paladin class this way.
+
 ## Compatibility report
 
 Got a folder full of old projects? Scan it:
@@ -98,6 +118,7 @@ gm_revive/
   gml2js.py       GML parser and JavaScript emitter
   build.py        writes the HTML5 build
   report.py       compatibility report
+  overrides.py    applies <project>.overrides folders
   rtf2html.py     game information (RTF) -> HTML help screen
   runtime/        runtime.js and the index.html template
 examples/battlefield/   an example GM8 project

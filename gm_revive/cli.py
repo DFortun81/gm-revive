@@ -13,10 +13,17 @@ def cmd_convert(a):
     if extra is None and not a.no_files:
         extra = os.path.dirname(os.path.abspath(a.project))   # games load extra files from their own folder
     try:
-        conv = convert(a.project, a.out, extra_dir=extra, soundfont=a.soundfont)
+        conv = convert(a.project, a.out, extra_dir=extra, soundfont=a.soundfont,
+                       overrides=(False if a.no_overrides else a.overrides))
     except UnsupportedFormat as e:
         print(f'error: {e}', file=sys.stderr)
         return 2
+    except Exception as e:
+        from .overrides import OverrideError
+        if isinstance(e, OverrideError):
+            print(f'error: {e}', file=sys.stderr)
+            return 2
+        raise
     print(f'Wrote {a.out}{os.sep}index.html')
     if conv.errors:
         print(f'{len(conv.errors)} piece(s) of code could not be translated:')
@@ -59,6 +66,9 @@ def main(argv=None):
     c.add_argument('--files', help='folder with extra files the game loads at runtime '
                                    '(default: the folder the project is in)')
     c.add_argument('--no-files', action='store_true', help="don't copy any extra files")
+    c.add_argument('--overrides', help='folder of .gml files that replace or add events and scripts '
+                                       '(default: <project>.overrides next to the project, if it exists)')
+    c.add_argument('--no-overrides', action='store_true', help='ignore the overrides folder')
     c.add_argument('--soundfont', help='General MIDI .sf2 soundfont used to render MIDI music')
     c.set_defaults(func=cmd_convert)
 

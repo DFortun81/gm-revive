@@ -298,9 +298,14 @@ class Conversion:
         return js
 
 
-def convert(gmk_path, out_dir, extra_dir=None, soundfont=None, log=print):
+def convert(gmk_path, out_dir, extra_dir=None, soundfont=None, log=print, overrides=None):
     """Convert gmk_path into an HTML5 build in out_dir. Returns the Conversion."""
     g = load(gmk_path)
+    from . import overrides as ov
+    folder = overrides if overrides is not None else ov.default_dir(gmk_path)
+    g['overrides_applied'] = ov.apply(g, folder) if folder else []   # folder=False disables overrides
+    for c in g['overrides_applied']:
+        log(f'  override: {c}')
     conv = Conversion(g, os.path.basename(gmk_path))
     js = list(conv.js)
     for sub in ('sprites', 'backgrounds', 'sounds'):
