@@ -18,6 +18,7 @@ with(u) {
     _flashheal_casting = false;
     _greaterheal_casting = false;
     _smite_casting = false;
+    _poh_casting = false;
     _polymorph_casting = false;
     _blizzard_casting = false;
     _evocation_casting = false;

@@ -22,11 +22,19 @@ if(_polymorphed) {
     _flashheal_casting = false;
     _greaterheal_casting = false;
     _smite_casting = false;
+    _poh_casting = false;
     event_inherited();
     exit;
 }
 
 if(global.cutscene_active) exit;
+
+// (gm-revive overrides) Healer Special Ability: Prayer of Healing
+if(healer_prayer()) {
+    event_inherited();
+    depth = -y;
+    exit;
+}
 
 var dist, dir, maxhp, maxdist, hp, me;
 maxhp = 0;
@@ -66,7 +74,7 @@ if(_attackcastwait <= 0) {
 }
 
 // (gm-revive overrides) Smite / Shadow Word: Pain when nobody needs healing
-if(_smite_casting || (_attackcastwait <= 0 && maxhp < _offense_threshold)) {
+if(_smite_casting || (_attackcastwait <= 0 && !_poh_casting && maxhp < _offense_threshold)) {
     if(healer_offense()) {
         event_inherited();
         depth = -y;

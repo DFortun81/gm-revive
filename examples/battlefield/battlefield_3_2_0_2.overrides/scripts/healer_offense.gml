@@ -18,6 +18,7 @@ with(obj_unit) {
     }
 }
 if(me._health / me._maxhealth < _offense_panic) panic = true;
+if(_manatype_mana < _manatype_maxmana * _offense_min_mana) panic = true;
 
 if(_smite_casting) {
     d = 999999;

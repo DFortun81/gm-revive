@@ -6,7 +6,7 @@ event_inherited();
 _maxhealth = 260;
 _health = _maxhealth;
 
-_manatype_maxmana = 160;
+_manatype_maxmana = 360; // (gm-revive overrides) was 160 (the Healer's 360): ran dry after a few heals
 _manatype_mana = _manatype_maxmana;
 _manatype = manatype_mana;
 
@@ -52,18 +52,19 @@ _consecration_cost = 12;
 // Paladin Special Ability: Holy Light / Flash of Light
 // The Paladin stops fighting to heal an ally that drops below 45% health.
 // Flash of Light is quick and small (used when the ally is in real danger), Holy Light is slow and big.
-_heal_range = range_heal / 2;
-_heal_threshold = 0.45;
+_heal_range = range_heal;          // (gm-revive overrides) was range_heal / 2
+_heal_threshold = 0.45;            // with another healer nearby: emergency heals only
+_heal_threshold_alone = 0.85;      // (gm-revive overrides) the only healer around: heal like one
 _heal_casting = false;
 _heal_target = -1;
 _heal_amount = 0;
 _heal_cost = 0;
-_holylight_casttime = room_speed * 1.5;
-_holylight_amount = 90;
-_holylight_cost = 12;
+_holylight_casttime = room_speed;     // (gm-revive overrides) was 1.5 s
+_holylight_amount = 130;           // (gm-revive overrides) was 90
+_holylight_cost = 4;               // (gm-revive overrides) was 12
 _flashoflight_casttime = room_speed * 0.5;
-_flashoflight_amount = 35;
-_flashoflight_cost = 5;
+_flashoflight_amount = 55;         // (gm-revive overrides) was 35
+_flashoflight_cost = 3;            // (gm-revive overrides) was 5
 
 // Paladin Special Ability: Divine Shield
 // When the Paladin drops below 20% health he becomes immune to all damage for 8 seconds.

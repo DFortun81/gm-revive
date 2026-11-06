@@ -193,8 +193,19 @@ if(_heal_casting) {
     }
 }
 else if(_manatype_mana >= _flashoflight_cost) {
+    // (gm-revive overrides) the only healer around heals at 85%, otherwise only below 45%
+    // ...as long as there's a group to heal (at least 2 others): alone, it heals itself like a hybrid
+    var others, group;
+    others = 0;
+    group = 0;
+    with(obj_unit) {
+        if(_faction == other._faction && !dead && id != other.id && _jobclass != class_mirrorimage && point_distance(x, y, other.x, other.y) < range_heal * 1.5) {
+            group += 1;
+            if(_jobclass == class_healer || _jobclass == class_shaman || (_jobclass == class_druid && _shapeshift_form == druid_form_normal)) others += 1;
+        }
+    }
     maxid = -1;
-    maxhp = _heal_threshold;
+    if(others == 0 && group >= 2) maxhp = _heal_threshold_alone; else maxhp = _heal_threshold;
     with(obj_unit) {
         if(_faction == other._faction && !dead && _jobclass != class_mirrorimage) {
             if(point_distance(x, y, other.x, other.y) < other._heal_range) {
@@ -211,7 +222,8 @@ else if(_manatype_mana >= _flashoflight_cost) {
         _heal_casting = true;
         _casting = true;
         _attackcastwait = 0;
-        if(maxhp < 0.25 || _manatype_mana < _holylight_cost) {
+        // Flash of Light for emergencies and small top-ups (no overhealing a big Holy Light), Holy Light for big gaps
+        if(maxhp < 0.25 || _manatype_mana < _holylight_cost || maxid._maxhealth - maxid._health < _holylight_amount * 0.75) {
             _attackcasttime = _flashoflight_casttime;
             _heal_amount = _flashoflight_amount;
             _heal_cost = _flashoflight_cost;

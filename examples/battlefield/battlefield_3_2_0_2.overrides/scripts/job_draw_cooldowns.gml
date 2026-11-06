@@ -71,7 +71,7 @@ switch(argument0._jobclass) {
         n = 6;
     break;
 }
-if(n == 0) exit; // Healers have no cooldowns
+if(n == 0) exit; // Healers have no cooldowns (Prayer of Healing included)
 
 rh = 16; w = 190;
 wx = argument2; wy = argument3 - (n * rh + 12);

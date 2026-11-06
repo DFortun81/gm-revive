@@ -57,3 +57,15 @@ _swp_manacost = 4;
 _offense_threshold = 25;
 // ...and drop a Smite to heal when an ally falls below this fraction of its health
 _offense_panic = 0.7;
+// ...and only while it has mana to spare (Smite and Shadow Word: Pain are for spare mana)
+_offense_min_mana = 0.6;
+
+// Healer Special Ability: Prayer of Healing (gm-revive overrides)
+// Heals every ally within _poh_radius for _poh_amount; cast when 3 or more of them are 20+ down
+_poh_casting = false;
+_poh_casttime = room_speed * 1.5;
+_poh_amount = 70;
+_poh_manacost = 6;
+_poh_radius = 160;
+_poh_min_targets = 3;
+_poh_min_missing = 20;
