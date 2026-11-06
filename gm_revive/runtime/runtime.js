@@ -1712,7 +1712,35 @@ const B = (() => {
 
     // ------------------------------------------------------------------ files (bundled extra files next to the game)
     function normFile(f) { return String(f).replace(/\\/g, '/').replace(/^(\.?\/)+/, '').toLowerCase(); }
-    B.file_exists = f => normFile(f) in R.extraFiles;
+    B.file_exists = f => (normFile(f) in R.extraFiles || iniStored(normFile(f)) !== null ? 1 : 0);
+
+    // ------------------------------------------------------------------ INI files (kept in localStorage, per game)
+    // GM8 games save settings and progress with ini_open/ini_write_*/ini_close. In the browser each INI
+    // "file" is a JSON object stored in localStorage under the game's title; without localStorage (or when
+    // it throws, e.g. private browsing) it lives in memory for the session only.
+    const iniMem = {};
+    const iniKey = f => 'gm-revive-ini:' + (R.baseTitle || (typeof document !== 'undefined' ? document.title : '')) + ':' + f;
+    function iniStored(f) {
+        if (f in iniMem) return iniMem[f];
+        try { const v = typeof localStorage !== 'undefined' ? localStorage.getItem(iniKey(f)) : null; return v === null ? null : JSON.parse(v); } catch (e) { return null; }
+    }
+    let iniFile = null, iniData = null;
+    const iniSec = (sec, make) => { sec = String(sec); if (!iniData[sec] && make) iniData[sec] = {}; return iniData[sec]; };
+    B.ini_open = f => { iniFile = normFile(f); iniData = iniStored(iniFile) || {}; return 0; };
+    B.ini_close = () => {
+        if (iniFile === null) return 0;
+        iniMem[iniFile] = iniData;
+        try { if (typeof localStorage !== 'undefined') localStorage.setItem(iniKey(iniFile), JSON.stringify(iniData)); } catch (e) { }
+        iniFile = null; iniData = null; return 0;
+    };
+    B.ini_read_string = (sec, key, def) => { const s = iniData && iniSec(sec); return s && String(key) in s ? String(s[String(key)]) : def; };
+    B.ini_read_real = (sec, key, def) => { const s = iniData && iniSec(sec); if (!s || !(String(key) in s)) return def; const v = parseFloat(s[String(key)]); return isNaN(v) ? def : v; };
+    B.ini_write_string = (sec, key, v) => { if (iniData) iniSec(sec, true)[String(key)] = String(v); return 0; };
+    B.ini_write_real = (sec, key, v) => { if (iniData) iniSec(sec, true)[String(key)] = String(+v); return 0; };
+    B.ini_key_exists = (sec, key) => { const s = iniData && iniSec(sec); return s && String(key) in s ? 1 : 0; };
+    B.ini_section_exists = sec => (iniData && iniSec(sec) ? 1 : 0);
+    B.ini_key_delete = (sec, key) => { const s = iniData && iniSec(sec); if (s) delete s[String(key)]; return 0; };
+    B.ini_section_delete = sec => { if (iniData) delete iniData[String(sec)]; return 0; };
 
     // ------------------------------------------------------------------ game info (show_info)
     B.show_info = () => {

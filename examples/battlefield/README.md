@@ -78,3 +78,10 @@ The game now has its own repository; this copy stays as gm-revive's test case.
 - **Cooldowns:** fills in the empty `job_draw_cooldowns` stub, shown for the selected unit (uses
   `variable_local_get`, which the runtime now implements).
 - **J + click** spawns a Paladin (the other classes already had spawn keys).
+
+## Automatic matches
+
+Each reset picks Classic or a 3v3 / 5v5 / 10v10 / 20v20 of random classes; when a side is wiped out the
+result is recorded and the next match starts on its own. Key 5 shows class win rates and recent results,
+6 toggles auto-reset. The record is saved with `ini_write_*` (the runtime now implements GM8's INI
+functions on top of localStorage).

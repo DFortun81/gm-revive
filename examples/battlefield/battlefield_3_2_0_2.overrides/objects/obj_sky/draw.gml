@@ -347,3 +347,6 @@ draw_set_halign(fa_left);
 
 // (gm-revive overrides) Recount-style damage / healing meter, key 4
 recount_draw();
+
+// (gm-revive overrides) automatic matches: label, winner banner, results panel (key 5)
+match_draw();

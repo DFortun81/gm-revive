@@ -174,3 +174,16 @@ def test_variable_local_functions_get_self():
     assert 'B.variable_local_get(self, "hp")' in js
     assert 'B.variable_local_set(self, "hp", 3)' in js
     assert 'B.variable_local_exists(self, "hp")' in js
+
+
+def test_ini_files_round_trip():
+    if not NODE:
+        return
+    # values written before ini_close are there after reopening; missing keys give the default
+    assert run_script('''
+        ini_open("save.ini"); ini_write_real("stats", "wins", 3); ini_write_string("stats", "name", "Zio"); ini_close();
+        ini_open("save.ini");
+        r = string(ini_read_real("stats", "wins", 0)) + ini_read_string("stats", "name", "") + string(ini_read_real("stats", "losses", 7));
+        r += string(ini_key_exists("stats", "wins")) + string(ini_section_exists("nope"));
+        ini_close();
+        return r;''') == '3Zio710'
