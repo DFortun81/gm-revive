@@ -32,3 +32,19 @@ The original project left the Paladin as a stub (stats only, no AI — Paladins 
 
 Divine Shield and Blessing of Protection cause 60 s of Forbearance. Every effect is undone when it ends or the
 Paladin dies (`paladin_release`). Build with `--no-overrides` to get the original behaviour.
+
+## The Druid
+
+The original Druid healed in human form, but its Cat and Bear forms never picked a target or attacked, and the
+Bear abilities only existed in a commented-out block. The overrides keep the human-form healing (Regrowth,
+Nourish, Innervate) and finish the other two forms:
+
+- **Cat form (damage, Energy):** Rake (bleed), Shred, Ferocious Bite on targets under 25%, Swipe on groups.
+  Goes after casting Healers and Casters first.
+- **Bear form (tank, Rage):** Growl taunts enemies attacking our Healers/Casters, Swipe hits the target and
+  two enemies next to it, Ironskin (-40% damage) under 40% health, Survival Instincts (+30% health) under 25%.
+- **Shapeshifting:** leaves human form when another healer is nearby and nobody is below 70% (Bear if enemies
+  are already attacking it, Cat otherwise); returns to human form when an ally drops below 50% or no other
+  healer is left. Shapeshifting now has a 3-second cooldown so the Druid commits to a form.
+- Fixes in the original healer code: Nourish no longer piles onto a target another healer is already healing
+  (`_healer_count` typo), and a `_nourish_castig` typo.
