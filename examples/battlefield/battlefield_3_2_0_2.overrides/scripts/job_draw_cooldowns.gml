@@ -59,12 +59,13 @@ switch(argument0._jobclass) {
         n = 8;
     break;
     case class_paladin:
-        names[0] = "Judgement"; vars[0] = "_judgement";
-        names[1] = "Consecration"; vars[1] = "_consecration";
-        names[2] = "Hammer of Justice"; vars[2] = "_hoj";
-        names[3] = "Blessing of Protection"; vars[3] = "_bop";
-        names[4] = "Divine Shield"; vars[4] = "_divineshield";
-        n = 5;
+        names[0] = "Crusader Strike"; vars[0] = "_crusaderstrike";
+        names[1] = "Judgement"; vars[1] = "_judgement";
+        names[2] = "Consecration"; vars[2] = "_consecration";
+        names[3] = "Hammer of Justice"; vars[3] = "_hoj";
+        names[4] = "Blessing of Protection"; vars[4] = "_bop";
+        names[5] = "Divine Shield"; vars[5] = "_divineshield";
+        n = 6;
     break;
 }
 if(n == 0) exit; // Healers have no cooldowns

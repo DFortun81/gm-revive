@@ -22,11 +22,18 @@ _normal_attackcasttime = 0;
 // Seal of Wisdom (passive): every melee swing returns a little mana
 _seal_mana = 2;
 
+// Paladin Special Ability: Crusader Strike
+// A hard-hitting weapon strike (2.2x weapon damage) on the melee target.
+_crusaderstrike_cooldown = 0;
+_crusaderstrike_cooldown_time = room_speed * 6;
+_crusaderstrike_multiplier = 2.2;
+_crusaderstrike_cost = 3;
+
 // Paladin Special Ability: Judgement
 // A burst of holy damage on the current melee target.
 _judgement_cooldown = room_speed * 3;
-_judgement_cooldown_time = room_speed * 8;
-_judgement_damage = 30;
+_judgement_cooldown_time = room_speed * 6;
+_judgement_damage = 45;
 _judgement_cost = 6;
 
 // Paladin Special Ability: Consecration
@@ -39,7 +46,7 @@ _consecration_timer = 0;
 _consecration_x = 0;
 _consecration_y = 0;
 _consecration_range = range_shout;
-_consecration_damage = 4; // per half second
+_consecration_damage = 6; // per half second
 _consecration_cost = 12;
 
 // Paladin Special Ability: Holy Light / Flash of Light

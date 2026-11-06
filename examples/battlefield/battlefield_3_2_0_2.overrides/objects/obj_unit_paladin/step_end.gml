@@ -11,6 +11,7 @@ if(dead) {
 
 // Decrement cooldowns
 _judgement_cooldown -= 1;
+_crusaderstrike_cooldown -= 1;
 _consecration_cooldown -= 1;
 _divineshield_cooldown -= 1;
 _bop_cooldown -= 1;
@@ -102,11 +103,13 @@ if(_divineshield_cooldown <= 0 && _divineshield_timer <= 0 && _health / _maxheal
 }
 
 // Paladin Special Ability: Lay on Hands
+// (Skips anyone who is immune right now, e.g. this Paladin inside Divine Shield: Lay on Hands costs all
+// the Paladin's mana, so it heals with Holy Light inside the bubble instead and keeps the mana.)
 if(!_layonhands_used && _manatype_mana >= _layonhands_minmana) {
     maxid = -1;
     maxhp = 0.15;
     with(obj_unit) {
-        if(_faction == other._faction && !dead && _jobclass != class_mirrorimage) {
+        if(_faction == other._faction && !dead && _jobclass != class_mirrorimage && _damagereduction < 1) {
             if(point_distance(x, y, other.x, other.y) < other._heal_range) {
                 hp = _health / _maxhealth;
                 if(hp < maxhp) {
@@ -350,6 +353,14 @@ if(units_exists(_target)) {
             unit_damage(_target, c_yellow, _judgement_damage);
             unit_mana(id, -_judgement_cost);
             _judgement_cooldown = _judgement_cooldown_time;
+        }
+        else if(_crusaderstrike_cooldown <= 0 && _manatype_mana >= _crusaderstrike_cost) {
+            // Paladin Special Ability: Crusader Strike
+            create_heroicstrike_effect(_target.x, _target.y);
+            create_text_effect(x, y, c_yellow, "-crusader strike-");
+            unit_damage(_target, c_yellow, _attackdamage * _crusaderstrike_multiplier);
+            unit_mana(id, -_crusaderstrike_cost);
+            _crusaderstrike_cooldown = _crusaderstrike_cooldown_time;
         }
         else if(_attackcooldown <= 0) {
             // Melee swing (Seal of Wisdom returns a little mana)
