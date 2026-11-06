@@ -277,11 +277,14 @@ else if(_shapeshift_form == druid_form_kitty) {
     // The druid transforms into an animal in order to better match the situation at hand.
     if(_shapeshift_cooldown <= 0) {
         // Verifty the situation
-        if(target_amount > 0) {
+        // (gm-revive overrides) Bear only when it is really needed: two or more enemies on me, or one
+        // and I'm getting low. It used to go Bear whenever anything targeted it, which in a team fight
+        // meant spending two thirds of the battle tanking instead of doing damage.
+        if(target_amount >= 2 || (target_amount > 0 && _health / _maxhealth < 0.6)) {
             unit_druid_shapeshift(id, druid_form_bear);
             exit;
         }
-        else if(weakest < 0.5 || (other_healers == 0 && weakest < 0.8)) {
+        else if(weakest < 0.6 || (other_healers == 0 && weakest < 0.8)) {
             // An ally is in trouble, or hurt with nobody else to heal them: back to normal form to heal
             unit_druid_shapeshift(id, druid_form_normal);
             exit;
@@ -413,7 +416,9 @@ else if(_shapeshift_form == druid_form_bear) {
         exit;
     }
     if(_shapeshift_cooldown <= 0 && !_ironskin_active && !_survivalinstincts_active) {
-        if(target_amount <= 0) {
+        // (gm-revive overrides) also back to Cat when it's down to one attacker and I'm healthy,
+        // unless I'm fighting alone (then the Bear's toughness is what wins)
+        if(target_amount <= 0 || (target_amount == 1 && allies > 1 && _health / _maxhealth > 0.85)) {
             if(other_healers >= 1 && weakest >= 0.5) {
                 unit_druid_shapeshift(id, druid_form_kitty);
             }

@@ -96,7 +96,7 @@ _innervate_cooldown_time = room_speed * 120; // 1 Minute CD
 // Druid Cat Form Abilities (added via overrides)
 //////////////////////////////////
 // Cat form attacks fast and spends Energy (regained like a Rogue's)
-_kitty_attackdamage = 12;
+_kitty_attackdamage = 16; // was 12 (Nov 2026 buff)
 _kitty_attackspeed = room_speed * 1;
 _kitty_energy_rate = 0.5; // 30 energy regained per second
 
@@ -104,7 +104,7 @@ _kitty_energy_rate = 0.5; // 30 energy regained per second
 // A bleed: 10 damage now and 6 every second for 9 seconds. Only one Rake is kept up at a time.
 _rake_cost = 35;
 _rake_damage = 10;
-_rake_tick_damage = 6;
+_rake_tick_damage = 8; // was 6
 _rake_duration = room_speed * 9;
 _rake_timer = 0;
 _rake_target = -1;
@@ -112,7 +112,7 @@ _rake_target = -1;
 // Druid Special Ability: Shred (Cat)
 // A big claw attack for 2.25x normal damage.
 _shred_cost = 40;
-_shred_multiplier = 2.25;
+_shred_multiplier = 2.5; // was 2.25
 
 // Druid Special Ability: Ferocious Bite (Cat)
 // Finisher on a target under 25% health: spends all remaining Energy for extra damage.
