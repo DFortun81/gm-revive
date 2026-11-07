@@ -86,7 +86,7 @@ for(i = 0;i < size; i+= 1) {
                     draw_rectangle(_x - 12, _y, _x + 12, _y + 4, true);
                 }
                 
-                if(_attackcastwait > 0) {
+                if(_attackcastwait > 0 && _silenced <= 0) {
                     draw_healthbar(_x - 12, _y + 10, _x + 12, _y + 14, (_attackcastwait / _attackcasttime) * 100, c_white, c_blue, c_blue, 0, false, false);
                     draw_rectangle(_x - 12, _y + 10, _x + 12, _y + 14, true);
                 }
@@ -202,7 +202,7 @@ for(i = 0;i < ds_list_size(ds); i+= 1) {
                 draw_rectangle(_x - 12, _y, _x + 12, _y + 4, true);
             }
             
-            if(_attackcastwait > 0) {
+            if(_attackcastwait > 0 && _silenced <= 0) {
                 draw_healthbar(_x - 12, _y + 10, _x + 12, _y + 14, (_attackcastwait / _attackcasttime) * 100, c_white, c_blue, c_blue, 0, false, false);
                 draw_rectangle(_x - 12, _y + 10, _x + 12, _y + 14, true);
             }
@@ -306,7 +306,7 @@ if(size > 0) {
                     draw_rectangle(_x - w2, _y, _x + w2, _y + h, true);
                 }
                 
-                if(_attackcastwait > 0) {
+                if(_attackcastwait > 0 && _silenced <= 0) {
                     draw_healthbar(_x - w2, _y + (h * 2) + p, _x + w2, _y + (h * 3) + p, (_attackcastwait / _attackcasttime) * 100, c_white, c_blue, c_blue, 0, false, false);
                     draw_rectangle(_x - w2, _y + (h * 2) + p, _x + w2, _y + (h * 3) + p, true);
                 }

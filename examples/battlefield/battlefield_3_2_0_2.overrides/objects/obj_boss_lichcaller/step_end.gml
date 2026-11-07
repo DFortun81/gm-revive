@@ -76,6 +76,17 @@ if(_raid_cast_interrupted) {
     _message = "";
 }
 
+// (gm-revive overrides) Locked out (Wind Shear or the end of a Kick): nothing new gets started until it
+// wears off, and a spell in progress is held at the start of its cast (a setback), to carry on from
+// there afterwards. It used to start a spell every step, which the lockout reset, so a 1% cast bar sat
+// over it the whole time.
+if(_silenced > 0) {
+    if(_cast != 0 && _raid_casting && _last_wait > 1) _setbacks += 1;
+    if(_cast == 1) { _cast = 0; _raid_casting = false; }   // a Shadow Bolt is just lost
+    _attackcastwait = 0;
+    _last_wait = 0;
+    exit;
+}
 if(_cast != 0) {
     _destx = x;
     _desty = y;

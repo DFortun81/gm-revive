@@ -104,7 +104,7 @@ else {
 }
 draw_set_alpha(1);
 
-if(_attackcastwait > 0) {
+if(_attackcastwait > 0 && _silenced <= 0) { // (gm-revive overrides) none during an interrupt's lockout
     draw_set_alpha(.5);
     draw_set_color(c_black);
     draw_healthbar(x - barsize, y - (sprite_height + 4), x + barsize, y - sprite_height, (_attackcastwait / _attackcasttime) * 100, c_white, c_blue, c_blue, 0, false, false);
