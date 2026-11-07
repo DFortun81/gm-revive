@@ -36,13 +36,12 @@ if(!ok) {
 
 // Decoy where I was standing
 create_mirror_image(x, y);
-repeat(12) create_evocation_effect(x, y, make_color_rgb(150, 150 + random(60), 255));
 create_text_effect(x, y, c_aqua, "-blink-");
+caster_blink_fx(x, y, nx, ny);
 
 x = nx; y = ny;
 _destx = x; _desty = y;
 depth = -y;
-repeat(12) create_evocation_effect(x, y, make_color_rgb(150, 150 + random(60), 255));
 
 if(!_evocation_casting) {
     if(_blizzard_casting) _blizzard_cooldown = _blizzard_cooldown_time;

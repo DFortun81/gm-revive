@@ -88,6 +88,7 @@ if(units_exists(_target)) {
                         // Shaman Special Ability: Frost Shock (Shock)
                         unit_damage(_target, c_yellow, _shock_frost_amount);
                         create_text_effect(x, y, c_white, "-frost shock-");
+                        fx_spell(_target, "frost shock");
                     }
                     else {
                         // Make a buffs / debuffs list for each unit
@@ -98,6 +99,7 @@ if(units_exists(_target)) {
                         // Shaman Special Ability: Earth Shock (Shock)
                         unit_damage(_target, c_yellow, _shock_earth_amount);
                         create_text_effect(x, y, c_white, "-earth shock-");
+                        fx_spell(_target, "earth shock");
                     }
                     unit_mana(id, _shock_manacost);
                     _shock_cooldown = _shock_cooldown_time;

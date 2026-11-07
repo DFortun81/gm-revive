@@ -22,7 +22,7 @@ if(_managem_cooldown <= 0 && !_stunned && !_polymorphed && !_evocation_casting &
     unit_mana(id, gem);
     _managem_cooldown = _managem_cooldown_time;
     create_text_effect(x, y, c_aqua, "-mana gem-");
-    repeat(6) create_evocation_effect(x, y, make_color_rgb(40, random(80) + 120, 255));
+    caster_managem_fx();
 }
 if(_stunned) {
     // A stun breaks Polymorph and Blizzard casts (added by gm-revive overrides)
@@ -63,6 +63,7 @@ if(!_casting && !global.cutscene_active) {
         _casting = true;
         _evocation_casting = true;
         _attackcasttime = _evocation_castduration;
+        with(instance_create(x, y, obj_fx_aura)) { _master = other.id; _kind = 3; }
         exit;
     }
     
@@ -190,6 +191,7 @@ if(!_casting && !global.cutscene_active) {
                     // Caster Special Ability: Fire Blast
                     create_text_effect(x, y, c_white, "-fire blast-");
                     unit_damage(_target, c_yellow, _fireblast_amount + round(random(_fireblast_amount) / 6));
+                    caster_fireblast_fx(_target);
                     unit_mana(id, -_fireblast_manacost);
                     _fireblast_cooldown = _fireblast_cooldown_time;
                 }
@@ -297,9 +299,11 @@ if(_casting) {
         if(_attackcastwait < _attackcasttime && _manatype_mana < _manatype_maxmana) {
             _message = "Evocation!";
             unit_mana(id, (_manatype_maxmana * 0.6) / _attackcasttime);
-            repeat(10) create_evocation_effect(x, y, make_color_rgb(0, random(100) + 155, random(100) + 155));
         }
         else {
+            // Evocation finished: a burst of arcane light
+            fx_make(0, x, y, sprite_height * 0.5, make_color_rgb(110, 210, 255), 1.2, 16);
+            with(fx_make(1, x, y, 0, make_color_rgb(150, 220, 255), 1.6, 18)) _squash = 0.5;
             _attackcastwait = 0;
             _evocation_cooldown = _evocation_cooldown_time;
             _attackcasttime = _normal_attackcasttime;

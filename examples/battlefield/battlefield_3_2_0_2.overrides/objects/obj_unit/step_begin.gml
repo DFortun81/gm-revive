@@ -10,6 +10,13 @@ if(_stun_timer > 0) {
         if(!held) _stunned = false;
     }
 }
+// Stars over anyone stunned, however they were stunned (gm-revive overrides)
+if(!variable_local_exists("_fx_stun")) _fx_stun = -1;
+if(_stunned && !dead && !instance_exists(_fx_stun)) {
+    _fx_stun = instance_create(x, y, obj_fx_aura);
+    _fx_stun._master = id;
+    _fx_stun._kind = 0;
+}
 if(_silenced > 0) {
     _silenced -= 1;
     _attackcastwait = 0;

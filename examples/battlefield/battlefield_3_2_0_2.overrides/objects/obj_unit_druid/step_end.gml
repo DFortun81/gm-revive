@@ -359,6 +359,7 @@ else if(_shapeshift_form == druid_form_kitty) {
                 // Druid Special Ability: Ferocious Bite
                 create_heroicstrike_effect(_target.x, _target.y);
                 create_text_effect(x, y, c_yellow, "-ferocious bite-");
+                fx_spell(_target, "ferocious bite");
                 unit_damage(_target, c_yellow, _bite_damage + _manatype_energy);
                 _manatype_energy = 0;
                 _bite_cooldown = _bite_cooldown_time;

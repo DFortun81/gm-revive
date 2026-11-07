@@ -166,6 +166,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
                 if(kt != -1) {
                     create_text_effect(x, y, c_white, "-kick-");
                     unit_interrupt(kt, _kick_lockout);
+                    fx_spell(kt, "kick");
                     unit_mana(id, -_kick_cost);
                     _kick_cooldown = _kick_cooldown_time;
                 }
@@ -239,6 +240,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
                     }
                     _combo_points += 1;
                     unit_damage(_target, c_yellow, _sinisterstrike_damage);
+                    fx_spell(_target, "sinister strike");
                     unit_mana(id, -_sinisterstrike_cost);
                     _sinisterstrike_cooldown = _sinisterstrike_cooldown_time;
                 }
@@ -280,6 +282,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
                 _evasion_cooldown = _evasion_cooldown_time;
                 _damagereduction += _evasion_reduction;
                 create_text_effect(x, y, c_white, "-evasion-");
+                with(instance_create(x, y, obj_fx_aura)) { _master = other.id; _kind = 2; }
             }
         }
         

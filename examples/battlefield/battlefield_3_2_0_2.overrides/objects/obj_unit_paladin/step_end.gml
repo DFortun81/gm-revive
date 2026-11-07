@@ -64,7 +64,7 @@ if(_consecration_timer > 0) {
                 }
             }
         }
-        if(_consecration_timer > 0) paladin_consecration_pulse(_consecration_x, _consecration_y, _consecration_range);
+        if(_consecration_timer > 0) { paladin_consecration_pulse(_consecration_x, _consecration_y, _consecration_range); fx_spell(id, "consecration"); }
     }
 }
 
@@ -100,6 +100,7 @@ if(_divineshield_cooldown <= 0 && _divineshield_timer <= 0 && _health / _maxheal
     _forbearance_end = current_time + _forbearance_time;
     _blendcolor = c_yellow;
     create_text_effect(x, y, c_yellow, "-divine shield-");
+    holy_bubble_fx(id);
 }
 
 // Paladin Special Ability: Lay on Hands
@@ -158,6 +159,7 @@ if(_bop_cooldown <= 0 && _bop_timer <= 0 && _manatype_mana >= _bop_cost) {
         maxid._forbearance_end = current_time + _forbearance_time;
         unit_mana(id, -_bop_cost);
         create_text_effect(maxid.x, maxid.y, c_yellow, "-blessing of protection-");
+        holy_bubble_fx(maxid);
     }
 }
 
@@ -280,6 +282,7 @@ if(_hoj_cooldown <= 0 && _hoj_timer <= 0 && _manatype_mana >= _hoj_cost) {
         unit_mana(id, -_hoj_cost);
         create_heroicstrike_effect(maxid.x, maxid.y);
         create_text_effect(maxid.x, maxid.y, c_yellow, "-hammer of justice-");
+        fx_spell(maxid, "hammer of justice");
     }
 }
 
@@ -362,6 +365,7 @@ if(units_exists(_target)) {
             // Paladin Special Ability: Judgement
             create_heroicstrike_effect(_target.x, _target.y);
             create_text_effect(x, y, c_yellow, "-judgement-");
+            fx_spell(_target, "judgement");
             unit_damage(_target, c_yellow, _judgement_damage);
             unit_mana(id, -_judgement_cost);
             _judgement_cooldown = _judgement_cooldown_time;
@@ -370,6 +374,7 @@ if(units_exists(_target)) {
             // Paladin Special Ability: Crusader Strike
             create_heroicstrike_effect(_target.x, _target.y);
             create_text_effect(x, y, c_yellow, "-crusader strike-");
+            fx_spell(_target, "crusader strike");
             unit_damage(_target, c_yellow, _attackdamage * _crusaderstrike_multiplier);
             unit_mana(id, -_crusaderstrike_cost);
             _crusaderstrike_cooldown = _crusaderstrike_cooldown_time;

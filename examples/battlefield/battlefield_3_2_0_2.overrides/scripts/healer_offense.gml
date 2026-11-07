@@ -40,6 +40,7 @@ if(_smite_casting) {
     if(_attackcastwait >= _attackcasttime) {
         create_text_effect(x, y, c_yellow, "-smite-");
         unit_damage(_smite_target, c_yellow, _smite_amount);
+        fx_spell(_smite_target, "smite");
         unit_mana(id, -_smite_manacost);
         _smite_casting = false;
         _attackcastwait = 0;
@@ -82,6 +83,7 @@ if(_swp_timer <= 0 && _manatype_mana >= _swp_manacost) {
     _swp_timer = _swp_duration;
     unit_mana(id, -_swp_manacost);
     create_text_effect(best.x, best.y, c_purple, "-shadow word: pain-");
+    fx_spell(best, "shadow word: pain");
 }
 
 // Healer Special Ability: Smite

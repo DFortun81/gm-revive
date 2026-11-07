@@ -5,6 +5,7 @@
 var i, n, best, bestdist, dist, hit;
 if(!units_exists(_target)) exit;
 create_text_effect(x, y, c_yellow, "-swipe-");
+fx_spell(_target, "swipe");
 create_heroicstrike_effect(_target.x, _target.y);
 unit_damage(_target, c_yellow, _swipe_amount);
 
