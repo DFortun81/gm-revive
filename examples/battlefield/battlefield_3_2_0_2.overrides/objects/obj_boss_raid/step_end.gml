@@ -10,6 +10,10 @@ ds_list_clear(_enemylist);
 with(obj_unit) {
     if(_faction != other._faction && !dead && _jobclass != class_mirrorimage) ds_list_add(other._enemylist, id);
 }
+ds_list_clear(_arealist);
+with(obj_unit) {
+    if(_faction != other._faction && !dead) ds_list_add(other._arealist, id);
+}
 enemies = ds_list_size(_enemylist);
 if(enemies == 0) {
     _target = -1;

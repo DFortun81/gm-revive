@@ -132,8 +132,8 @@ if(_clap_cooldown <= 0) {
     n = 0;
     for(i = 0; i < ds_list_size(_enemylist); i += 1) { u = ds_list_find_value(_enemylist, i); if(!u.dead && unit_dist(id, u) < _clap_range) n += 1; }
     if(n >= 2) {
-        for(i = 0; i < ds_list_size(_enemylist); i += 1) {
-            u = ds_list_find_value(_enemylist, i);
+        for(i = 0; i < ds_list_size(_arealist); i += 1) {
+            u = ds_list_find_value(_arealist, i);
             if(!u.dead && unit_dist(id, u) < _clap_range) unit_damage(u, c_yellow, _clap_damage * _enrage_mult * _dmg_mult);
         }
         jane_clap_fx();
@@ -146,8 +146,8 @@ if(_shout_cooldown <= 0) {
     n = 0;
     for(i = 0; i < ds_list_size(_enemylist); i += 1) { u = ds_list_find_value(_enemylist, i); if(!u.dead && unit_dist(id, u) < _shout_range) n += 1; }
     if(n >= 3) {
-        for(i = 0; i < ds_list_size(_enemylist); i += 1) {
-            u = ds_list_find_value(_enemylist, i);
+        for(i = 0; i < ds_list_size(_arealist); i += 1) {
+            u = ds_list_find_value(_arealist, i);
             if(!u.dead && unit_dist(id, u) < _shout_range && u != _target) unit_stun(u, _shout_fear);
         }
         create_text_effect(x, y, c_white, "-intimidating shout-");

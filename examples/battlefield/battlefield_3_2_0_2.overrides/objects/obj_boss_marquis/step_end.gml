@@ -70,8 +70,8 @@ if(_cast != 0) {
         }
         else if(_cast == 2) {
             // Muramasa: the ghosts of the sword strike everyone in casting range
-            for(i = 0; i < ds_list_size(_enemylist); i += 1) {
-                u = ds_list_find_value(_enemylist, i);
+            for(i = 0; i < ds_list_size(_arealist); i += 1) {
+                u = ds_list_find_value(_arealist, i);
                 if(!u.dead && unit_dist(id, u) < range_cast) {
                     unit_damage(u, c_purple, _muramasa_damage * _enrage_mult);
                     marquis_ghostblade_fx(u);
@@ -143,8 +143,8 @@ if(_kiku_cooldown <= 0) {
         if(abs(d) <= _kiku_arc) n += 1;
     }
     if(n >= 2) {
-        for(i = 0; i < ds_list_size(_enemylist); i += 1) {
-            u = ds_list_find_value(_enemylist, i);
+        for(i = 0; i < ds_list_size(_arealist); i += 1) {
+            u = ds_list_find_value(_arealist, i);
             if(u.dead || unit_dist(id, u) > _kiku_range) continue;
             d = ((point_direction(x, y, u.x, u.y) - _direction + 540) mod 360) - 180;
             if(abs(d) <= _kiku_arc) unit_damage(u, c_yellow, _kiku_damage * _enrage_mult);

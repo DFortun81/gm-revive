@@ -9,8 +9,8 @@ if(_aura_timer <= 0) {
     _aura_timer = _aura_time;
     dmg = (_aura_base + _fight_steps div _aura_ramp) * _enrage_mult;
     _peak_aura = max(_peak_aura, dmg);
-    for(i = 0; i < ds_list_size(_enemylist); i += 1) {
-        u = ds_list_find_value(_enemylist, i);
+    for(i = 0; i < ds_list_size(_arealist); i += 1) {
+        u = ds_list_find_value(_arealist, i);
         if(!u.dead) unit_damage(u, c_lime, dmg, true);
     }
     blighted_aura_fx();

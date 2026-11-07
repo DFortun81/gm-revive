@@ -30,6 +30,9 @@ _swing_speed = room_speed * 1.5;
 _swing_cooldown = room_speed;
 
 _enrage_time = room_speed * 180;
+// (gm-revive overrides) Everyone an area attack can hit: the enemy list plus Mirror Images. Bosses never
+// target or tank a Mirror Image (they're left off _enemylist), but anything that hits an area hits them.
+_arealist = ds_list_create();
 _enraged = false;
 _enrage_mult = 1;              // 2 once enraged: children multiply their own ability damage by it
 

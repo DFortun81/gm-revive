@@ -12,8 +12,8 @@ _blast_cooldown -= 1;
 if(_frost_cooldown <= 0 && !_stunned && ds_list_size(_enemylist) > 0) {
     var n;
     n = 0;
-    for(i = 0; i < ds_list_size(_enemylist); i += 1) {
-        u = ds_list_find_value(_enemylist, i);
+    for(i = 0; i < ds_list_size(_arealist); i += 1) {
+        u = ds_list_find_value(_arealist, i);
         if(units_exists(u)) {
             if(!u.dead && unit_dist(id, u) < _frost_range) {
                 with(instance_create(x, y, obj_frostbolt)) {
@@ -99,8 +99,8 @@ if(_cast != 0) {
             _mend_cooldown = _mend_cooldown_time;
         }
         else if(_cast == 3) {
-            for(i = 0; i < ds_list_size(_enemylist); i += 1) {
-                u = ds_list_find_value(_enemylist, i);
+            for(i = 0; i < ds_list_size(_arealist); i += 1) {
+                u = ds_list_find_value(_arealist, i);
                 if(!u.dead) with(instance_create(x, y, obj_frostbolt)) { _master = u; _damage = other._volley_damage * other._enrage_mult; _h = other.sprite_height * 0.7; _speed = 5 + random(2); _shadow = true; _quiet = true; }
             }
             create_text_effect(x, y, c_purple, "-shadow volley-");

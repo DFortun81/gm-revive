@@ -30,8 +30,8 @@ if(_hook_cooldown <= 0) {
 // (gm-revive overrides) Bile Spew: everyone in a cone in front of him
 if(_spew_cooldown <= 0) {
     n = 0;
-    for(i = 0; i < ds_list_size(_enemylist); i += 1) {
-        u = ds_list_find_value(_enemylist, i);
+    for(i = 0; i < ds_list_size(_arealist); i += 1) {
+        u = ds_list_find_value(_arealist, i);
         if(u.dead) continue;
         if(unit_dist(id, u) > _spew_range) continue;
         a = abs(((point_direction(x, y, u.x, u.y) - _direction + 540) mod 360) - 180);
