@@ -1,4 +1,4 @@
-"""Command line interface:  python -m gm_revive {convert,report} ..."""
+"""Command line interface:  python -m gm_revive {convert,eject,report} ..."""
 import argparse
 import os
 import sys
@@ -43,6 +43,19 @@ def cmd_convert(a):
     return 1 if conv.errors else 0
 
 
+def cmd_eject(a):
+    from .eject import eject
+    extra = a.files
+    if extra is None and not a.no_files:
+        extra = os.path.dirname(os.path.abspath(a.project))
+    conv = eject(a.project, a.out, extra_dir=extra, soundfont=a.soundfont,
+                 overrides=(False if a.no_overrides else a.overrides))
+    print(f'Wrote the JavaScript source to {a.out} (build it with: python build.py)')
+    for e in conv.errors:
+        print('  could not translate:', e)
+    return 1 if conv.errors else 0
+
+
 def cmd_report(a):
     from .report import build_report
     text, results = build_report(a.folder)
@@ -71,6 +84,14 @@ def main(argv=None):
     c.add_argument('--no-overrides', action='store_true', help='ignore the overrides folder')
     c.add_argument('--soundfont', help='General MIDI .sf2 soundfont used to render MIDI music')
     c.set_defaults(func=cmd_convert)
+
+    e = sub.add_parser('eject', help='turn a project into a plain JavaScript source tree (no GML from then on)')
+    e.add_argument('project', help='path to a GameMaker 7 or 8.0 .gmk file')
+    e.add_argument('out', help='output folder for src/, assets/, build.py and a first html5/ build')
+    e.add_argument('--files'); e.add_argument('--no-files', action='store_true')
+    e.add_argument('--overrides'); e.add_argument('--no-overrides', action='store_true')
+    e.add_argument('--soundfont')
+    e.set_defaults(func=cmd_eject)
 
     r = sub.add_parser('report', help='scan a folder of projects and report what is not supported yet')
     r.add_argument('folder')

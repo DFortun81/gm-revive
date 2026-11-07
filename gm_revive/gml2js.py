@@ -61,8 +61,8 @@ variable_local_exists variable_local_get variable_local_set variable_local_array
 
 
 class Tok:
-    __slots__ = ('t', 'v', 'line')
-    def __init__(s, t, v, line): s.t = t; s.v = v; s.line = line
+    __slots__ = ('t', 'v', 'line', 'pos')
+    def __init__(s, t, v, line, pos=0): s.t = t; s.v = v; s.line = line; s.pos = pos
     def __repr__(s): return f'{s.t}:{s.v}'
 
 
@@ -71,38 +71,44 @@ OPS = [':=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '==', '!=', '<>', '<=', '
        '=', '.', ',', ';', '(', ')', '[', ']', '{', '}', ':', '?']
 
 
-def lex(src):
+def lex(src, comments=None):
+    """Tokens for src. If a list is passed as comments, each comment is appended to it as
+    (pos, text lines) so the parser can keep them (see Parser(keep_comments=True))."""
     toks = []; i = 0; n = len(src); line = 1
     while i < n:
         c = src[i]
         if c == '\n': line += 1; i += 1; continue
         if c in ' \t\r\f\v': i += 1; continue
         if src.startswith('//', i):
-            j = src.find('\n', i); i = n if j < 0 else j; continue
+            j = src.find('\n', i)
+            if comments is not None: comments.append((i, [src[i + 2:n if j < 0 else j].rstrip()]))
+            i = n if j < 0 else j; continue
         if src.startswith('/*', i):
             j = src.find('*/', i + 2); j = n if j < 0 else j + 2
+            if comments is not None:
+                comments.append((i, [(' ' + l.strip().lstrip('*').strip()).rstrip() for l in src[i + 2:j - 2 if j <= n and src.startswith('*/', j - 2) else j].split('\n')]))
             line += src.count('\n', i, j); i = j; continue
         if c.isdigit() or (c == '.' and i + 1 < n and src[i + 1].isdigit()):
             m = re.match(r'\d*\.?\d*', src[i:]); v = m.group(0)
             if v.endswith('.') and len(v) > 1: v = v[:-1]
-            toks.append(Tok('num', v, line)); i += len(v); continue
+            toks.append(Tok('num', v, line, i)); i += len(v); continue
         if c == '$':
             m = re.match(r'\$[0-9A-Fa-f]+', src[i:])
             if m:
-                toks.append(Tok('num', '0x' + m.group(0)[1:], line)); i += len(m.group(0)); continue
+                toks.append(Tok('num', '0x' + m.group(0)[1:], line, i)); i += len(m.group(0)); continue
         if c in '"\'':
             j = src.find(c, i + 1); j = n if j < 0 else j
             s = src[i + 1:j]; line += s.count('\n')
-            toks.append(Tok('str', s, line)); i = j + 1; continue
+            toks.append(Tok('str', s, line, i)); i = j + 1; continue
         if c.isalpha() or c == '_':
             m = re.match(r'[A-Za-z_]\w*', src[i:]); v = m.group(0)
-            toks.append(Tok('kw' if v in KEYWORDS else 'id', v, line)); i += len(v); continue
+            toks.append(Tok('kw' if v in KEYWORDS else 'id', v, line, i)); i += len(v); continue
         for op in OPS:
             if src.startswith(op, i):
-                toks.append(Tok('op', op, line)); i += len(op); break
+                toks.append(Tok('op', op, line, i)); i += len(op); break
         else:
             i += 1  # ignore stray char
-    toks.append(Tok('eof', None, line))
+    toks.append(Tok('eof', None, line, n))
     return toks
 
 
@@ -111,9 +117,19 @@ class ParseError(Exception):
 
 
 class Parser:
-    def __init__(s, src):
-        s.toks = lex(src); s.p = 0
+    def __init__(s, src, keep_comments=False):
+        s.comments = [] if keep_comments else None
+        s.toks = lex(src, s.comments); s.p = 0; s.ci = 0
         s.locals = []; s.globalvars = set()
+
+    def take_comments(s, upto=None):
+        """Comment nodes for every not-yet-placed comment before the next token (or before pos upto)."""
+        if not s.comments: return []
+        if upto is None: upto = s.peek().pos
+        out = []
+        while s.ci < len(s.comments) and s.comments[s.ci][0] < upto:
+            out.append(('comment', s.comments[s.ci][1])); s.ci += 1
+        return out
 
     def peek(s, k=0): return s.toks[s.p + k]
     def nxt(s): t = s.toks[s.p]; s.p += 1; return t
@@ -131,14 +147,18 @@ class Parser:
     def program(s):
         out = []
         while s.peek().t != 'eof':
+            out.extend(s.take_comments())
             out.append(s.statement())
+        out.extend(s.take_comments())
         return ('block', out)
 
     def block_until(s, *ends):
         out = []
         while not s.at(*ends):
             if s.peek().t == 'eof': raise ParseError('unexpected end of code')
+            out.extend(s.take_comments())
             out.append(s.statement())
+        out.extend(s.take_comments())
         s.nxt()
         return ('block', out)
 
@@ -173,12 +193,15 @@ class Parser:
         elif s.accept('with'):
             e = s.expr(); st = ('with', e, s.statement())
         elif s.accept('switch'):
-            e = s.expr(); s.expect('{', 'begin'); cases = []
+            e = s.expr(); s.expect('{', 'begin'); cases = []; pend = []
             while not s.at('}', 'end'):
+                cm = s.take_comments()
+                if cases: cases[-1][1].extend(cm)
+                else: pend.extend(cm)
                 if s.accept('case'):
-                    v = s.expr(); s.expect(':'); cases.append([v, []])
+                    v = s.expr(); s.expect(':'); cases.append([v, pend]); pend = []
                 elif s.accept('default'):
-                    s.expect(':'); cases.append([None, []])
+                    s.expect(':'); cases.append([None, pend]); pend = []
                 else:
                     if not cases: cases.append([None, []])
                     cases[-1][1].append(s.statement())
@@ -467,6 +490,8 @@ class Emitter:
         pad = '    ' * ind
         k = node[0]
         if k == 'empty': return ''
+        if k == 'comment':
+            return ''.join(pad + ('//' + l).rstrip() + '\n' for l in (node[1] or ['']))
         if k == 'block':
             return ''.join(s.st(x, ind) for x in node[1])
         if k == 'expr': return pad + s.ex(node[1]) + ';\n'
@@ -539,11 +564,16 @@ def translate_expr(ctx, src):
     return Emitter(ctx, [], set(), False).ex(e)
 
 
-def translate(ctx, src, is_script, ind=1):
-    """Translate a piece of GML. Returns (body_js, max_arg, uses_argarray)."""
-    p = Parser(src)
+def translate(ctx, src, is_script, ind=1, keep_comments=False):
+    """Translate a piece of GML. Returns (body_js, max_arg, uses_argarray).
+    keep_comments carries the GML's comments over as // comments (for exporting readable source);
+    a comment block at the very top goes above the local variable declarations."""
+    p = Parser(src, keep_comments)
     ast = p.program()
     em = Emitter(ctx, p.locals, p.globalvars, is_script)
+    head = []
+    while ast[1] and ast[1][0][0] == 'comment': head.append(ast[1].pop(0))
+    lead = ''.join(em.st(c, ind) for c in head)
     body = em.st(ast, ind)
     decl = ''
     if p.locals:
@@ -551,4 +581,4 @@ def translate(ctx, src, is_script, ind=1):
         for n in p.locals:
             if em.locals[n] not in seen: seen.append(em.locals[n])
         decl = '    ' * ind + 'let ' + ', '.join(f'{n} = 0' for n in seen) + ';\n'
-    return decl + body, em.max_arg, em.uses_argarray
+    return lead + decl + body, em.max_arg, em.uses_argarray

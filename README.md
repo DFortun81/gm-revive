@@ -73,6 +73,21 @@ Use `--no-overrides` to build the original game.
 `examples/battlefield/battlefield_3_2_0_2.overrides` finishes the Battlefield Paladin and Druid classes this way,
 reworks the other classes and adds a new boss object (`obj_boss_stitchgut`).
 
+## Ejecting a game to plain JavaScript
+
+When a restored game is going to keep being developed, it can leave GML behind entirely:
+
+```sh
+python -m gm_revive eject path/to/game.gmk out/game
+```
+
+`out/game` gets a JavaScript source tree: `src/game/scripts/` (one file per script) and
+`src/game/objects/` (one file per object, its events inside), with the GML comments carried over,
+`src/game/resources.js` and `world.js` for the resource numbers and the room, the engine as
+`src/runtime/runtime.js`, the sprites and sounds in `assets/` (described by `assets/assets.json`), and a
+dependency-free `build.py` that joins it all into `html5/`. From then on the game is edited as
+JavaScript and no longer needs gm-revive. Battlefield was ejected this way in November 2026.
+
 ## Compatibility report
 
 Got a folder full of old projects? Scan it:
@@ -132,11 +147,12 @@ gm_revive/
   gmk.py          .gm6/.gmk reader for GM6, GM7 and GM8 (and format detection)
   gml2js.py       GML parser and JavaScript emitter
   build.py        writes the HTML5 build
+  eject.py        exports a project as a JavaScript source tree
   report.py       compatibility report
   overrides.py    applies <project>.overrides folders
   rtf2html.py     game information (RTF) -> HTML help screen
   runtime/        runtime.js and the index.html template
-examples/battlefield/   an example GM8 project
+examples/battlefield/   an example GM8 project (frozen at Nov 2026: the game itself now lives on as JavaScript)
 tests/
 ```
 

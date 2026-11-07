@@ -187,3 +187,19 @@ def test_ini_files_round_trip():
         r += string(ini_key_exists("stats", "wins")) + string(ini_section_exists("nope"));
         ini_close();
         return r;''') == '3Zio710'
+
+
+def test_comments_kept_for_eject():
+    ctx = Context([], ['foo'], [])
+    src = ('// head\n/* two\n   lines */\nvar a; // trailing\na = 1;\n'
+           'if(a) {\n    // inside\n    foo();\n}\nswitch(a) {\n    // before case\n    case 1: a = 2; break;\n}\n// end\n')
+    js, _, _ = translate(ctx, src, True, 1, keep_comments=True)
+    lines = [l.strip() for l in js.splitlines()]
+    # the leading comment block goes above the local declarations
+    assert lines[:4] == ['// head', '// two', '// lines', 'let a = 0;']
+    for c in ('// trailing', '// inside', '// before case', '// end'):
+        assert c in lines
+    assert lines.index('// inside') < lines.index('S.foo(self, other);')
+    # without keep_comments nothing changes
+    plain, _, _ = translate(ctx, src, True, 1)
+    assert '//' not in plain

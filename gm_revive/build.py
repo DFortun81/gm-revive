@@ -75,6 +75,33 @@ def midi_to_mp3(path, soundfont, log):
     return mp3
 
 
+def event_label(et, en):
+    """A readable name for an event (eject comments): 'end step', 'alarm 3', 'key release M', ..."""
+    if et == 3: return {0: 'begin step', 1: 'step', 2: 'end step'}.get(en, f'step {en}')
+    if et == 2: return f'alarm {en}'
+    if et == 8: return 'draw' if en == 0 else f'draw {en}'
+    if et in (5, 9, 10):
+        what = {5: 'key held', 9: 'key press', 10: 'key release'}[et]
+        keys = {32: 'space', 13: 'enter', 27: 'escape', 37: 'left', 38: 'up', 39: 'right', 40: 'down', 0: 'no key', 1: 'any key'}
+        k = keys.get(en) or (chr(en) if 48 <= en <= 90 else (f'F{en - 111}' if 112 <= en <= 123 else str(en)))
+        return f'{what} {k}'
+    if et == 6:
+        mouse = {0: 'left button', 1: 'right button', 2: 'middle button', 3: 'no button', 4: 'left pressed', 5: 'right pressed',
+                 6: 'middle pressed', 7: 'left released', 8: 'right released', 9: 'middle released', 10: 'mouse enter',
+                 11: 'mouse leave', 50: 'global left button', 51: 'global right button', 52: 'global middle button',
+                 53: 'global left pressed', 54: 'global right pressed', 55: 'global middle pressed', 56: 'global left released',
+                 57: 'global right released', 58: 'global middle released', 60: 'wheel up', 61: 'wheel down'}
+        return 'mouse: ' + mouse.get(en, str(en))
+    if et == 7:
+        other = {0: 'outside room', 1: 'intersect boundary', 2: 'game start', 3: 'game end', 4: 'room start', 5: 'room end',
+                 6: 'no more lives', 7: 'animation end', 8: 'end of path', 9: 'no more health'}
+        return other.get(en, f'user event {en - 10}' if 10 <= en < 26 else f'other {en}')
+    return {0: 'create', 1: 'destroy'}.get(et, f'{EVENT_NAMES.get(et, et)} {en}')
+
+
+FILE_MARK = '\x00file:'   # in Conversion.js: the following lines belong to this source file (eject)
+
+
 def _js_bool(v):
     return 'true' if v else 'false'
 
@@ -82,8 +109,9 @@ def _js_bool(v):
 class Conversion:
     """Holds the results of translating one project (used by both convert() and the report)."""
 
-    def __init__(self, g, source_name):
+    def __init__(self, g, source_name, keep_comments=False):
         self.g = g
+        self.keep_comments = keep_comments   # eject: carry GML comments over, and mark file boundaries
         self.errors = []
         self.dnd_actions = {}          # function name / id -> count
         resources = {r['name']: r['index'] for kind in RESOURCE_KINDS for r in g[kind] if r}
@@ -98,7 +126,7 @@ class Conversion:
 
     def _tr(self, code, is_script, ind, where):
         try:
-            return translate(self.ctx, code, is_script, ind)
+            return translate(self.ctx, code, is_script, ind, self.keep_comments)
         except ParseError as e:
             self.errors.append(f'{where}: {e}')
             msg = json.dumps(f'{where} failed to translate: {e}')
@@ -206,7 +234,10 @@ class Conversion:
             items = [r for r in g[kind] if r]
             if items:
                 js.append(f'// {kind}')
-                js.append('const ' + ', '.join(f'{r["name"]} = {r["index"]}' for r in items) + ';')
+                if self.keep_comments:   # eject: one per line, so adding a resource is a one-line change
+                    js.append('const ' + ',\n    '.join(f'{r["name"]} = {r["index"]}' for r in items) + ';')
+                else:
+                    js.append('const ' + ', '.join(f'{r["name"]} = {r["index"]}' for r in items) + ';')
 
         js += ['', '// ---- User-defined constants', 'const K = {};', 'function __init_constants(self, other) {']
         for k, v in g['constants'].items():
@@ -221,6 +252,7 @@ class Conversion:
         for s in g['scripts']:
             if not s:
                 continue
+            js.append(FILE_MARK + f'scripts/{s["name"]}.js')
             body, max_arg, uses_arr = self._tr(s['code'], True, 1, f'script {s["name"]}')
             nargs = max(max_arg + 1, 16 if uses_arr else 0)
             params = ['self', 'other'] + [f'argument{i} = 0' for i in range(nargs)]
@@ -231,29 +263,38 @@ class Conversion:
             js.append(f'S.{s["name"]} = function {s["name"]}({", ".join(params)}) {{')
             js.append(pre + body + '    return 0;')
             js.append('};')
+        js.append(FILE_MARK + 'world.js')
         js.append('const SCRIPT_LIST = [' + ', '.join(f'S.{x["name"]}' if x else 'null' for x in g['scripts']) + '];')
 
-        js += ['', '// ---- Objects', 'const OBJECTS = [];']
+        def rname(kind, idx):
+            # eject writes resources by name (spr_x, obj_y) so the source reads well; convert keeps numbers
+            if self.keep_comments and isinstance(idx, int) and 0 <= idx < len(g[kind]) and g[kind][idx]:
+                return g[kind][idx]['name']
+            return idx
+        js += ['', '// ---- Objects', f'const OBJECTS = new Array({len(g["objects"])}).fill(null);']
         for o in g['objects']:
             if not o:
-                js.append('OBJECTS.push(null);')
                 continue
-            js.append(f'OBJECTS[{o["index"]}] = {{')
-            js.append(f'    name: "{o["name"]}", sprite: {o["sprite"]}, visible: {_js_bool(o["visible"])}, '
+            js.append(FILE_MARK + f'objects/{o["name"]}.js')
+            js.append(f'OBJECTS[{rname("objects", o["index"])}] = {{')
+            js.append(f'    name: "{o["name"]}", sprite: {rname("sprites", o["sprite"])}, visible: {_js_bool(o["visible"])}, '
                       f'solid: {_js_bool(o["solid"])}, depth: {o["depth"]}, persistent: {_js_bool(o["persistent"])}, '
-                      f'parent: {o["parent"]}, mask: {o["mask"]},')
+                      f'parent: {rname("objects", o["parent"])}, mask: {rname("sprites", o["mask"])},')
             js.append('    events: {')
             for et, en, acts in o['events']:
                 key = f'{EVENT_NAMES[et]}_{en}'
                 label = key
                 if et == 4 and 0 <= en < len(g['objects']) and g['objects'][en]:
                     label = f'collision with {g["objects"][en]["name"]}'
+                elif self.keep_comments:
+                    label = event_label(et, en)
                 js.append(f'        // {label}')
                 js.append(f'        "{key}": function (self, other) {{\n'
                           + self._actions(acts, f'{o["name"]} {key}') + '        },')
             js.append('    },')
             js.append('};')
 
+        js.append(FILE_MARK + 'world.js')
         js += ['', '// ---- Timelines', 'const TIMELINES = [];']
         for t in g['timelines']:
             if not t:
@@ -298,7 +339,7 @@ class Conversion:
         return js
 
 
-def convert(gmk_path, out_dir, extra_dir=None, soundfont=None, log=print, overrides=None):
+def convert(gmk_path, out_dir, extra_dir=None, soundfont=None, log=print, overrides=None, keep_comments=False):
     """Convert gmk_path into an HTML5 build in out_dir. Returns the Conversion."""
     g = load(gmk_path)
     from . import overrides as ov
@@ -306,8 +347,8 @@ def convert(gmk_path, out_dir, extra_dir=None, soundfont=None, log=print, overri
     g['overrides_applied'] = ov.apply(g, folder) if folder else []   # folder=False disables overrides
     for c in g['overrides_applied']:
         log(f'  override: {c}')
-    conv = Conversion(g, os.path.basename(gmk_path))
-    js = list(conv.js)
+    conv = Conversion(g, os.path.basename(gmk_path), keep_comments=keep_comments)
+    js = [l for l in conv.js if not l.startswith(FILE_MARK)]
     for sub in ('sprites', 'backgrounds', 'sounds'):
         os.makedirs(os.path.join(out_dir, 'assets', sub), exist_ok=True)
 
@@ -363,6 +404,7 @@ def convert(gmk_path, out_dir, extra_dir=None, soundfont=None, log=print, overri
     for fo in g['fonts']:
         meta['fonts'].append(fo and {k: fo[k] for k in ('name', 'font', 'size', 'bold', 'italic')})
     js.append('const ASSETS = ' + json.dumps(meta, indent=1) + ';')
+    conv.meta = meta
 
     extra = []
     if extra_dir:
@@ -372,6 +414,7 @@ def convert(gmk_path, out_dir, extra_dir=None, soundfont=None, log=print, overri
                 shutil.copy(os.path.join(extra_dir, f), os.path.join(out_dir, 'files', f))
                 extra.append(f)
     js.append('const EXTRA_FILES = ' + json.dumps(extra) + ';')
+    conv.extra = extra
     with open(os.path.join(out_dir, 'game.js'), 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(js) + '\n')
 
