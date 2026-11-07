@@ -120,6 +120,8 @@ if(_manatype == manatype_mana) {
     }
 }
 
+// (gm-revive overrides) Zio's Corrosion wears off
+if(variable_local_exists("_acid_timer")) { if(_acid_timer > 0) _acid_timer -= 1; }
 // (gm-revive overrides) Count Vaelric's thralls crumble when their time's up or he's gone
 if(variable_local_exists("_thrall_timer")) {
     if(_thrall_timer > 0 && !dead) {

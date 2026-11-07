@@ -1,6 +1,9 @@
 if(global.toggle_pause) exit;
 _life += 1;
-if(_life >= _maxlife) { instance_destroy(); exit; }
+if(_life >= _maxlife) {
+    if(_kind == 9) with(fx_make(1, x, y, _h, _col, _size * 1.3, 8)) { _squash = 1; _alpha = 0.8; }
+    instance_destroy(); exit;
+}
 if(_kind == 4) {
     if(!instance_exists(_master)) { instance_destroy(); exit; }
     _ang += _spin;

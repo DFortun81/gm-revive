@@ -50,11 +50,9 @@ if(instance_exists(_master)) {
             _attackcastwait += 1;
             if(_attackcastwait >= _attackcasttime && units_exists(_target)) {
                 // Cast Successful
-                path = path_add();
-                dir = point_direction(x, y, _target.x, _target.y);
-                path_add_point(path, x + cos(degtorad(dir)) * 10, (y - sin(degtorad(dir)) * 10), sprite_yoffset + 48);
-                path_add_point(path, _target.x, _target.y, _target.sprite_height / 2);
-                create_blackwave_effect(path);
+                // (gm-revive overrides) a dark bolt from the face to the marked unit; the pillar comes down with
+                // the blow itself (alarm 3)
+                zio_blackwave_fx(x, y, _height - _ydif + 26, _target, false);
                 _savedtarget = _target;
                 _attackcastwait = 0;
                 _casting = false;

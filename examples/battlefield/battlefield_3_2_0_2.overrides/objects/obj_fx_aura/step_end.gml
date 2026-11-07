@@ -16,6 +16,7 @@ switch(_kind) {
     case 6: on = on && _master._vamp_timer > 0; break;
     case 7: on = true; break; // stays for the whole fight; draws only while the barrier holds
     case 8: on = on && _master._zio_curse > 0; break;
+    case 11: on = on && _master._acid_timer > 0; break;
     case 10: on = on && _master._thrall_timer > 0; break;
     case 9: on = on && instance_exists(_src); if(on) on = _src._bloodsuck_casting && _src._drain_victim == _master; break;
 }
@@ -75,6 +76,11 @@ if(_ending < 0) {
         // the curse: black wisps rising off the unit
         p = fx_make(0, x + random_range(-7, 7), y, random_range(6, _master.sprite_height * 0.8), make_color_rgb(25, 10, 35), 0.3, 24);
         p._add = false; p._vh = 0.4; p._grow = 1.8; p._alpha = 0.7;
+    }
+    if(_kind == 11 && _t mod 8 == 0) {
+        // Corrosion: an acid bubble now and then
+        p = fx_make(9, x + random_range(-8, 8), y, random_range(4, _master.sprite_height * 0.8), make_color_rgb(160, 235, 50), 0.22, 14);
+        p._vh = 0.3;
     }
     if(_kind == 4 && _t mod 7 == 0) {
         p = fx_make(0, x + random_range(-7, 7), y, random_range(6, _master.sprite_height * 0.8), make_color_rgb(150, 60, 200), 0.3, 22);

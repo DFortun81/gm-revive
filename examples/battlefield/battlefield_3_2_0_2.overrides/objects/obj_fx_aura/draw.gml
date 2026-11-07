@@ -55,6 +55,11 @@ switch(_kind) {
         draw_sprite_ext(_master.sprite_index, _master.image_index, x - lengthdir_x(a, _master._direction), y - lengthdir_y(a, _master._direction), 1, 1, 0, make_color_rgb(170, 230, 255), 0.32 * fade);
         draw_sprite_ext(sprite_index, 3, x, y, 1.1, 0.5, _t * 2, make_color_rgb(120, 230, 140), 0.45 * fade);
     break;
+    case 11: // Corrosion: a green sheen on the unit itself
+        draw_set_blend_mode(bm_add);
+        draw_sprite_ext(_master.sprite_index, _master.image_index, _master.x, _master.y, 1, 1, 0, make_color_rgb(70, 150, 0), 0.55 * fade);
+        draw_set_blend_mode(bm_normal);
+    break;
     case 10: // Count Vaelric's thrall: a violet grave-haze
         draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.45, 0.9, 1.1, 0, make_color_rgb(90, 20, 110), 0.4 * fade);
         draw_set_blend_mode(bm_add);

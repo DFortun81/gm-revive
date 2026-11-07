@@ -61,9 +61,11 @@ if(!instance_exists(obj_boss_darkforce) && size > 0) {
             _destx = x;
             _desty = y;
             _message = "Nightmare.";
+            if(irandom(2) == 0) zio_rift_fx(min(1, _attackcastwait / max(1, _attackcasttime)), false); // (gm-revive overrides) the rift opening
         }
         else {
             // Cast Successful
+            zio_rift_fx(1, true);
             with(instance_create(x, y, obj_boss_darkforce)) {
                 _master = other.id;
             }
@@ -168,14 +170,12 @@ else {
         }
         else {
             // Cast Successful
-            var path, dir;
-            path = path_add();
+            // (gm-revive overrides) a dark bolt from his hand and a collapsing ring of shadow where it lands
+            // (was three thin grey lightning lines and the Corrosion puff)
+            var dir;
             dir = point_direction(x, y, _target.x, _target.y);
-            path_add_point(path, x + cos(degtorad(dir)) * 10, y - sin(degtorad(dir)) * 10, sprite_height / 2);
-            path_add_point(path, _target.x, _target.y, _target.sprite_height / 2);
-            create_blackwave_effect(path);
+            zio_blackwave_fx(x + lengthdir_x(10, dir), y + lengthdir_y(5, dir), sprite_height * 0.6, _target, false);
             create_text_effect(x, y, c_white, "-black wave-");
-            create_corrsion_effect(_target.x, _target.y, 20);
             unit_damage(_target, c_yellow, round(_blackwave_amount + random(_blackwave_amount) / 2));
             zio_curse(_target, _blackwave_curse);
             unit_mana(id, -_blackwave_manacost);
@@ -205,6 +205,10 @@ else {
         else {
             // Cast Successful
             create_text_effect(x, y, c_white, "-corrsion-");
+            // (gm-revive overrides) acid: a sickly green burst round him, then bubbles, splashes and a green
+            // sheen on everyone it eats at (zio_corrosion_fx; was a pastel fire puff)
+            with(fx_make(1, x, y, 0, make_color_rgb(120, 200, 30), 3.5, 22)) { _squash = 0.45; _add = false; _alpha = 0.6; }
+            with(fx_make(1, x, y, 0, make_color_rgb(190, 255, 80), 2.6, 16)) _squash = 0.45;
             
             ds_list_clear(_aoelist);
             for(i = 0;i < size;i += 1) {
@@ -217,7 +221,7 @@ else {
             aoesize = ds_list_size(_aoelist);
             for(i = 0;i < aoesize; i += 1;) {
                 _t = ds_list_find_value(other._aoelist, i);
-                create_corrsion_effect(_t.x, _t.y, 10);
+                zio_corrosion_fx(_t);
                 unit_damage(_t, c_yellow, round(_corrsion_amount + random(_corrsion_amount) / 2));
             }
             
@@ -247,6 +251,9 @@ else {
         else {
             // Cast Successful
             create_text_effect(x, y, c_white, "-hewn-");
+            // (gm-revive overrides) wind: a gust ring off him, then blades, spiralling gusts and dust on everyone
+            // it hits (zio_hewn_fx; was the old hewn sprite and white specks)
+            with(fx_make(1, x, y, 4, make_color_rgb(220, 235, 255), 3, 16)) { _squash = 0.5; _alpha = 0.7; }
             
             ds_list_clear(_aoelist);
             for(i = 0;i < size;i += 1) {
@@ -259,7 +266,7 @@ else {
             aoesize = ds_list_size(_aoelist);
             for(i = 0;i < aoesize; i += 1;) {
                 _t = ds_list_find_value(other._aoelist, i);
-                create_hewn_effect(_t.x, _t.y, 10);
+                zio_hewn_fx(_t);
                 unit_damage(_t, c_yellow, round(_hewn_amount + random(_hewn_amount) / 2));
                 zio_hewn_push(_t, _hewn_push);
             }
