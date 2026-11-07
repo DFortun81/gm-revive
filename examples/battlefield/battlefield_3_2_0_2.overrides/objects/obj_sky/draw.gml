@@ -117,7 +117,7 @@ sel = obj_battlefield.selected;
 if(sel != -1 && instance_exists(sel)) {
     view_object[0] = sel;
     draw_window_skinned(_x + 20, view_yview[0] + view_hview[0] - 80, _x + 200, view_yview[0] + view_hview[0]);
-    draw_text(_x + 34, view_yview[0] + view_hview[0] - 70, "[" + string(sel) + "]: " + string(sel._faction) + " " + job_get_name(sel._jobclass, sel._bossid));
+    draw_text(_x + 34, view_yview[0] + view_hview[0] - 70, "[" + string(sel) + "]: " + string(sel._faction) + " " + unit_get_name(sel));
     draw_text(_x + 34, view_yview[0] + view_hview[0] - 50, string(sel._health) + " / " + string(sel._maxhealth));
     if(sel._manatype >= 0) {
         switch(sel._manatype) {
@@ -151,7 +151,7 @@ if(sel != -1 && instance_exists(sel)) {
         for(i = 0;i < size; i += 1;) {
             index = ds_list_find_value(sel._enemylist, i);
             if(instance_exists(index)) {
-                draw_text(_x + 210, view_yview[0] + view_hview[0] - (i + 1) * 20, "[" + string(index) + "]: " + string(index._faction) + " " + job_get_name(index._jobclass, index._bossid));
+                draw_text(_x + 210, view_yview[0] + view_hview[0] - (i + 1) * 20, "[" + string(index) + "]: " + string(index._faction) + " " + unit_get_name(index));
             }
         }
     }
@@ -227,7 +227,7 @@ for(i = 0;i < ds_list_size(ds); i+= 1) {
 draw_set_halign(fa_left);
 if(tar != -1 && instance_exists(tar)) {
     draw_window_skinned(_x - 210, view_yview[0] + view_hview[0] - 80, _x - 20, view_yview[0] + view_hview[0]);
-    draw_text(_x - 200, view_yview[0] + view_hview[0] - 70, "[" + string(tar) + "]: " + string(tar._faction) + " " + job_get_name(tar._jobclass, tar._bossid));
+    draw_text(_x - 200, view_yview[0] + view_hview[0] - 70, "[" + string(tar) + "]: " + string(tar._faction) + " " + unit_get_name(tar));
     draw_text(_x - 200, view_yview[0] + view_hview[0] - 50, string(tar._health) + " / " + string(tar._maxhealth));
     if(tar._manatype >= 0) {
         switch(tar._manatype) {
@@ -272,7 +272,7 @@ if(size > 0) {
             draw_set_font(fnt_boss);
             draw_set_color(c_black);
             draw_set_halign(fa_center);
-            draw_text(_x, _y, string(_faction) + " " + job_get_name(_jobclass, _bossid));
+            draw_text(_x, _y, string(_faction) + " " + unit_get_name(id));
             draw_set_alpha(.5);
             _y += 16;
             

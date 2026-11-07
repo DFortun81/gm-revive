@@ -57,7 +57,7 @@ if(instance_exists(argument0)) {
         argument0._absorbmax = 0;
         
         argument0._health = max(0, argument0._health - dmg);
-        if(argument0._health <= 0 && argument0._bossid == -1) argument0.dead = true;
+        if(argument0._health <= 0 && argument0._bossid == -1 && !argument0.dead) { argument0.dead = true; fs_death(argument0); }
         recount_damage(id, argument0, dmg);
         if(!argument3) create_text_effect(argument0.x, argument0.y, argument1, string(round(dmg))); // (gm-revive overrides) shown rounded: "126", not "126.00"
     }

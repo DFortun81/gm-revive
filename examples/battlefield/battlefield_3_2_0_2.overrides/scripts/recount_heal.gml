@@ -12,6 +12,7 @@ else {
     o = recount_owner(argument0);
     if(o != -1) {
         recount_add(global._recount_healing_done, o._jobclass, o._faction, argument2);
+        fs_add(global.fs_heal, o, argument2);
         raid_threat(o, argument2, true);
     }
 }

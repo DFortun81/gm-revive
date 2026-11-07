@@ -1,5 +1,7 @@
 // (gm-revive overrides) automatic matches: detect the end, record it, reset
 match_step();
+// (gm-revive overrides) the post-fight summary after every boss fight
+fs_track();
 // (gm-revive overrides) While Zio or Count Vaelric is on the field, the Horde's totems fight with the
 // Alliance against him like their Shamans do (see obj_unit's begin step), and go back afterwards
 if(instance_exists(obj_boss_zio) || instance_exists(obj_boss_elmdor)) {

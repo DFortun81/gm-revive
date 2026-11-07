@@ -274,6 +274,7 @@ else {
                 repeat(6) with(instance_create(x, y, obj_fx_bat)) _ang = random(360);
                 unit_mana(id, -_bloodsuck_cost);
                 create_text_effect(x, y, c_white, "-blood suck ends-");
+                fs_note("Blood Sucks drunk to the end");
                 _bloodsuck_cooldown = _bloodsuck_cooldown_time;
                 _casting = false;
                 _bloodsuck_casting = false;

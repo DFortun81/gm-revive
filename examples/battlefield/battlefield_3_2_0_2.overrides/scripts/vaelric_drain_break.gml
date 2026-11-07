@@ -9,6 +9,7 @@ vaelric_drain_end();
 repeat(6) with(instance_create(x, y, obj_fx_bat)) _ang = random(360);
 repeat(8) { p = fx_make(3, x + random_range(-6, 6), y, sprite_height * random_range(0.4, 0.8), make_color_rgb(190, 10, 30), 0.5, 22); p._add = false; }
 create_text_effect(x, y, c_orange, "-blood suck " + argument0 + "-");
+fs_note("Blood Suck " + argument0);
 _message = "Insolent cattle...!";
 _bloodsuck_casting = false;
 _casting = false;

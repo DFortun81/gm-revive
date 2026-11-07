@@ -26,6 +26,7 @@ with(u) {
     _attackcastwait = 0;
     _message = "...I hear... and obey...";
     create_text_effect(x, y, c_red, "-thrall-");
+    fs_note("Thralls raised by Blood Suck");
 }
 with(instance_create(u.x, u.y, obj_fx_aura)) { _master = u; _kind = 10; }
 repeat(10) { p = fx_make(4, u.x + random_range(-10, 10), u.y, random(8), make_color_rgb(150, 40, 120), 0.3, 30); p._vh = random_range(0.6, 1.4); }

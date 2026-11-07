@@ -65,6 +65,7 @@ if(_ending < 0) {
                 p._spin = random_range(-15, 15); p.image_angle = random(360);
             }
             create_text_effect(x, y, c_aqua, "-barrier broken-");
+            fs_note("Magic Barriers broken");
         }
         if(_master._absorbamount > _last_absorb && _last_absorb <= 0) {
             with(fx_make(1, x, y, _master.sprite_height * 0.5, make_color_rgb(120, 210, 255), 1.4, 14)) _squash = 1;
