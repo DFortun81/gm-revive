@@ -1,11 +1,11 @@
 // zio_hewn_push(unit, distance);
 // Hewn throws a unit away from Zio inside a vortex of dust and debris (the vortex is the Call to Arms
-// effect, spr_hewn_vortex). Bosses don't move. (gm-revive overrides)
+// effect, spr_hewn_vortex, drawn as it drew it: obj_fx_vortex). Bosses don't move. (gm-revive overrides)
 ////////////////////////////////////////////////////////////////////////////////////////////
 var u, d, ox, oy, k, n, p;
 u = argument0;
 if(!units_exists(u)) exit;
-with(instance_create(u.x, u.y, obj_fx_strip)) { _spr = spr_hewn_vortex; _f0 = 0; _f1 = 2; _len = 15; }
+with(instance_create(u.x, u.y, obj_fx_vortex)) _master = u;
 if(u.dead || u._bossid != -1) exit;
 d = point_direction(x, y, u.x, u.y);
 ox = u.x; oy = u.y;
