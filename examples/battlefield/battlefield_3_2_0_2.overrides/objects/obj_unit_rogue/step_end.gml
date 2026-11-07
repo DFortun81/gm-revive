@@ -300,7 +300,9 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
         if(_target._jobclass == class_warrior) {
             if(_target._laststand_used && _target._target == id) gtfo = true;
         }
-        if(_health < (_maxhealth * .4) || gtfo) {
+        // (gm-revive overrides) only when it's really in trouble: below _vanish_threshold (was 40%) with
+        // something actually hitting it, or facing a Warrior in Last Stand
+        if((_health < _maxhealth * _vanish_threshold && target_amount > 0) || gtfo) {
             // Can I GTFO?
             if(_vanish_cooldown <= 0) {
                 // Rogue Special Ability: Vanish

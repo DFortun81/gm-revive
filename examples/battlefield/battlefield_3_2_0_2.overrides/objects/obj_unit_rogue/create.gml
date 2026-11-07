@@ -90,6 +90,7 @@ _vanish_cooldown_time = room_speed * 120; // 2 minutes
 _vanish_active = false;
 _vanish_duration = 0;
 _vanish_duration_time = room_speed * 10; // 10 seconds
+_vanish_threshold = 0.25; // (gm-revive overrides) Vanish below this share of health, while being attacked (was 40%, attacked or not)
 
 // Rogue Special Ability: Sprint
 // The Rogue calls upon untold speed in order to pursue or escape his enemies
