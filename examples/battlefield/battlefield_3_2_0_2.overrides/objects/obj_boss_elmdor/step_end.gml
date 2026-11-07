@@ -86,9 +86,21 @@ else {
                 if(_teleport_cooldown <= 0 && _manatype_mana > _teleport_cost) {
                     with(instance_create(x, y, obj_fx_strip)) { _spr = spr_vaelric_mist; _glow = spr_vaelric_mist_glow; _f0 = 0; _f1 = 11; _len = 18; }
                     repeat(4) with(instance_create(x, y, obj_fx_bat)) _ang = random(360);
-                    var dir; dir = degtorad(_target._direction - 180);
-                    x = _target.x + cos(dir) * (range_melee * 3);
-                    y = _target.y - sin(dir) * (range_melee * 3);
+                    // (gm-revive overrides) He reforms behind his target as before, but only if that's well
+                    // inside the screen; otherwise on the side of the target toward the middle of the field,
+                    // so he never lands off screen
+                    var dir, mx0, my0, mx1, my1, nx, ny;
+                    mx0 = 48; my0 = 80; mx1 = room_width - 48; my1 = room_height - 48;
+                    dir = degtorad(_target._direction - 180);
+                    nx = _target.x + cos(dir) * (range_melee * 3);
+                    ny = _target.y - sin(dir) * (range_melee * 3);
+                    if(nx < mx0 || nx > mx1 || ny < my0 || ny > my1) {
+                        dir = degtorad(point_direction(_target.x, _target.y, room_width / 2, room_height / 2));
+                        nx = _target.x + cos(dir) * (range_melee * 3);
+                        ny = _target.y - sin(dir) * (range_melee * 3);
+                    }
+                    x = median(mx0, nx, mx1);
+                    y = median(my0, ny, my1);
                     _destx = x;
                     _desty = y;
                     with(instance_create(x, y, obj_fx_strip)) { _spr = spr_vaelric_mist; _glow = spr_vaelric_mist_glow; _f0 = 11; _f1 = 0; _len = 18; _master = other.id; }
