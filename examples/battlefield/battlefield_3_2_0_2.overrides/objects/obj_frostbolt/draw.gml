@@ -6,7 +6,14 @@ draw_set_alpha(0.2);
 draw_ellipse(x - 4, y - 2, x + 4, y + 2, false);
 draw_set_alpha(1);
 draw_set_color(c_white);
-if(_web > 0) {
+if(_wandcol != -1) {
+    // a wand bolt: a small bright mote
+    draw_sprite_ext(sprite_index, 0, x, hh, 0.32, 0.32, 0, _wandcol, 0.9);
+    draw_set_blend_mode(bm_add);
+    draw_sprite_ext(sprite_index, 0, x, hh, 0.16, 0.16, 0, c_white, 1);
+    draw_set_blend_mode(bm_normal);
+}
+else if(_web > 0) {
     // a glob of web
     draw_sprite_ext(sprite_index, 0, x, hh, 0.3, 0.3, 0, make_color_rgb(235, 235, 225), 1);
 }

@@ -186,6 +186,13 @@ else {
     }
 }
 
+// (gm-revive overrides) Can't heal (locked out by an interrupt or out of mana), or nothing to heal and
+// nothing to smite: back away from melee or use the wand
+if(_silenced > 0 || _manatype_mana < _flashheal_manacost || (maxhp < _offense_threshold && _attackcastwait <= 0 && !_smite_casting && !_poh_casting)) {
+    if(_silenced > 0) { _flashheal_casting = false; _greaterheal_casting = false; _attackcastwait = 0; }
+    unit_fallback(10, make_color_rgb(255, 235, 150));
+}
+
 // Default actions
 event_inherited();
 depth = -y;

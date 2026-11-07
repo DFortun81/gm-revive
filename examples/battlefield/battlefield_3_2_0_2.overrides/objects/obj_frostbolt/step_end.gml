@@ -17,6 +17,13 @@ if(round(x) == round(_x) && round(y) == round(_y)) {
         instance_destroy();
         exit;
     }
+    if(units_exists(_master) && _wandcol != -1) {
+        if(!_master.dead) unit_damage(_master, c_white, _damage);
+        with(fx_make(0, x, y, _h, _wandcol, 0.5, 10)) _grow = 1.5;
+        repeat(3) { p = fx_make(2, x, y, _h, _wandcol, 0.22, 12); p._vx = random_range(-1, 1); p._vh = random_range(0.3, 1); }
+        instance_destroy();
+        exit;
+    }
     if(units_exists(_master)) {
         if(!_shadow) {
             if(!_master.dead) unit_damage(_master, c_aqua, _damage);
@@ -38,7 +45,8 @@ if(round(x) == round(_x) && round(y) == round(_y)) {
     exit;
 }
 // a trail of frost: a pale glow left behind each step, and now and then a flake
-if(_web > 0) { p = fx_make(5, x, y, _h, make_color_rgb(235, 235, 225), 0.09, 16); p._x1 = px; p._y1 = py; p._h1 = _h; p._add = false; }
+if(_wandcol != -1) { p = fx_make(0, px, py, _h, _wandcol, 0.2, 8); p._grow = 0.5; }
+else if(_web > 0) { p = fx_make(5, x, y, _h, make_color_rgb(235, 235, 225), 0.09, 16); p._x1 = px; p._y1 = py; p._h1 = _h; p._add = false; }
 else if(_shadow) { p = fx_make(0, px, py, _h, make_color_rgb(40, 0, 60), 0.36, 12); p._grow = 0.5; p._alpha = 0.7; p._add = false; }
 else { p = fx_make(0, px, py, _h, make_color_rgb(110, 190, 255), 0.32, 10); p._grow = 0.5; p._alpha = 0.7; }
 if(!_shadow && random(1) < 0.3) {

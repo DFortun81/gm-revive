@@ -11,6 +11,11 @@ if(s.object_index == obj_fireball) {
     if(instance_exists(s._source)) return s._source;
     return -1;
 }
+if(s.object_index == obj_frostbolt) {
+    // (gm-revive overrides) a wand bolt (unit_fallback) knows who fired it; the bosses' bolts don't
+    if(instance_exists(s._source)) return recount_owner(s._source);
+    return -1;
+}
 if(s.object_index == obj_mirror_image) {
     if(instance_exists(s._master)) return s._master;
     return -1;

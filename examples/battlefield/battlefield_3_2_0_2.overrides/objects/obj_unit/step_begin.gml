@@ -62,6 +62,7 @@ if(variable_local_exists("_vamp_timer")) {
         else if(_vamp_boss.dead) marquis_unvamp(id);
     }
 }
+if(variable_local_exists("_wand_cooldown")) _wand_cooldown -= 1;
 if(_silenced > 0) {
     _silenced -= 1;
     _attackcastwait = 0;

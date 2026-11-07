@@ -236,7 +236,7 @@ if(!_casting && !global.cutscene_active) {
                 _attackcasttime = _fireball_casttime;
                 _casting = true;
             }
-            else _message = "WTB INNERVATE!";
+            else { _message = "WTB INNERVATE!"; unit_fallback(12, make_color_rgb(190, 130, 255)); }
         }
         else {
             // Move closer
@@ -282,6 +282,14 @@ if(_target != -1) {
 
 // Caster Special Ability: Blink (added by gm-revive overrides)
 caster_blink_check();
+
+// (gm-revive overrides) Locked out by an interrupt: a cast-time spell can't go off (the lockout wiped it
+// every step, so the mage just stood there), so back away from melee or use the wand instead
+if(_silenced > 0 && _casting && !_evocation_casting) {
+    _casting = false; _polymorph_casting = false; _blizzard_casting = false;
+    _attackcastwait = 0; _attackcasttime = _normal_attackcasttime;
+    unit_fallback(12, make_color_rgb(190, 130, 255));
+}
 
 // If you found something to cast... do it?
 if(_casting) {
