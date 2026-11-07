@@ -27,6 +27,7 @@ for(i = 0; i < size; i += 1) {
     u = ds_list_find_value(_enemylist, i);
     if(u.dead || u._polymorphed || u._stunned || u._stealthed) continue;
     if(u._jobclass == class_mirrorimage || u._bossid != -1) continue;
+    if(unit_divine(u)) continue; // (gm-revive overrides) immune inside Divine Shield
     dist = unit_dist(id, u);
     if(dist >= _polymorph_range) continue;
     // The one we are about to kill is only worth a sheep if it is the melee unit on top of me

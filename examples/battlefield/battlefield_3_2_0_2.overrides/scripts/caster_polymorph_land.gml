@@ -5,7 +5,9 @@
 var u;
 u = _target;
 if(units_exists(u)) {
-    if(!u.dead && !u._polymorphed && !u._stunned) {
+    // (gm-revive overrides) a Paladin that bubbled during the cast is immune: the spell is wasted
+    if(unit_divine(u)) create_text_effect(u.x, u.y, c_yellow, "-immune-");
+    else if(!u.dead && !u._polymorphed && !u._stunned) {
         u._polymorphed_sprite = u.sprite_index; // restored when it ends (broodlings etc. have no class sprite)
         u._polymorphed = true;
         u._polymorphed_timer = _polymorph_duration;

@@ -10,7 +10,7 @@ if(_hook_cooldown <= 0) {
     best = -1; bv = -1;
     for(i = 0; i < ds_list_size(_enemylist); i += 1) {
         u = ds_list_find_value(_enemylist, i);
-        if(u == _target || u.dead || u._polymorphed || u._stealthed || u._stunimmune) continue;
+        if(u == _target || u.dead || u._polymorphed || u._stealthed || u._stunimmune || unit_divine(u)) continue;
         d = unit_dist(id, u);
         if(d < _hook_min_range) continue;
         v = d;

@@ -253,7 +253,7 @@ if(_hoj_cooldown <= 0 && _hoj_timer <= 0 && _manatype_mana >= _hoj_cost) {
     maxid = -1;
     priority = 99;
     with(obj_unit) {
-        if(_faction != other._faction && !dead && !_stunimmune && !_polymorphed) {
+        if(_faction != other._faction && !dead && !_stunimmune && !_polymorphed && !unit_divine(id)) {
             if(unit_dist(id, other) < range_shout && (!_stealthed || unit_dist(id, other) <= _stealthed_visibility)) {
                 if(_attackcastwait > 0 && priority > 0) {
                     priority = 0;

@@ -9,6 +9,7 @@ u = argument0; b = argument1;
 if(!units_exists(u) || !instance_exists(b)) return false;
 if(u.dead || u._canheal || u._jobclass < 0 || u._jobclass == class_mirrorimage || u._bossid != -1 || u._faction == b._faction) return false;
 if(u == b._target) return false; // never his tank
+if(unit_divine(u)) return false; // (gm-revive overrides) immune inside Divine Shield
 with(u) if(!variable_local_exists("_vamp_timer")) _vamp_timer = 0;
 if(u._vamp_timer > 0) return false;
 n = 0;

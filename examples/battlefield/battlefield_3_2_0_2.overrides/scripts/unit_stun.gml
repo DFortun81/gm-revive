@@ -7,6 +7,7 @@ var u;
 u = argument0;
 if(!units_exists(u)) return false;
 if(u.dead || u._stunimmune) return false;
+if(unit_divine(u)) return false; // (gm-revive overrides) immune inside Divine Shield
 u._stunned = true;
 u._stun_timer = max(u._stun_timer, argument1);
 u._attackcastwait = 0;

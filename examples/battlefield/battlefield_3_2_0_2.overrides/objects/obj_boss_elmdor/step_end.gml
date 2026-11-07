@@ -257,7 +257,7 @@ else {
                     p = fx_make(0, x, y, sprite_height * 0.55, make_color_rgb(170, 0, 20), 0.9, 14); p._add = false; p._grow = 1.5;
                     repeat(3) { p = fx_make(0, x + random_range(-8, 8), y, sprite_height * random_range(0.6, 0.9), make_color_rgb(200, 10, 30), 0.2, 16); p._add = false; p._vh = -0.8; p._grow = 0.6; }
                 }
-                if(_target != id) if(!_target._stunimmune) {
+                if(_target != id) if(!_target._stunimmune && !unit_divine(_target)) {
                     _target._destx = _target.x;
                     _target._desty = _target.y;
                     _target._target = -1;

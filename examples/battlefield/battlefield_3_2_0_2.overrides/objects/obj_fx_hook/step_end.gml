@@ -2,6 +2,7 @@ var k, d, p;
 if(global.toggle_pause) exit;
 if(!instance_exists(_master) || !units_exists(_victim)) { instance_destroy(); exit; }
 if(_master.dead || _victim.dead) { instance_destroy(); exit; }
+if(!_bit && unit_divine(_victim)) { create_text_effect(_victim.x, _victim.y, c_yellow, "-immune-"); instance_destroy(); exit; }
 _t += 1;
 if(_t <= _out) {
     k = _t / _out;
