@@ -40,6 +40,15 @@ switch(o) {
         names[4] = "Muramasa"; cdn[4] = "_muramasa_cooldown"; ctn[4] = "_muramasa_cooldown_time";
         n = 5;
     break;
+    case obj_boss_ladyjane:
+        names[0] = "Heroic Strike"; cdn[0] = "_heroic_cooldown"; ctn[0] = "_heroic_cooldown_time";
+        names[1] = "Thunder Clap"; cdn[1] = "_clap_cooldown"; ctn[1] = "_clap_cooldown_time";
+        names[2] = "Charge"; cdn[2] = "_charge_cooldown"; ctn[2] = "_charge_cooldown_time";
+        names[3] = "Intimidating Shout"; cdn[3] = "_shout_cooldown"; ctn[3] = "_shout_cooldown_time";
+        names[4] = "Execute"; cdn[4] = "_execute_cooldown"; ctn[4] = "_execute_cooldown_time";
+        names[5] = "Bloodrage"; cdn[5] = "_bloodrage_cooldown"; ctn[5] = "_bloodrage_cooldown_time";
+        n = 6;
+    break;
     case obj_marquis_assassin:
         names[0] = "Ultima"; cdn[0] = "_ultima_cooldown"; ctn[0] = "_ultima_cooldown_time";
         n = 1;

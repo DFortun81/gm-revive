@@ -22,6 +22,10 @@ with(obj_boss_marquis) {
     global.boss_extra[4] += _vamps;
     global.boss_extra2[4] += _caught;
 }
+with(obj_boss_ladyjane) {
+    global.boss_extra[5] += _charges;
+    global.boss_extra2[5] += _shouts;
+}
 with(obj_boss_broodmother) {
     global.boss_extra[2] += _broodlings_killed;
     global.boss_extra2[2] += _broodlings_hatched;

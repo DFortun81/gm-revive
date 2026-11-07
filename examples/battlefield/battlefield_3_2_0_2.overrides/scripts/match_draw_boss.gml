@@ -1,5 +1,5 @@
 // match_draw_boss(center_x, boss);
-// A results page for one raid boss (0 Stitchgut, 1 Lichcaller, 2 Broodmother, 3 The Blighted, 4 Marquis Elmdor): kills, wipes, kill
+// A results page for one raid boss (0 Stitchgut ... 5 Lady Jane, see global.raid_boss_display): kills, wipes, kill
 // times, the boss's own counts, and each class's damage and healing per unit per second against it.
 ////////////////////////////////////////////////////////////////////////////////////////////
 var cx, b, w, h, x1, y1, row, i, j, best, used, v, top, s, fights, col, name, yy;
@@ -38,6 +38,10 @@ if(b == 3) {
 if(b == 4) {
     s = "Duel: melee blows get caught, so casters carry it";
     if(fights > 0) s += ":  " + string_format(global.boss_extra2[b] / fights, 1, 1) + " blows caught (Shirahadori),  " + string_format(global.boss_extra[b] / fights, 1, 1) + " raid members turned Vampire";
+}
+if(b == 5) {
+    s = "Melee brawl: spread out, peel her Charges";
+    if(fights > 0) s += ":  " + string_format(global.boss_extra[b] / fights, 1, 1) + " Charges a fight,  " + string_format(global.boss_extra2[b] / fights, 1, 1) + " Intimidating Shouts";
 }
 if(b == 2) {
     s = "Adds fight";
