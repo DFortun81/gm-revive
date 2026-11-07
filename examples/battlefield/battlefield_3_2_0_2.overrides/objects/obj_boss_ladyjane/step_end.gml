@@ -63,7 +63,7 @@ if(_bloodrage_cooldown <= 0) {
     _bloodrage_timer = room_speed * 10;
     _dmg_mult = 1.2;
     if(!_enraged) _blendcolor = make_color_rgb(255, 160, 160);
-    create_text_effect(x, y, c_red, "-bloodrage-");
+    create_text_effect(x, y, c_red, "-bloodrage-"); boss_sfx(snd_bfx_bloodrage);
     with(instance_create(x, y, obj_fx_aura)) { _master = other.id; _kind = 15; }
     p = fx_make(0, x, y, sprite_height * 0.5, make_color_rgb(200, 30, 30), 1.1, 16); p._add = false; p._grow = 1.6;
 }
@@ -73,7 +73,7 @@ if(!_laststand_used && _health < _maxhealth * 0.3) {
     _laststand_timer = room_speed * 12;
     _damagereduction += 0.3;
     unit_heal(id, round(_maxhealth * 0.12));
-    create_text_effect(x, y, c_yellow, "-last stand-");
+    create_text_effect(x, y, c_yellow, "-last stand-"); boss_sfx(snd_bfx_last_stand);
     with(instance_create(x, y, obj_fx_aura)) { _master = other.id; _kind = 16; }
     _message = "Is that all you've got?"; _message_timer = room_speed * 2;
     with(fx_make(1, x, y, 0, make_color_rgb(255, 200, 80), 1.6, 18)) _squash = 0.5;
@@ -113,7 +113,7 @@ if(_charging > 0) {
 if(_heroic_cooldown <= 0 && unit_dist(id, _target) <= range_melee) {
     unit_damage(_target, c_red, _heroic_damage * _enrage_mult * _dmg_mult);
     jane_axe_fx(_target, false);
-    create_text_effect(x, y, c_white, "-heroic strike-");
+    create_text_effect(x, y, c_white, "-heroic strike-"); boss_sfx(snd_bfx_heroic_strike);
     _heroic_cooldown = _heroic_cooldown_time;
     if(_rend_timer <= room_speed || _rend_target != _target) {
         _rend_target = _target; _rend_timer = _rend_duration;
@@ -123,7 +123,7 @@ if(_heroic_cooldown <= 0 && unit_dist(id, _target) <= range_melee) {
 // Execute: finish off a target under 20%
 if(_execute_cooldown <= 0 && unit_dist(id, _target) <= range_melee && _target._health < _target._maxhealth * 0.2) {
     unit_damage(_target, c_red, _execute_damage * _enrage_mult * _dmg_mult);
-    create_text_effect(x, y, c_red, "-execute-");
+    create_text_effect(x, y, c_red, "-execute-"); boss_sfx(snd_bfx_execute);
     fx_spell(_target, "ferocious bite");
     _execute_cooldown = _execute_cooldown_time;
 }
@@ -137,7 +137,7 @@ if(_clap_cooldown <= 0) {
             if(!u.dead && unit_dist(id, u) < _clap_range) unit_damage(u, c_yellow, _clap_damage * _enrage_mult * _dmg_mult);
         }
         jane_clap_fx();
-        create_text_effect(x, y, c_white, "-thunder clap-");
+        create_text_effect(x, y, c_white, "-thunder clap-"); boss_sfx(snd_bfx_thunder_clap);
         _clap_cooldown = _clap_cooldown_time;
     }
 }
@@ -150,7 +150,7 @@ if(_shout_cooldown <= 0) {
             u = ds_list_find_value(_arealist, i);
             if(!u.dead && unit_dist(id, u) < _shout_range && u != _target) unit_stun(u, _shout_fear);
         }
-        create_text_effect(x, y, c_white, "-intimidating shout-");
+        create_text_effect(x, y, c_white, "-intimidating shout-"); boss_sfx(snd_bfx_shout);
         _message = "Back off!"; _message_timer = room_speed * 1.5;
         jane_shout_fx();
         _shouts += 1;
@@ -174,7 +174,7 @@ if(_charge_cooldown <= 0) {
         _charging = room_speed * 2;
         _charges += 1;
         create_charge_effect(x, y);
-        create_text_effect(x, y, c_white, "-charge-");
+        create_text_effect(x, y, c_white, "-charge-"); boss_sfx(snd_bfx_charge);
         _charge_cooldown = _charge_cooldown_time;
     }
 }

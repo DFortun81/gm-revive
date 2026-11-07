@@ -26,7 +26,7 @@ with(u) {
     _attackcastwait = 0;
     _raid_threat = 0;
     _message = "...the blood... it calls...";
-    create_text_effect(x, y, c_red, "-vampire-");
+    create_text_effect(x, y, c_red, "-vampire-"); boss_sfx(snd_bfx_vampire);
 }
 with(instance_create(u.x, u.y, obj_fx_aura)) { _master = u; _kind = 6; }
 b._vamps += 1;

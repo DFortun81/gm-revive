@@ -10,7 +10,7 @@ if((_health / _maxhealth) <= 0.1) {
     _hewn_amount = 100;
     _corrsion_amount = 80;
     
-    if(_blackwave_cooldown_time == room_speed * 0.1) { create_text_effect(x, y, c_white, "-empowered (rank 1)-"); zio_empower_fx(1); }
+    if(_blackwave_cooldown_time == room_speed * 0.1) { create_text_effect(x, y, c_white, "-empowered (rank 1)-"); boss_sfx(snd_bfx_empowered); zio_empower_fx(1); }
     _blackwave_cooldown_time = 0;
     
     _blackwave_casttime = room_speed * 1; // (gm-revive overrides) was 0.5 s: two raid members a second // <-- Equivalent to 0.5 second under perfect conditions
@@ -23,7 +23,7 @@ else if((_health / _maxhealth) <= 0.5) {
     _hewn_amount = 76;
     _corrsion_amount = 63;
     
-    if(_blackwave_cooldown_time == room_speed * 0.2) { create_text_effect(x, y, c_white, "-empowered (rank 2)-"); zio_empower_fx(2); }
+    if(_blackwave_cooldown_time == room_speed * 0.2) { create_text_effect(x, y, c_white, "-empowered (rank 2)-"); boss_sfx(snd_bfx_empowered); zio_empower_fx(2); }
     _blackwave_cooldown_time = room_speed * 0.1;
     
     _blackwave_casttime = room_speed * 1.5; // <-- Equivalent to 1.5 seconds under perfect conditions

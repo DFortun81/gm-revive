@@ -20,7 +20,7 @@ if(_web_cooldown <= 0) {
     }
     if(best != -1) {
         with(instance_create(x, y, obj_frostbolt)) { _master = best; _damage = 0; _h = other.sprite_height * 0.4; _speed = 7; _web = other._web_duration; }
-        create_text_effect(x, y, c_white, "-web wrap-");
+        create_text_effect(x, y, c_white, "-web wrap-"); boss_sfx(snd_bfx_web_wrap);
         _webs += 1;
     }
     _web_cooldown = _web_cooldown_time;
@@ -46,7 +46,7 @@ for(k = 0; k < n; k += 1) {
     brood_hatch_fx(sx, sy);
 }
 _broodlings_hatched += n;
-create_text_effect(x, y, c_orange, "-the brood answers-");
+create_text_effect(x, y, c_orange, "-the brood answers-"); boss_sfx(snd_bfx_brood);
 _message = "Come, my children!";
 _message_timer = room_speed * 2;
 _brood_cooldown = _brood_cooldown_time / _enrage_mult;

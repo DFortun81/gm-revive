@@ -11,7 +11,7 @@ with(u) {
     if(!variable_local_exists("_zio_curse")) _zio_curse = 0;
     if(_zio_curse <= 0) {
         with(instance_create(x, y, obj_fx_aura)) { _master = other.id; _kind = 8; }
-        create_text_effect(x, y, c_purple, "-cursed-");
+        create_text_effect(x, y, c_purple, "-cursed-"); boss_sfx(snd_bfx_cursed);
     }
     _zio_curse = max(_zio_curse, argument1);
 }

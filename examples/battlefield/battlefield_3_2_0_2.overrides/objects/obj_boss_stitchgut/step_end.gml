@@ -19,7 +19,7 @@ if(_hook_cooldown <= 0) {
     }
     if(best != -1) {
         with(instance_create(x, y, obj_fx_hook)) { _master = other.id; _victim = best; _damage = other._hook_damage * other._enrage_mult; }
-        create_text_effect(x, y, c_orange, "-gut hook-");
+        create_text_effect(x, y, c_orange, "-gut hook-"); boss_sfx(snd_bfx_gut_hook);
         _message = choose("Come here, little one!", "Get over here!", "Stitchgut hungry...");
         _hooks += 1;
         _hook_cooldown = _hook_cooldown_time;
@@ -41,7 +41,7 @@ if(_spew_cooldown <= 0) {
         n += 1;
     }
     stitch_spew_fx(_direction);
-    create_text_effect(x, y, c_lime, "-bile spew-");
+    create_text_effect(x, y, c_lime, "-bile spew-"); boss_sfx(snd_bfx_bile_spew);
     _spew_cooldown = _spew_cooldown_time;
 }
 
@@ -62,7 +62,7 @@ for(i = 0; i < ds_list_size(_enemylist); i += 1) {
 if(hs == -1 && d <= range_melee) hs = _target;
 if(hs != -1) {
     stitch_hateful_fx(hs);
-    create_text_effect(x, y, c_red, "-hateful strike-");
+    create_text_effect(x, y, c_red, "-hateful strike-"); boss_sfx(snd_bfx_hateful_strike);
     unit_damage(hs, c_red, _hateful_damage * _enrage_mult);
     _hateful_cooldown = _hateful_cooldown_time;
 }

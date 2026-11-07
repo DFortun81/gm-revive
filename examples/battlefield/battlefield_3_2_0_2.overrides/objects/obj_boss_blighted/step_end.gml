@@ -33,7 +33,7 @@ if(_miasma_timer <= 0) {
     }
     if(best != -1) {
         with(instance_create(best.x, best.y, obj_blight_cloud)) { _master = me; _r = me._miasma_radius; _tick = me._miasma_tick * me._enrage_mult; }
-        create_text_effect(x, y, c_lime, "-miasma-");
+        create_text_effect(x, y, c_lime, "-miasma-"); boss_sfx(snd_bfx_miasma);
         _clouds += 1;
     }
 }
@@ -55,7 +55,7 @@ if(_blight_timer <= 0 && ds_list_size(_enemylist) > 0) {
             if(u._blight_timer_on > 0) continue;
             if(k == pick) {
                 u._blight_timer_on = _blight_duration;
-                create_text_effect(u.x, u.y, c_lime, "-festering blight-");
+                create_text_effect(u.x, u.y, c_lime, "-festering blight-"); boss_sfx(snd_bfx_festering);
                 blighted_infect_fx(u);
                 break;
             }
@@ -70,7 +70,7 @@ with(obj_unit) {
         if(dead) {
             _blight_timer_on = 0;
             me._bursts += 1;
-            create_text_effect(x, y, c_lime, "-blight bursts-");
+            create_text_effect(x, y, c_lime, "-blight bursts-"); boss_sfx(snd_bfx_blight_burst);
             blighted_burst_fx(me._blight_burst_range);
             with(obj_unit) {
                 if(_faction != me._faction && !dead && id != other.id && unit_dist(id, other) < me._blight_burst_range) {

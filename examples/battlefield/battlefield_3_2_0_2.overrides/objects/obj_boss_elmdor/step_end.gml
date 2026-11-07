@@ -101,7 +101,7 @@ else {
                 // Vaelric Special Ability: Mist Step (was Teleport). He dissolves into mist and reforms
                 // behind his target, using the mist strip drawn for the later version of the game.
                 if(_teleport_cooldown <= 0 && _manatype_mana > _teleport_cost) {
-                    with(instance_create(x, y, obj_fx_strip)) { _spr = spr_vaelric_mist; _glow = spr_vaelric_mist_glow; _f0 = 0; _f1 = 11; _len = 18; }
+                    with(instance_create(x, y, obj_fx_strip)) { _spr = spr_vaelric_mist; _glow = spr_vaelric_mist_glow; _f0 = 0; _f1 = 11; _len = 18; } boss_sfx(snd_bfx_mist_step);
                     repeat(4) with(instance_create(x, y, obj_fx_bat)) _ang = random(360);
                     // (gm-revive overrides) He stays out of phase for a second and a half before he
                     // reforms (vaelric_mist_reform), so the armies get a chance to move about; while he's
@@ -124,7 +124,7 @@ else {
                     _attackcastwait = _muramasa_casttime;
                     _muramasa_casting = true;
                     _casting = true;
-                    create_text_effect(x, y, c_white, "-crimson tempest-");
+                    create_text_effect(x, y, c_white, "-crimson tempest-"); boss_sfx(snd_bfx_crimson_tempest);
                     with(instance_create(x, y, obj_muramasa)) { _range = range_cast; _master = other.id; }
                     exit;
                 }
@@ -134,7 +134,7 @@ else {
             // This is damage is done instantly to a group, split evenly among them. If there are fewer people in range, the damage does significantly more to them.
             if(_masamune_cooldown <= 0 && _manatype_mana > _masamune_cost) {
                 _attackcasttime = _masamune_casttime;
-                create_text_effect(x, y, c_white, "-sanguine lance-");
+                create_text_effect(x, y, c_white, "-sanguine lance-"); boss_sfx(snd_bfx_sanguine_lance);
                 _masamune_casting = true;
                 _casting = true;
                 exit;
@@ -145,7 +145,7 @@ else {
             if(_bloodsuck_cooldown <= 0 && _manatype_mana > _bloodsuck_cost) {
                 _attackcastwait = _bloodsuck_casttime;
                 _attackcasttime = _bloodsuck_casttime;
-                create_text_effect(x, y, c_white, "-blood suck-");
+                create_text_effect(x, y, c_white, "-blood suck-"); boss_sfx(snd_bfx_blood_suck);
                 _bloodsuck_casting = true;
                 _casting = true;
                 exit;

@@ -21,4 +21,4 @@ repeat(8) {
     p = fx_make(2, argument0 + random_range(-argument3, argument3) * 0.7, argument1 + random_range(-argument3, argument3) * 0.35, random(30), make_color_rgb(220, 200, 255), 0.4, 22);
     p._vh = 0.6;
 }
-create_text_effect(argument0, argument1, c_purple, "-ultima-");
+create_text_effect(argument0, argument1, c_purple, "-ultima-"); boss_sfx(snd_bfx_ultima);

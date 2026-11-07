@@ -37,7 +37,7 @@ if(instance_exists(_master)) {
                     _casting = true;
                     _attackcasttime = _blackwave_casttime;
                     _attackcastwait = 0;
-                    create_text_effect(_target.x, _target.y, c_purple, "-marked by dark force-");
+                    create_text_effect(_target.x, _target.y, c_purple, "-marked by dark force-"); boss_sfx(snd_bfx_marked);
                     exit;
                 }
             }

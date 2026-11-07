@@ -16,6 +16,6 @@ if(current_time - z._last_holy > 1500) {
     z._last_holy = current_time;
     p = fx_make(0, z.x, z.y, z.sprite_height * 0.55, make_color_rgb(255, 235, 150), 0.7, 12);
     p = fx_make(6, z.x + random_range(-8, 8), z.y, random_range(10, z.sprite_height), c_white, 0.35, 14); p._spin = 20;
-    create_text_effect(z.x, z.y, c_yellow, "-holy light pierces the barrier-");
+    create_text_effect(z.x, z.y, c_yellow, "-holy light pierces the barrier-"); boss_sfx(snd_bfx_holy_pierce);
 }
 return 4;

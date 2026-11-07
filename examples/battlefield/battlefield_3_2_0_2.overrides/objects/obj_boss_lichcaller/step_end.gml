@@ -28,7 +28,7 @@ if(_frost_cooldown <= 0 && !_stunned && ds_list_size(_enemylist) > 0) {
     }
     if(n > 0) {
         _frost_volleys += 1;
-        create_text_effect(x, y, c_aqua, "-frostbolt volley-");
+        create_text_effect(x, y, c_aqua, "-frostbolt volley-"); boss_sfx(snd_bfx_frostbolt_volley);
         _message = "Feel the chill of the grave!";
         _frost_message_timer = room_speed * 2;
         p = fx_make(0, x, y, sprite_height * 0.6, make_color_rgb(100, 180, 255), 1.3, 16);
@@ -52,7 +52,7 @@ if(_blast_cooldown <= 0 && !_stunned && ds_list_size(_enemylist) > 1) {
         }
     }
     if(n2 > 0) {
-        create_text_effect(x, y, c_aqua, "-frost blast-");
+        create_text_effect(x, y, c_aqua, "-frost blast-"); boss_sfx(snd_bfx_frost_blast);
         _message = "Be still... forever.";
         _frost_message_timer = room_speed * 2;
         _blasts += 1;
@@ -104,7 +104,7 @@ if(_cast != 0) {
         }
         else if(_cast == 2) {
             unit_heal(id, round(_maxhealth * _mend_fraction));
-            create_text_effect(x, y, c_lime, "-dark mending-");
+            create_text_effect(x, y, c_lime, "-dark mending-"); boss_sfx(snd_bfx_dark_mending);
             lich_mend_fx();
             _mends_landed += 1;
             _mend_cooldown = _mend_cooldown_time;
@@ -114,7 +114,7 @@ if(_cast != 0) {
                 u = ds_list_find_value(_arealist, i);
                 if(!u.dead) with(instance_create(x, y, obj_frostbolt)) { _master = u; _damage = other._volley_damage * other._enrage_mult; _h = other.sprite_height * 0.7; _speed = 5 + random(2); _shadow = true; _quiet = true; }
             }
-            create_text_effect(x, y, c_purple, "-shadow volley-");
+            create_text_effect(x, y, c_purple, "-shadow volley-"); boss_sfx(snd_bfx_shadow_volley);
             with(fx_make(1, x, y, 0, make_color_rgb(40, 0, 60), 5, 26)) { _squash = 0.45; _add = false; _alpha = 0.7; }
             with(fx_make(1, x, y, 0, make_color_rgb(170, 80, 255), 3.6, 20)) _squash = 0.45;
             with(fx_make(0, x, y, sprite_height * 0.6, make_color_rgb(200, 140, 255), 1.4, 14)) _grow = 1.6;
@@ -134,12 +134,12 @@ if(!units_exists(_target)) exit;
 if(_mend_cooldown <= 0 && _health < _maxhealth * 0.95) {
     _cast = 2; _raid_casting = true; _attackcasttime = _mend_casttime;
     _message = "Darkness, mend me!";
-    create_text_effect(x, y, c_lime, "-casting dark mending-");
+    create_text_effect(x, y, c_lime, "-casting dark mending-"); boss_sfx(snd_bfx_lich_cast);
 }
 else if(_volley_cooldown <= 0) {
     _cast = 3; _raid_casting = true; _attackcasttime = _volley_casttime;
     _message = "Kneel before the shadow!";
-    create_text_effect(x, y, c_purple, "-casting shadow volley-");
+    create_text_effect(x, y, c_purple, "-casting shadow volley-"); boss_sfx(snd_bfx_lich_cast);
 }
 else if(_bolt_cooldown <= 0 && unit_dist(id, _target) < range_cast) {
     _cast = 1; _raid_casting = false; _attackcasttime = _bolt_casttime;

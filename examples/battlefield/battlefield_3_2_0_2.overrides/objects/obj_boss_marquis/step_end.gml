@@ -64,7 +64,7 @@ if(_cast != 0) {
             _regen_timer = room_speed * 10;
             _haste_timer = room_speed * 10;
             with(instance_create(x, y, obj_fx_aura)) { _master = other.id; _kind = 5; }
-            create_text_effect(x, y, c_lime, "-masamune-");
+            create_text_effect(x, y, c_lime, "-masamune-"); boss_sfx(snd_bfx_masamune);
             marquis_masamune_fx();
             _masamune_cooldown = _masamune_cooldown_time;
         }
@@ -77,7 +77,7 @@ if(_cast != 0) {
                     marquis_ghostblade_fx(u);
                 }
             }
-            create_text_effect(x, y, c_purple, "-muramasa-");
+            create_text_effect(x, y, c_purple, "-muramasa-"); boss_sfx(snd_bfx_muramasa);
             with(fx_make(1, x, y, 0, make_color_rgb(60, 10, 50), range_cast / 9, 26)) { _squash = 0.45; _add = false; _alpha = 0.6; }
             with(fx_make(1, x, y, 0, make_color_rgb(220, 120, 200), range_cast / 12, 20)) _squash = 0.45;
             _muramasa_casting = false;
@@ -93,14 +93,14 @@ if(!units_exists(_target)) exit;
 if(_masamune_cooldown <= 0 && (_health < _maxhealth * 0.9 || _haste_timer <= 0)) {
     _cast = 1; _raid_casting = true; _attackcasttime = _masamune_casttime; _attackcastwait = 1;
     _message = "Masamune, lend me your edge!";
-    create_text_effect(x, y, c_lime, "-casting masamune-");
+    create_text_effect(x, y, c_lime, "-casting masamune-"); boss_sfx(snd_bfx_marquis_cast);
     exit;
 }
 if(_muramasa_cooldown <= 0) {
     _cast = 2; _raid_casting = true; _attackcasttime = _muramasa_casttime; _attackcastwait = 1;
     _muramasa_casting = true;
     _message = "Summon all ghosts of the sword! Muramasa!";
-    create_text_effect(x, y, c_purple, "-muramasa casting-");
+    create_text_effect(x, y, c_purple, "-muramasa casting-"); boss_sfx(snd_bfx_marquis_cast);
     exit;
 }
 
@@ -126,7 +126,7 @@ if(_chiri_cooldown <= 0) {
         p = fx_make(7, best.x, best.y, best.sprite_height * 0.5, gold, 1.4, 14); p.image_angle = _direction + 60; p._dz = 3;
         p = fx_make(7, best.x, best.y, best.sprite_height * 0.5, make_color_rgb(255, 245, 200), 1.1, 12); p.image_angle = _direction - 40; p._dz = 3;
         p = fx_make(0, best.x, best.y, best.sprite_height * 0.5, gold, 0.9, 12);
-        create_text_effect(x, y, c_yellow, "-chirijiraden-");
+        create_text_effect(x, y, c_yellow, "-chirijiraden-"); boss_sfx(snd_bfx_chirijiraden);
         _message = "Chirijiraden!"; _message_timer = room_speed * 1.5;
         _chiri_cooldown = _chiri_cooldown_time;
         exit;
@@ -156,7 +156,7 @@ if(_kiku_cooldown <= 0) {
             p = fx_make(7, x + lengthdir_x(65, a), y + lengthdir_y(65, a) * 0.6, sprite_height * 0.45, make_color_rgb(230, 245, 255), 1.2, 14);
             p.image_angle = a; p._dz = 3;
         }
-        create_text_effect(x, y, c_white, "-kikuichimonji-");
+        create_text_effect(x, y, c_white, "-kikuichimonji-"); boss_sfx(snd_bfx_kikuichimonji);
         _message = "Kikuichimonji!"; _message_timer = room_speed * 1.5;
         _kiku_cooldown = _kiku_cooldown_time;
         exit;

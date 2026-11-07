@@ -35,7 +35,7 @@ if(!_enraged && _fight_steps > _enrage_time) {
     _swing_damage *= 2;
     _swing_speed = round(_swing_speed / 1.5);
     _blendcolor = make_color_rgb(255, 110, 80);
-    create_text_effect(x, y, c_red, "-enraged-");
+    create_text_effect(x, y, c_red, "-enraged-"); boss_sfx(snd_bfx_enraged);
     _message = raid_boss_display_name(_bossid) + " goes into a berserker rage!";
 }
 

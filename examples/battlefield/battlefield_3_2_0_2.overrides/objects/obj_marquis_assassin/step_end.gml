@@ -70,7 +70,7 @@ _dir = deg_to_dir(_direction);
 if(_ultima_cooldown <= 0 && d < range_cast) {
     _casting = true; _attackcastwait = 1; _attackcasttime = _ultima_casttime;
     _ultima_target = best;
-    create_text_effect(x, y, c_purple, "-casting ultima-");
+    create_text_effect(x, y, c_purple, "-casting ultima-"); boss_sfx(snd_bfx_ultima_cast);
     exit;
 }
 if(!_reborn) {
@@ -88,7 +88,7 @@ if(!_reborn) {
         }
         if(u != -1) {
             if(unit_stun(u, _stitch_duration)) {
-                create_text_effect(u.x, u.y, c_purple, "-shadow stitch-");
+                create_text_effect(u.x, u.y, c_purple, "-shadow stitch-"); boss_sfx(snd_bfx_shadow_stitch);
                 p = fx_make(5, u.x, u.y, u.sprite_height * 0.5, make_color_rgb(80, 40, 120), 0.35, 14); p._x1 = x; p._y1 = y; p._h1 = sprite_height * 0.5; p._add = false;
                 with(fx_make(1, u.x, u.y, 0, make_color_rgb(90, 40, 140), 1, 16)) { _squash = 0.5; _add = false; }
             }
@@ -107,7 +107,7 @@ else {
     if(_reborn) image_single = _dir * 4 + floor(_subindex mod 4); else image_single = _dir * 4;
     if(!_reborn && _death_cooldown <= 0 && best._health < best._maxhealth * 0.12 && best._bossid == -1) {
         // the killing blow
-        create_text_effect(best.x, best.y, c_purple, "-death-");
+        create_text_effect(best.x, best.y, c_purple, "-death-"); boss_sfx(snd_bfx_death);
         unit_damage(best, c_purple, best._health + best._absorbamount + 999, true);
         p = fx_make(7, best.x, best.y, best.sprite_height * 0.5, make_color_rgb(150, 40, 60), 1.2, 14); p.image_angle = _direction + 45; p._add = false; p._dz = 3;
         _death_cooldown = _death_cooldown_time;
