@@ -9,8 +9,9 @@
 //    hits can spread it. Healers are never turned (vampires attack, they don't heal), and a vampire
 //    only hits its old side at half strength. It wears off, or when the vampire is beaten down to a
 //    quarter of its health.
-//  * Masamune (cast, can be interrupted): Regen and Haste on himself.
-//  * Muramasa (cast, can be interrupted): ghosts of the sword strike everyone in casting range.
+//  * Masamune (cast): Regen and Haste on himself.
+//  * Muramasa (cast): ghosts of the sword strike everyone in casting range.
+//  * He can't be interrupted or stunned: his casts always go off.
 //  * Celia and Lede (obj_marquis_assassin) fight beside him; each rises once as an Ultima Demon.
 event_inherited();
 _health_per_enemy = 2600;
@@ -18,7 +19,7 @@ _swing_damage = 90;
 _swing_speed = room_speed * 1.4;
 _normal_movespeed = 1.1;
 _movespeed = _normal_movespeed;
-_interuptimmune = false;       // Masamune and Muramasa can be interrupted
+_interuptimmune = true;        // nothing interrupts him (Kick, Wind Shear); like every boss, stuns don't land either
 
 _shirahadori_chance = 0.3;
 
@@ -39,15 +40,15 @@ _vamp_cooldown_time = room_speed * 20;
 _vamp_cooldown = room_speed * 9;
 
 _masamune_casttime = room_speed * 1.2;
-_masamune_cooldown_time = room_speed * 24;
+_masamune_cooldown_time = room_speed * 32;
 _masamune_cooldown = room_speed * 14;
 _regen_fraction = 0.004;       // of his health, every second, for 10 s
 _regen_timer = 0;
 _haste_timer = 0;
 
 _muramasa_casttime = room_speed * 2;
-_muramasa_damage = 80;
-_muramasa_cooldown_time = room_speed * 26;
+_muramasa_damage = 65;
+_muramasa_cooldown_time = room_speed * 30;
 _muramasa_cooldown = room_speed * 20;
 _muramasa_casting = false;     // obj_muramasa (the ghost swords) watches this
 
