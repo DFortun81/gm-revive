@@ -321,6 +321,7 @@ if(_casting) {
     else if(_blizzard_casting) {
         // Channelling Blizzard: tied to the storm's position, not the target
         caster_blizzard_channel();
+        if(_blizzard_casting) caster_blizzard_fx();
     }
     else {
         // Target-Based Spells (that require range)
