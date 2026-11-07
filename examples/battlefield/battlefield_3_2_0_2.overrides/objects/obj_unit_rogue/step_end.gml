@@ -78,9 +78,19 @@ if(_casting) {
     // Must be stealthed to use this ability.
     if(_bandage_casting) {
         _attackcasttime = _bandage_duration;
+        // (gm-revive overrides) Any damage taken cancels the bandage, as in WoW (the cooldown is still spent)
+        if(_health < _bandage_hp - 0.01) {
+            _bandage_casting = false;
+            _attackcastwait = 0;
+            _casting = false;
+            _target = -1;
+            create_text_effect(x, y, c_orange, "-bandage interrupted-");
+            exit;
+        }
         if(_attackcastwait mod room_speed == 0) {
             unit_heal(_target, _bandage_amount / (_bandage_duration / room_speed));
         }
+        _bandage_hp = _health;
         _attackcastwait -= 1;
         if(_attackcastwait < 0 || _health >= _maxhealth) {
             _bandage_casting = false;
@@ -324,6 +334,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
         // Must be stealthed to use this ability.
         if(_bandage_cooldown <= 0 && (_health < (_maxhealth - 2))) {
             _bandage_casting = true;
+            _bandage_hp = _health;
             _adrenaline_rush_active = false;
             _bandage_cooldown = _bandage_cooldown_time;
             _attackcastwait = _bandage_duration;

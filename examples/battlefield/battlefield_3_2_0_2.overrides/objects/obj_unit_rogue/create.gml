@@ -80,6 +80,7 @@ _bandage_cooldown_time = room_speed * 15; // 15 second cooldown
 _bandage_casting = false;
 _bandage_amount = 85;
 _bandage_duration = room_speed * 6; // 6 Second channelled ability
+_bandage_hp = 0; // (gm-revive overrides) health as of the last step of the bandage: any damage cancels it
 
 // Rogue Special Ability: Vanish
 // The Rogue enters an improved stealth effect for 10 seconds, after which he will remain stealthed until the effect is over
