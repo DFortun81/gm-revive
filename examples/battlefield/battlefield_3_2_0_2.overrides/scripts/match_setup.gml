@@ -11,6 +11,12 @@ if(!variable_global_exists("match_show")) global.match_show = false;
 
 f = irandom(5);
 if(f == global.match_format) f = irandom(5); // a repeat is less likely
+// (gm-revive overrides) a boss picked on the boss select screen (B): its raid boss match, or the classic
+// field against Zio or Count Vaelric
+arena_init();
+if(global.select_boss >= 0) {
+    if(global.select_boss < 6) f = 5; else f = 0;
+}
 global.match_format = f;
 switch(f) {
     case 1: n = 3; break;
@@ -21,6 +27,7 @@ switch(f) {
     default: n = 0; break;
 }
 global.match_boss = irandom(global.raid_boss_count - 1); // which raid boss, if this is a Boss match
+if(global.select_boss >= 0 && global.select_boss < 6) global.match_boss = global.select_boss;
 global.match_over = false;
 global.match_end_timer = 0;
 global.match_steps = 0;
@@ -32,6 +39,8 @@ for(c = 0; c < 8; c += 1) {
 
 if(f == 0) {
     match_spawn_classic();
+    if(global.select_boss == 6) spawn_boss(room_width / 2, room_height / 2, boss_zio, "Dark Prophet");
+    if(global.select_boss == 7) spawn_boss(room_width / 2, room_height / 2, boss_elmdor, "Count");
     exit;
 }
 

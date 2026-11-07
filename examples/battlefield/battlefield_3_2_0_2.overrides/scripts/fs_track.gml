@@ -19,6 +19,12 @@ if(!global.fs_active) {
     global.fs_start = 0;
     with(obj_unit) if(!dead && _bossid == -1 && _jobclass >= 0 && _jobclass != class_mirrorimage) global.fs_start += 1;
     global.fs_boss_pct = 100;
+    // the boss's arena fades in (obj_arena)
+    global.fs_arena = arena_of(b.object_index);
+    if(global.fs_arena >= 0) {
+        global.arena_cur = global.fs_arena;
+        if(!instance_exists(obj_arena)) instance_create(0, 0, obj_arena);
+    }
     exit;
 }
 if(!instance_exists(global.fs_boss)) { global.fs_active = false; exit; }   // cleared away: no summary
@@ -35,6 +41,15 @@ if(global.fs_boss.dead || alive == 0) {
     with(obj_boss_ladyjane) { fs_note_set("Lady Jane's charges", _charges); fs_note_set("Lady Jane's shouts", _shouts); }
     with(obj_boss_broodmother) { fs_note_set("Broodlings hatched", _broodlings_hatched); fs_note_set("Broodlings killed", _broodlings_killed); }
     with(obj_boss_blighted) fs_note_set("Disease bursts", _bursts);
+    // a best kill time for the boss select screen
+    if(global.fs_won && global.fs_arena >= 0) {
+        if(global.arena_best[global.fs_arena] <= 0 || global.fs_steps / room_speed < global.arena_best[global.fs_arena]) {
+            global.arena_best[global.fs_arena] = global.fs_steps / room_speed;
+            ini_open("battlefield_matches.ini");
+            ini_write_real("bestkill", string(global.fs_arena), global.arena_best[global.fs_arena]);
+            ini_close();
+        }
+    }
     global.fs_active = false;
     with(obj_fight_summary) instance_destroy();
     instance_create(0, 0, obj_fight_summary);
