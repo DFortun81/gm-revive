@@ -36,11 +36,12 @@ with(obj_unit) if(!dead && _bossid == -1 && _jobclass >= 0 && _jobclass != class
 if(global.fs_boss.dead || alive == 0) {
     global.fs_won = global.fs_boss.dead;
     global.fs_alive = alive;
-    with(obj_boss_lichcaller) { fs_note_set("Lichcaller casts interrupted", _kicks + _setbacks); fs_note_set("Dark Mendings that got through", _mends_landed); }
+    with(obj_boss_lichcaller) { fs_note_set("Lichcaller casts interrupted", _kicks + _setbacks); fs_note_set("Dark Mendings that got through", _mends_landed); fs_note_set("Frost Blasts", _blasts); }
     with(obj_boss_marquis) { fs_note_set("Units turned vampire", _vamps); fs_note_set("Blows caught by Shirahadori", _caught); }
     with(obj_boss_ladyjane) { fs_note_set("Lady Jane's charges", _charges); fs_note_set("Lady Jane's shouts", _shouts); }
-    with(obj_boss_broodmother) { fs_note_set("Broodlings hatched", _broodlings_hatched); fs_note_set("Broodlings killed", _broodlings_killed); }
-    with(obj_boss_blighted) fs_note_set("Disease bursts", _bursts);
+    with(obj_boss_broodmother) { fs_note_set("Broodlings hatched", _broodlings_hatched); fs_note_set("Broodlings killed", _broodlings_killed); fs_note_set("Web Wraps", _webs); }
+    with(obj_boss_blighted) { fs_note_set("Disease bursts", _bursts); fs_note_set("Miasma clouds", _clouds); }
+    with(obj_boss_stitchgut) fs_note_set("Gut Hooks", _hooks);
     // a best kill time for the boss select screen
     if(global.fs_won && global.fs_arena >= 0) {
         if(global.arena_best[global.fs_arena] <= 0 || global.fs_steps / room_speed < global.arena_best[global.fs_arena]) {

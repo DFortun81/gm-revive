@@ -55,6 +55,49 @@ switch(_kind) {
         draw_sprite_ext(_master.sprite_index, _master.image_index, x - lengthdir_x(a, _master._direction), y - lengthdir_y(a, _master._direction), 1, 1, 0, make_color_rgb(170, 230, 255), 0.32 * fade);
         draw_sprite_ext(sprite_index, 3, x, y, 1.1, 0.5, _t * 2, make_color_rgb(120, 230, 140), 0.45 * fade);
     break;
+    case 15: // Bloodrage: a red glow on her, throbbing
+        draw_set_blend_mode(bm_add);
+        draw_sprite_ext(_master.sprite_index, _master.image_index, _master.x, _master.y, 1, 1, 0, make_color_rgb(150, 20, 10), (0.4 + 0.2 * sin(_t * 0.4)) * fade);
+        draw_set_blend_mode(bm_normal);
+    break;
+    case 16: // Last Stand: a golden glow round her
+        draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.5, 1.1, 1.3, 0, make_color_rgb(255, 200, 80), (0.25 + 0.1 * sin(_t * 0.2)) * fade);
+        draw_set_blend_mode(bm_add);
+        draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.5, 0.7, 0.9, 0, make_color_rgb(255, 210, 120), 0.35 * fade);
+        draw_set_blend_mode(bm_normal);
+    break;
+    case 13: // Frost Blast: a block of ice round the unit, glinting
+        sx = _master.sprite_width * 0.6 + 4; top = _master.y - _master.sprite_height - 2;
+        draw_set_alpha(0.45 * fade); draw_set_color(make_color_rgb(150, 210, 255));
+        draw_rectangle(x - sx, top, x + sx, _master.y + 2, false);
+        draw_set_alpha(0.8 * fade); draw_set_color(make_color_rgb(225, 245, 255));
+        draw_rectangle(x - sx, top, x + sx, _master.y + 2, true);
+        draw_line(x - sx + 3, top + 4, x - sx + 9, top + 14);
+        draw_line(x + sx - 6, _master.y - 8, x + sx - 2, _master.y - 16);
+        draw_set_blend_mode(bm_add);
+        a = 0.4 + 0.3 * sin(_t * 0.3);
+        draw_sprite_ext(sprite_index, 7, x - sx + 5 + (_t mod 40) * (sx * 2 - 10) / 40, top + 6, 0.35, 0.35, _t * 6, c_white, a * fade);
+        draw_set_blend_mode(bm_normal);
+        draw_set_alpha(1); draw_set_color(c_white);
+    break;
+    case 14: // Web Wrap: the unit bound in a cocoon of silk
+        top = _master.y - _master.sprite_height * 0.9;
+        draw_set_alpha(0.75 * fade); draw_set_color(make_color_rgb(225, 225, 215));
+        draw_ellipse(x - _master.sprite_width * 0.45, top, x + _master.sprite_width * 0.45, _master.y + 1, false);
+        draw_set_alpha(0.9 * fade); draw_set_color(make_color_rgb(150, 150, 140));
+        for(i = 0; i < 5; i += 1) {
+            cy = top + (i + 0.5) * (_master.y - top) / 5;
+            draw_line(x - _master.sprite_width * 0.42, cy - 3, x + _master.sprite_width * 0.42, cy + 3);
+        }
+        draw_set_alpha(1); draw_set_color(c_white);
+    break;
+    case 12: // Festering Blight: a sickly yellow-green sheen on the unit, pulsing
+        draw_set_blend_mode(bm_add);
+        draw_sprite_ext(_master.sprite_index, _master.image_index, _master.x, _master.y, 1, 1, 0, make_color_rgb(90, 120, 0), (0.55 + 0.2 * sin(_t * 0.15)) * fade);
+        draw_set_blend_mode(bm_normal);
+        draw_sprite_ext(sprite_index, 0, x, y - 2, 1.1, 0.45, 0, make_color_rgb(70, 95, 20), 0.6 * fade);
+        draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.5, 0.75, 0.9, 0, make_color_rgb(110, 140, 30), 0.25 * fade);
+    break;
     case 11: // Corrosion: a green sheen on the unit itself
         draw_set_blend_mode(bm_add);
         draw_sprite_ext(_master.sprite_index, _master.image_index, _master.x, _master.y, 1, 1, 0, make_color_rgb(70, 150, 0), 0.55 * fade);

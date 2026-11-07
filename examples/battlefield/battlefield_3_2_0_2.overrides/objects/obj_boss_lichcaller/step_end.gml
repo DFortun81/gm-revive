@@ -1,4 +1,4 @@
-var i, u, p;
+var i, u, p, k, n2, pick, tries;
 event_inherited();
 if(dead || global.toggle_pause) exit;
 
@@ -6,6 +6,7 @@ _bolt_cooldown -= 1;
 _mend_cooldown -= 1;
 _volley_cooldown -= 1;
 _frost_cooldown -= 1;
+_blast_cooldown -= 1;
 
 // Frostbolt Volley: instant, so it goes off whatever else is happening, even mid-cast
 if(_frost_cooldown <= 0 && !_stunned && ds_list_size(_enemylist) > 0) {
@@ -35,6 +36,29 @@ if(_frost_cooldown <= 0 && !_stunned && ds_list_size(_enemylist) > 0) {
     }
     _frost_cooldown = _frost_cooldown_time;
 }
+// (gm-revive overrides) Frost Blast: a few raid members (not the tank) frozen solid for a moment
+if(_blast_cooldown <= 0 && !_stunned && ds_list_size(_enemylist) > 1) {
+    n2 = 0; tries = 0;
+    while(n2 < _blast_count + (ds_list_size(_enemylist) > 20) && tries < 30) {
+        tries += 1;
+        u = ds_list_find_value(_enemylist, irandom(ds_list_size(_enemylist) - 1));
+        if(u == _target || u.dead || u._stunimmune) continue;
+        if(u._stunned) continue;
+        if(unit_stun(u, _blast_duration)) {
+            unit_damage(u, c_aqua, _blast_damage * _enrage_mult);
+            with(instance_create(u.x, u.y, obj_fx_aura)) { _master = u; _kind = 13; }
+            lich_frostblast_fx(u);
+            n2 += 1;
+        }
+    }
+    if(n2 > 0) {
+        create_text_effect(x, y, c_aqua, "-frost blast-");
+        _message = "Be still... forever.";
+        _frost_message_timer = room_speed * 2;
+        _blasts += 1;
+    }
+    _blast_cooldown = _blast_cooldown_time;
+}
 if(_frost_message_timer > 0) {
     _frost_message_timer -= 1;
     if(_frost_message_timer <= 0 && _cast == 0) _message = "";
@@ -59,25 +83,30 @@ if(_cast != 0) {
     if(_raid_casting && _silenced <= 0 && _attackcastwait < _last_wait - 1) _setbacks += 1;
     _attackcastwait += 1;
     _last_wait = _attackcastwait;
+    lich_cast_fx(_cast, _attackcastwait / max(1, _attackcasttime));
     if(_attackcastwait >= _attackcasttime) {
         if(_cast == 1) {
             if(units_exists(_target)) {
-                if(!_target.dead) unit_damage(_target, c_purple, _bolt_damage * _enrage_mult);
+                if(!_target.dead) with(instance_create(x, y, obj_frostbolt)) { _master = other._target; _damage = other._bolt_damage * other._enrage_mult; _h = other.sprite_height * 0.6; _speed = 6; _shadow = true; }
             }
             _bolt_cooldown = _bolt_cooldown_time;
         }
         else if(_cast == 2) {
             unit_heal(id, round(_maxhealth * _mend_fraction));
             create_text_effect(x, y, c_lime, "-dark mending-");
+            lich_mend_fx();
             _mends_landed += 1;
             _mend_cooldown = _mend_cooldown_time;
         }
         else if(_cast == 3) {
             for(i = 0; i < ds_list_size(_enemylist); i += 1) {
                 u = ds_list_find_value(_enemylist, i);
-                if(!u.dead) unit_damage(u, c_purple, _volley_damage * _enrage_mult, true);
+                if(!u.dead) with(instance_create(x, y, obj_frostbolt)) { _master = u; _damage = other._volley_damage * other._enrage_mult; _h = other.sprite_height * 0.7; _speed = 5 + random(2); _shadow = true; _quiet = true; }
             }
             create_text_effect(x, y, c_purple, "-shadow volley-");
+            with(fx_make(1, x, y, 0, make_color_rgb(40, 0, 60), 5, 26)) { _squash = 0.45; _add = false; _alpha = 0.7; }
+            with(fx_make(1, x, y, 0, make_color_rgb(170, 80, 255), 3.6, 20)) _squash = 0.45;
+            with(fx_make(0, x, y, sprite_height * 0.6, make_color_rgb(200, 140, 255), 1.4, 14)) _grow = 1.6;
             _volleys_landed += 1;
             _volley_cooldown = _volley_cooldown_time;
         }

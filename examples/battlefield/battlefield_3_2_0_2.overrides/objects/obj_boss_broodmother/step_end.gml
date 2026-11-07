@@ -1,4 +1,4 @@
-var n, k, b, side, sx, sy, mx, my;
+var n, k, b, side, sx, sy, mx, my, i, u, best, bv, v;
 event_inherited();
 if(dead || global.toggle_pause || !_fight_started || !units_exists(_target)) exit;
 if(_message_timer > 0) {
@@ -6,6 +6,25 @@ if(_message_timer > 0) {
     if(_message_timer <= 0) _message = "";
 }
 _brood_cooldown -= 1;
+_web_cooldown -= 1;
+
+// (gm-revive overrides) Web Wrap: a strand of web at someone at the back
+if(_web_cooldown <= 0) {
+    best = -1; bv = -1;
+    for(i = 0; i < ds_list_size(_enemylist); i += 1) {
+        u = ds_list_find_value(_enemylist, i);
+        if(u == _target || u.dead || u._stunimmune || u._stunned || u._polymorphed) continue;
+        v = unit_dist(id, u) + random(40);
+        if(u._jobclass == class_healer || u._jobclass == class_caster) v += 1000;
+        if(v > bv) { bv = v; best = u; }
+    }
+    if(best != -1) {
+        with(instance_create(x, y, obj_frostbolt)) { _master = best; _damage = 0; _h = other.sprite_height * 0.4; _speed = 7; _web = other._web_duration; }
+        create_text_effect(x, y, c_white, "-web wrap-");
+        _webs += 1;
+    }
+    _web_cooldown = _web_cooldown_time;
+}
 if(_brood_cooldown > 0) exit;
 
 // Call a wave in from around the edges of the field (each broodling from its own spot, keeping
@@ -24,10 +43,7 @@ for(k = 0; k < n; k += 1) {
         _mother = other.id;
         depth = -y;
     }
-    with(instance_create(sx, sy, obj_pulse)) {
-        image_blend = make_color_rgb(255, 140, 40);
-        _range = 24;
-    }
+    brood_hatch_fx(sx, sy);
 }
 _broodlings_hatched += n;
 create_text_effect(x, y, c_orange, "-the brood answers-");

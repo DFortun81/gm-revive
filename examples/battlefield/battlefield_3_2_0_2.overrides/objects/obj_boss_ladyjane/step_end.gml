@@ -64,6 +64,7 @@ if(_bloodrage_cooldown <= 0) {
     _dmg_mult = 1.2;
     if(!_enraged) _blendcolor = make_color_rgb(255, 160, 160);
     create_text_effect(x, y, c_red, "-bloodrage-");
+    with(instance_create(x, y, obj_fx_aura)) { _master = other.id; _kind = 15; }
     p = fx_make(0, x, y, sprite_height * 0.5, make_color_rgb(200, 30, 30), 1.1, 16); p._add = false; p._grow = 1.6;
 }
 // Last Stand: once, near death
@@ -73,6 +74,7 @@ if(!_laststand_used && _health < _maxhealth * 0.3) {
     _damagereduction += 0.3;
     unit_heal(id, round(_maxhealth * 0.12));
     create_text_effect(x, y, c_yellow, "-last stand-");
+    with(instance_create(x, y, obj_fx_aura)) { _master = other.id; _kind = 16; }
     _message = "Is that all you've got?"; _message_timer = room_speed * 2;
     with(fx_make(1, x, y, 0, make_color_rgb(255, 200, 80), 1.6, 18)) _squash = 0.5;
 }
@@ -100,7 +102,7 @@ if(_charging > 0) {
         }
         unit_damage(_charge_target, c_red, _charge_damage * _enrage_mult * _dmg_mult);
         unit_stun(_charge_target, _charge_stun);
-        create_heroicstrike_effect(_charge_target.x, _charge_target.y);
+        jane_axe_fx(_charge_target, true);
         _charging = 0;
     }
     else _charging = 0;
@@ -110,7 +112,7 @@ if(_charging > 0) {
 // Heroic Strike on her tank
 if(_heroic_cooldown <= 0 && unit_dist(id, _target) <= range_melee) {
     unit_damage(_target, c_red, _heroic_damage * _enrage_mult * _dmg_mult);
-    create_heroicstrike_effect(_target.x, _target.y);
+    jane_axe_fx(_target, false);
     create_text_effect(x, y, c_white, "-heroic strike-");
     _heroic_cooldown = _heroic_cooldown_time;
     if(_rend_timer <= room_speed || _rend_target != _target) {
@@ -134,7 +136,7 @@ if(_clap_cooldown <= 0) {
             u = ds_list_find_value(_enemylist, i);
             if(!u.dead && unit_dist(id, u) < _clap_range) unit_damage(u, c_yellow, _clap_damage * _enrage_mult * _dmg_mult);
         }
-        create_thunderclap_effect(x, y);
+        jane_clap_fx();
         create_text_effect(x, y, c_white, "-thunder clap-");
         _clap_cooldown = _clap_cooldown_time;
     }
@@ -150,7 +152,7 @@ if(_shout_cooldown <= 0) {
         }
         create_text_effect(x, y, c_white, "-intimidating shout-");
         _message = "Back off!"; _message_timer = room_speed * 1.5;
-        with(fx_make(1, x, y, sprite_height * 0.5, make_color_rgb(255, 240, 220), _shout_range / 13, 16)) _squash = 0.6;
+        jane_shout_fx();
         _shouts += 1;
         _shout_cooldown = _shout_cooldown_time;
     }

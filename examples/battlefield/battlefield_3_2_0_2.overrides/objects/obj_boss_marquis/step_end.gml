@@ -57,6 +57,7 @@ if(_raid_cast_interrupted) {
 if(_cast != 0) {
     _destx = x; _desty = y;
     _attackcastwait += 1;
+    marquis_cast_fx(_cast, _attackcastwait / max(1, _attackcasttime));
     if(_attackcastwait >= _attackcasttime) {
         if(_cast == 1) {
             // Masamune: Regen and Haste for 10 seconds
@@ -64,8 +65,7 @@ if(_cast != 0) {
             _haste_timer = room_speed * 10;
             with(instance_create(x, y, obj_fx_aura)) { _master = other.id; _kind = 5; }
             create_text_effect(x, y, c_lime, "-masamune-");
-            p = fx_make(0, x, y, sprite_height * 0.5, make_color_rgb(140, 255, 160), 1.2, 16); p._grow = 1.6;
-            with(fx_make(1, x, y, 0, make_color_rgb(160, 255, 200), 1.6, 18)) _squash = 0.5;
+            marquis_masamune_fx();
             _masamune_cooldown = _masamune_cooldown_time;
         }
         else if(_cast == 2) {
@@ -74,10 +74,12 @@ if(_cast != 0) {
                 u = ds_list_find_value(_enemylist, i);
                 if(!u.dead && unit_dist(id, u) < range_cast) {
                     unit_damage(u, c_purple, _muramasa_damage * _enrage_mult);
-                    p = fx_make(7, u.x, u.y, u.sprite_height * 0.5, make_color_rgb(190, 170, 255), 0.8, 10); p.image_angle = random(360); p._dz = 3;
+                    marquis_ghostblade_fx(u);
                 }
             }
             create_text_effect(x, y, c_purple, "-muramasa-");
+            with(fx_make(1, x, y, 0, make_color_rgb(60, 10, 50), range_cast / 9, 26)) { _squash = 0.45; _add = false; _alpha = 0.6; }
+            with(fx_make(1, x, y, 0, make_color_rgb(220, 120, 200), range_cast / 12, 20)) _squash = 0.45;
             _muramasa_casting = false;
             _muramasa_cooldown = _muramasa_cooldown_time;
         }
@@ -98,7 +100,7 @@ if(_muramasa_cooldown <= 0) {
     _cast = 2; _raid_casting = true; _attackcasttime = _muramasa_casttime; _attackcastwait = 1;
     _muramasa_casting = true;
     _message = "Summon all ghosts of the sword! Muramasa!";
-    create_muramasa_effect(x, y);
+    create_text_effect(x, y, c_purple, "-muramasa casting-");
     exit;
 }
 
@@ -172,7 +174,7 @@ if(_vamp_cooldown <= 0) {
     }
     if(best != -1) {
         if(marquis_vampirize(best, id)) {
-            repeat(8) create_bloodsuck_effect(best.x + random_range(-6, 6), best.y - random(best.sprite_height), id);
+            marquis_bite_fx(best);
             unit_heal(id, round(_maxhealth * 0.015));
             _message = "Join me, child of the night!"; _message_timer = room_speed * 2;
         }

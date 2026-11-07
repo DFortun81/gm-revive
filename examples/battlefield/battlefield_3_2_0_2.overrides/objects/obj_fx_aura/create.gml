@@ -2,7 +2,9 @@
 // _kind: 0 stunned (circling stars), 1 Divine Shield / Blessing of Protection (a golden bubble),
 // 2 Evasion (afterimages), 3 Evocation (a rune circle with motes spiralling in), 4 Shadow Word: Pain,
 // 5 Masamune (Regen and Haste on Marquis Elmdor), 6 Vampire, 7 the Magic Barrier on Zio (lives as long as he does), 8 Black Wave curse, 9 drained by
-// Count Vaelric's Blood Suck, 10 his thrall, 11 eaten by Zio's Corrosion
+// Count Vaelric's Blood Suck, 10 his thrall, 11 eaten by Zio's Corrosion, 12 the Blighted's
+// Festering Blight, 13 frozen in the Lichcaller's Frost Blast, 14 wrapped in the Broodmother's web,
+// 15 Lady Jane's Bloodrage, 16 her Last Stand
 _master = -1;
 _kind = 0;
 _t = 0;

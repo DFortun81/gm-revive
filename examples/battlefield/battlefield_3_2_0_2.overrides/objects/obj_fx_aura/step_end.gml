@@ -16,6 +16,11 @@ switch(_kind) {
     case 6: on = on && _master._vamp_timer > 0; break;
     case 7: on = true; break; // stays for the whole fight; draws only while the barrier holds
     case 8: on = on && _master._zio_curse > 0; break;
+    case 15: on = on && _master._bloodrage_timer > 0; break;
+    case 16: on = on && _master._laststand_timer > 0; break;
+    case 13: on = on && _master._stunned; break;
+    case 14: on = on && _master._stunned; break;
+    case 12: on = on && _master._blight_timer_on > 0; break;
     case 11: on = on && _master._acid_timer > 0; break;
     case 10: on = on && _master._thrall_timer > 0; break;
     case 9: on = on && instance_exists(_src); if(on) on = _src._bloodsuck_casting && _src._drain_victim == _master; break;
@@ -23,6 +28,20 @@ switch(_kind) {
 if(_ending < 0) {
     if(!on) {
         _ending = 10;
+        if(_kind == 13) { // the ice shatters
+            repeat(10) {
+                p = fx_make(3, x, y, random(_master.sprite_height), make_color_rgb(190, 235, 255), random_range(0.3, 0.45), 22);
+                p._vx = random_range(-2, 2); p._vy = random_range(-0.8, 0.8); p._vh = random_range(0.5, 2.2); p._grav = 0.14;
+                p._spin = random_range(-15, 15); p.image_angle = random(360);
+            }
+            with(fx_make(0, x, y, _master.sprite_height * 0.5, make_color_rgb(200, 240, 255), 1, 10)) _grow = 1.6;
+        }
+        if(_kind == 14) { // the web tears
+            repeat(8) {
+                p = fx_make(5, x + random_range(-14, 14), y + random_range(-6, 6), random(_master.sprite_height), make_color_rgb(235, 235, 225), 0.12, 14);
+                p._x1 = x; p._y1 = y; p._h1 = _master.sprite_height * 0.5; p._add = false;
+            }
+        }
         if(_kind == 1) { // the bubble pops
             p = fx_make(1, x, y, _master.sprite_height * 0.45, make_color_rgb(255, 215, 90), 1.3, 14);
             repeat(5) { p = fx_make(2, x + random_range(-10, 10), y, random(_master.sprite_height), make_color_rgb(255, 225, 120), 0.35, 16); p._vh = 0.4; }
@@ -77,6 +96,26 @@ if(_ending < 0) {
         // the curse: black wisps rising off the unit
         p = fx_make(0, x + random_range(-7, 7), y, random_range(6, _master.sprite_height * 0.8), make_color_rgb(25, 10, 35), 0.3, 24);
         p._add = false; p._vh = 0.4; p._grow = 1.8; p._alpha = 0.7;
+    }
+    if(_kind == 15 && _t mod 4 == 0) {
+        // Bloodrage: red steam boiling off her
+        p = fx_make(0, x + random_range(-10, 10), y, random(_master.sprite_height * 0.8), choose(make_color_rgb(200, 30, 30), make_color_rgb(120, 10, 10)), random_range(0.2, 0.35), 24);
+        p._add = false; p._vh = random_range(0.8, 1.4); p._grow = 1.6; p._alpha = 0.7;
+    }
+    if(_kind == 16 && _t mod 7 == 0) {
+        p = fx_make(2, x + random_range(-10, 10), y, random(_master.sprite_height), make_color_rgb(255, 215, 110), 0.3, 22);
+        p._vh = 0.7;
+    }
+    if(_kind == 12) {
+        // Festering Blight: flies buzzing round the sores, and spores
+        if(_t mod 4 == 0) {
+            p = fx_make(0, x + random_range(-11, 11), y, random_range(6, _master.sprite_height * 0.9), make_color_rgb(15, 15, 5), 0.1, 10);
+            p._add = false; p._vx = random_range(-1.2, 1.2); p._vh = random_range(-0.6, 0.6); p._grow = 1;
+        }
+        if(_t mod 11 == 0) {
+            p = fx_make(9, x + random_range(-6, 6), y, random_range(6, _master.sprite_height * 0.7), make_color_rgb(170, 210, 60), 0.3, 18);
+            p._vh = 0.45; p._grow = 1.4;
+        }
     }
     if(_kind == 11 && _t mod 8 == 0) {
         // Corrosion: an acid bubble now and then

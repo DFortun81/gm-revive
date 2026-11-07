@@ -39,6 +39,15 @@ _frost_cooldown = room_speed * 7;
 _frost_volleys = 0;
 _frost_message_timer = 0;
 
+// (gm-revive overrides, Nov 2026) Frost Blast: instant, like the Frostbolt Volley; encases a couple of
+// raid members (never its tank) in ice for 4 s. They can't act, but they can be healed.
+_blast_count = 2;
+_blast_damage = 30;
+_blast_duration = room_speed * 4;
+_blast_cooldown_time = room_speed * 20;
+_blast_cooldown = room_speed * 12;
+_blasts = 0;
+
 _retry_time = room_speed * 5;  // an interrupted spell comes back this much sooner than its cooldown
 _cast = 0;                     // 0 nothing, 1 Shadow Bolt, 2 Dark Mending, 3 Shadow Volley
 _last_wait = 0;
