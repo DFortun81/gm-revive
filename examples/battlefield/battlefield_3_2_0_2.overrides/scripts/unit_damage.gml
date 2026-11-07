@@ -30,6 +30,10 @@ if(instance_exists(argument0)) {
         }
     }
     dmg = max(0, dmg - (dmg * argument0._damagereduction));
+    // (gm-revive overrides) Count Vaelric keeps count of what he takes while he feeds (it breaks Blood Suck)
+    if(argument0.object_index == obj_boss_elmdor) {
+        with(argument0) if(variable_local_exists("_drain_taken")) { if(_bloodsuck_casting) _drain_taken += dmg; }
+    }
     
     // Rage Generation - 5% of the damage they take becomes rage
     if(argument0._manatype == manatype_rage) {

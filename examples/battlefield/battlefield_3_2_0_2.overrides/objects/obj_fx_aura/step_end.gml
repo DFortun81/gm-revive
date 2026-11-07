@@ -16,6 +16,7 @@ switch(_kind) {
     case 6: on = on && _master._vamp_timer > 0; break;
     case 7: on = true; break; // stays for the whole fight; draws only while the barrier holds
     case 8: on = on && _master._zio_curse > 0; break;
+    case 10: on = on && _master._thrall_timer > 0; break;
     case 9: on = on && instance_exists(_src); if(on) on = _src._bloodsuck_casting && _src._drain_victim == _master; break;
 }
 if(_ending < 0) {

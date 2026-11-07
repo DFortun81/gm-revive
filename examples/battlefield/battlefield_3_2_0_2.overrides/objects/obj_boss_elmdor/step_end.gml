@@ -8,10 +8,15 @@ if(!variable_local_exists("_health_per_unit")) {
     _health_per_unit = 2600;
     _maxhealth = _health_per_unit * instance_number(obj_unit);
     _health = _maxhealth;
+    _drain_break_frac = 0.035;   // Blood Suck breaks after this share of his health in damage
+    _drain_guard = 0.2;          // Kick and Wind Shear only work once this much of a drain is left
+    _thrall_max = 4;
+    _bloodsuck_amount = 600;     // (was 360) over the 4 s drain; it quickens, so most of it comes at the end             // thralls at once
     _drain_victim = -1;   // Blood Suck: who he's draining, and how they looked before
     _drain_y0 = 0;
     _drain_blend0 = c_white;
     _drain_pulse = 0;     // flares his red glow when a drain heals him
+    _drain_taken = 0;     // damage he's taken during this drain (enough of it breaks the drain)
     _phase_time = 0;      // Mist Step: steps left out of phase (gone as mist, between leaving and reforming)
 }
 if(_drain_pulse > 0) _drain_pulse -= 1;
@@ -24,7 +29,9 @@ _masamune_cooldown -= 1;
 _bloodsuck_cooldown -= 1;
 _teleport_cooldown -= 1;
 
-if(!_casting && variable_local_exists("_drain_victim")) { if(_drain_victim != -1) vaelric_drain_end(); }
+// (gm-revive overrides) A Kick or Wind Shear stops Blood Suck (unit_interrupt clears _casting)
+if(!_casting && _bloodsuck_casting) vaelric_drain_break("interrupted");
+if(!_casting && _drain_victim != -1) vaelric_drain_end();
 if(!_casting) {
     _masamune_casting = false;
     _muramasa_casting = false;
@@ -211,6 +218,12 @@ else {
                 if(_drain_victim != _target) {
                     vaelric_drain_end();
                     _drain_victim = _target;
+                    _drain_taken = 0;
+                    // his fangs go straight through shields (Power Word: Shield, Mana Shield and the like)
+                    if(_target._absorbamount > 0) {
+                        _target._absorbamount = 0; _target._absorbmax = 0;
+                        repeat(5) { p = fx_make(3, _target.x, _target.y, _target.sprite_height * 0.5, make_color_rgb(150, 200, 255), 0.4, 18); }
+                    }
                     _drain_y0 = _target.y;
                     _drain_blend0 = _target._blendcolor;
                     with(instance_create(_target.x, _target.y, obj_fx_aura)) { _master = other._target; _kind = 9; _src = other.id; }
@@ -219,14 +232,32 @@ else {
                 dk = 1 - _attackcastwait / max(1, _attackcasttime);
                 _target.y = _drain_y0 - 5 * min(1, dk * 5);
                 _target._blendcolor = merge_color(_drain_blend0, make_color_rgb(185, 165, 190), round(min(1, dk * 1.5) * 5) / 5);
-                unit_damage(_target, c_yellow, _bloodsuck_amount / _bloodsuck_casttime, true);
-                if(_attackcastwait mod (room_speed / 2) == 0) {
-                    unit_heal(id, (_bloodsuck_amount / (_bloodsuck_casttime / (room_speed / 2))) * 4);
+                // (gm-revive overrides) The drain quickens as it goes: slow at first, and almost half of
+                // it in the last second (same 360 in all), so there's time to save the victim
+                unit_damage(_target, c_yellow, (_bloodsuck_amount / _bloodsuck_casttime) * (0.4 + 1.8 * dk * dk), true);
+                // Anyone it kills rises as his thrall
+                if(_target._health <= 0 || _target.dead) {
+                    p = _target;
+                    _target._stunned = false;
+                    vaelric_drain_end();
+                    vaelric_raise(p);
+                    _target = id;
+                    _attackcastwait = -1;
+                }
+                // Enough damage to him while he feeds breaks the drain
+                else if(_drain_taken >= _maxhealth * _drain_break_frac) {
+                    vaelric_drain_break("broken");
+                    exit;
+                }
+                else if(_attackcastwait mod (room_speed / 2) == 0) {
+                    // (gm-revive overrides) Each sip heals him: 1.5% of his health over the whole drain (it was
+                    // 4x the damage, 1,440 in all: under 1% of him now he's a raid boss), so stopping it matters
+                    unit_heal(id, max((_bloodsuck_amount / (_bloodsuck_casttime / (room_speed / 2))) * 4, _maxhealth * 0.015 / (_bloodsuck_casttime / (room_speed / 2))));
                     _drain_pulse = 12;
                     p = fx_make(0, x, y, sprite_height * 0.55, make_color_rgb(170, 0, 20), 0.9, 14); p._add = false; p._grow = 1.5;
                     repeat(3) { p = fx_make(0, x + random_range(-8, 8), y, sprite_height * random_range(0.6, 0.9), make_color_rgb(200, 10, 30), 0.2, 16); p._add = false; p._vh = -0.8; p._grow = 0.6; }
                 }
-                if(!_target._stunimmune) {
+                if(_target != id) if(!_target._stunimmune) {
                     _target._destx = _target.x;
                     _target._desty = _target.y;
                     _target._target = -1;
@@ -245,6 +276,7 @@ else {
                 create_text_effect(x, y, c_white, "-blood suck ends-");
                 _bloodsuck_cooldown = _bloodsuck_cooldown_time;
                 _casting = false;
+                _bloodsuck_casting = false;
                 _target = id;
                 exit;
             }

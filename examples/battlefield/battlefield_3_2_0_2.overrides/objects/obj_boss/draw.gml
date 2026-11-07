@@ -34,6 +34,7 @@ if(vg > 0) {
 if(vg > 0 && units_exists(_drain_victim)) {
     vfx = _drain_victim.x; vfy = _drain_victim.y - _drain_victim.sprite_height * 0.55;
     vtx = x; vty = y - sprite_height * 0.62;
+    vk = 1 - _attackcastwait / max(1, _attackcasttime);   // how far the drain has got (it quickens)
     vn = 16; vpx = vfx; vpy = vfy;
     for(vi = 1; vi <= vn; vi += 1) {
         vt = vi / vn;
@@ -41,10 +42,10 @@ if(vg > 0 && units_exists(_drain_victim)) {
         vqy = vfy + (vty - vfy) * vt - sin(vt * pi) * 12 + sin(vt * 14 - current_time / 70) * 2 * sin(vt * pi);
         draw_set_alpha(0.6);
         draw_set_color(make_color_rgb(80, 0, 10));
-        draw_line_width(vpx, vpy, vqx, vqy, 5);
+        draw_line_width(vpx, vpy, vqx, vqy, 4 + 3 * vk);
         draw_set_alpha(0.9);
         draw_set_color(make_color_rgb(200, 20, 35));
-        draw_line_width(vpx, vpy, vqx, vqy, 2);
+        draw_line_width(vpx, vpy, vqx, vqy, 1.5 + 1.5 * vk);
         vpx = vqx; vpy = vqy;
     }
     draw_set_alpha(1);

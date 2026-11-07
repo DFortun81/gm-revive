@@ -6,6 +6,9 @@ var u;
 u = argument0;
 if(!units_exists(u)) return false;
 if(u.dead || u._attackcastwait <= 0) return false;
+// (gm-revive overrides) Count Vaelric: Blood Suck can be stopped (nothing else he casts can), but only
+// once he's lost in the feeding, in its second half; until then he's on guard
+if(u.object_index == obj_boss_elmdor) return (u._bloodsuck_casting && u._attackcastwait <= u._attackcasttime * u._drain_guard);
 // Raid bosses say for themselves which casts can be stopped
 if(object_is_ancestor(u.object_index, obj_boss_raid)) return (u._raid_casting && !u._interuptimmune);
 switch(u._jobclass) {

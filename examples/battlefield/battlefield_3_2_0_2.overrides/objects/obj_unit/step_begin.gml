@@ -120,6 +120,15 @@ if(_manatype == manatype_mana) {
     }
 }
 
+// (gm-revive overrides) Count Vaelric's thralls crumble when their time's up or he's gone
+if(variable_local_exists("_thrall_timer")) {
+    if(_thrall_timer > 0 && !dead) {
+        var ta; ta = false;
+        with(obj_boss_elmdor) if(!dead) ta = true;
+        _thrall_timer -= 1;
+        if(_thrall_timer <= 0 || !ta) { _thrall_timer = 0; _health = 0; create_text_effect(x, y, c_white, "-crumbles to dust-"); }
+    }
+}
 // Am I dead? We only want to do this stuff once
 if(_health <= 0 && !dead) {
     dead = true;

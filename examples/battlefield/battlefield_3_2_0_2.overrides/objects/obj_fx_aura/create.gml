@@ -2,7 +2,7 @@
 // _kind: 0 stunned (circling stars), 1 Divine Shield / Blessing of Protection (a golden bubble),
 // 2 Evasion (afterimages), 3 Evocation (a rune circle with motes spiralling in), 4 Shadow Word: Pain,
 // 5 Masamune (Regen and Haste on Marquis Elmdor), 6 Vampire, 7 the Magic Barrier on Zio (lives as long as he does), 8 Black Wave curse, 9 drained by
-// Count Vaelric's Blood Suck
+// Count Vaelric's Blood Suck, 10 his thrall
 _master = -1;
 _kind = 0;
 _t = 0;
