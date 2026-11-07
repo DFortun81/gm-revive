@@ -132,6 +132,13 @@ global.raid_boss_display[3] = "The Blighted";
 global.raid_boss_display[4] = "Marquis Elmdor";
 global.raid_boss_display[5] = "Lady Jane";
 if(!variable_global_exists("raid_boss_next")) global.raid_boss_next = 0;
+// (gm-revive overrides) Sound level (key M), kept between sessions
+if(!variable_global_exists("sound_level")) {
+    ini_open("battlefield_settings.ini");
+    global.sound_level = ini_read_real("sound", "level", 2);
+    ini_close();
+}
+sound_level_apply();
 
 // (gm-revive overrides) The armies now come from match_setup: each reset picks one of several
 // formats (the original army, or 3v3 / 5v5 / 10v10 / 20v20 of random classes) and keeps a record

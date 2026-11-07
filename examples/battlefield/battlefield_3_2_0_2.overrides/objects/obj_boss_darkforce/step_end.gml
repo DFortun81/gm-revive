@@ -18,6 +18,9 @@ _blackwave_cooldown -= 1;
 if(instance_exists(_master)) {
     x = _master.x;
     y = _master.y;
+    // keep the face on screen: when Zio is near the top it hovers lower over him (no lower than 40 px),
+    // easing there so it doesn't jump. 56 is the face sprite's y origin, plus room for the bob and cast bar.
+    _height += (max(40, min(130, y - view_yview[0] - 56 - 12)) - _height) / 8;
     size = ds_list_size(_master._enemylist);
     if(size <= 0) {
         _attackcastwait = 0;

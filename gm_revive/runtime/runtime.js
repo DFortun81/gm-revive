@@ -1593,10 +1593,11 @@ const B = (() => {
 
     // ------------------------------------------------------------------ sound
     let audioUnlocked = false;
+    let globalVolume = 1;   // sound_global_volume: scales every sound and the music
     function soundObj(i) { return R.sounds[Math.round(i)]; }
     function makeAudio(snd) {
         if (!snd.url) return null;
-        const a = new Audio(snd.url); a.volume = Math.max(0, Math.min(1, snd.volume == null ? 1 : snd.volume)); return a;
+        const a = new Audio(snd.url); a.volume = Math.max(0, Math.min(1, (snd.volume == null ? 1 : snd.volume) * globalVolume)); return a;
     }
     function play(i, loop) {
         const snd = soundObj(i); if (!snd || !snd.url) return 0;
@@ -1612,8 +1613,12 @@ const B = (() => {
     B.sound_stop = i => { const s = soundObj(i); if (s) { s.playing.forEach(a => a.pause()); s.playing = []; } return 0; };
     B.sound_stop_all = () => { R.sounds.forEach(s => { if (s) { s.playing.forEach(a => a.pause()); s.playing = []; } }); return 0; };
     B.sound_isplaying = i => { const s = soundObj(i); return !!s && s.playing.some(a => !a.ended && !a.paused); };
-    B.sound_volume = (i, v) => { const s = soundObj(i); if (s) { s.volume = v; s.playing.forEach(a => a.volume = v); } return 0; };
-    B.sound_global_volume = v => 0;
+    B.sound_volume = (i, v) => { const s = soundObj(i); if (s) { s.volume = v; s.playing.forEach(a => a.volume = Math.max(0, Math.min(1, v * globalVolume))); } return 0; };
+    B.sound_global_volume = v => {
+        globalVolume = Math.max(0, Math.min(1, +v || 0));
+        R.sounds.forEach(s => { if (s) s.playing.forEach(a => a.volume = Math.max(0, Math.min(1, (s.volume == null ? 1 : s.volume) * globalVolume))); });
+        return 0;
+    };
     B.sound_replace = (i, fname, kind, preload) => {
         const s = soundObj(i), url = R.extraFiles[normFile(fname)]; if (!s || !url) return 0;
         B.sound_stop(i); s.url = url; s.kind = kind === 3 ? 1 : kind; return 0;

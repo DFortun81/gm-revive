@@ -16,6 +16,8 @@ s += "  -  " + string(secs div 60) + ":";
 if(secs mod 60 < 10) s += "0";
 s += string(secs mod 60) + "      [5] results   [6] auto-reset ";
 if(global.match_auto) s += "on"; else s += "off";
+s += "   [M] sound ";
+if(global.sound_level >= 2) s += "on"; else if(global.sound_level == 1) s += "quiet"; else s += "off";
 // Below the game's own boss window while a boss is out, and below the bosses' dialogue boxes while
 // they're talking (the boss window is 12 + 32 px a boss tall, each dialogue box 36 px; see obj_sky)
 yy = view_yview[0] + 2;
