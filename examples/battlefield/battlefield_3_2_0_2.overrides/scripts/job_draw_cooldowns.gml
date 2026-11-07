@@ -14,23 +14,28 @@ boss = true;
 switch(o) {
     case obj_boss_stitchgut:
         names[0] = "Hateful Strike"; cdn[0] = "_hateful_cooldown"; ctn[0] = "_hateful_cooldown_time";
-        n = 1;
+        names[1] = "Gut Hook"; cdn[1] = "_hook_cooldown"; ctn[1] = "_hook_cooldown_time";
+        names[2] = "Bile Spew"; cdn[2] = "_spew_cooldown"; ctn[2] = "_spew_cooldown_time";
+        n = 3;
     break;
     case obj_boss_lichcaller:
         names[0] = "Shadow Bolt"; cdn[0] = "_bolt_cooldown"; ctn[0] = "_bolt_cooldown_time";
         names[1] = "Dark Mending"; cdn[1] = "_mend_cooldown"; ctn[1] = "_mend_cooldown_time";
         names[2] = "Shadow Volley"; cdn[2] = "_volley_cooldown"; ctn[2] = "_volley_cooldown_time";
         names[3] = "Frostbolt Volley"; cdn[3] = "_frost_cooldown"; ctn[3] = "_frost_cooldown_time";
-        n = 4;
+        names[4] = "Frost Blast"; cdn[4] = "_blast_cooldown"; ctn[4] = "_blast_cooldown_time";
+        n = 5;
     break;
     case obj_boss_broodmother:
         names[0] = "Call the Brood"; cdn[0] = "_brood_cooldown"; ctn[0] = "_brood_cooldown_time";
-        n = 1;
+        names[1] = "Web Wrap"; cdn[1] = "_web_cooldown"; ctn[1] = "_web_cooldown_time";
+        n = 2;
     break;
     case obj_boss_blighted:
         names[0] = "Blight Aura"; cdn[0] = "_aura_timer"; ctn[0] = "_aura_time";
         names[1] = "Festering Blight"; cdn[1] = "_blight_timer"; ctn[1] = "_blight_time";
-        n = 2;
+        names[2] = "Miasma"; cdn[2] = "_miasma_timer"; ctn[2] = "_miasma_time";
+        n = 3;
     break;
     case obj_boss_marquis:
         names[0] = "Chirijiraden"; cdn[0] = "_chiri_cooldown"; ctn[0] = "_chiri_cooldown_time";
@@ -98,7 +103,13 @@ if(!boss) switch(argument0._jobclass) {
         names[5] = "Mirror Images"; vars[5] = "_mirrorimage";
         names[6] = "Evocation"; vars[6] = "_evocation";
         names[7] = "Mana Gem"; vars[7] = "_managem";
-        n = 8;
+        names[8] = "Wand"; vars[8] = "_wand";
+        n = 9;
+    break;
+    case class_healer:
+        names[0] = "Psychic Scream"; vars[0] = "_scream";
+        names[1] = "Wand"; vars[1] = "_wand";
+        n = 2;
     break;
     case class_shaman:
         names[0] = "Shock"; vars[0] = "_shock";
@@ -144,7 +155,7 @@ if(!boss) switch(argument0._jobclass) {
     break;
 }
 if(!boss) for(i = 0; i < n; i += 1) { cdn[i] = vars[i] + "_cooldown"; ctn[i] = vars[i] + "_cooldown_time"; }
-if(n == 0) exit; // Healers have no cooldowns (Prayer of Healing included)
+if(n == 0) exit;
 
 rh = 16; w = 190;
 wx = argument2; wy = argument3 - (n * rh + 12);

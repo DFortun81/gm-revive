@@ -123,6 +123,7 @@ if(!_layonhands_used && _manatype_mana >= _layonhands_minmana) {
     if(maxid != -1) {
         create_text_effect(x, y, c_yellow, "-lay on hands-");
         unit_heal(maxid, maxid._maxhealth - maxid._health);
+        heal_fx(maxid, 1);
         unit_mana(id, -_manatype_mana);
         _layonhands_used = true;
     }
@@ -184,6 +185,7 @@ if(_heal_casting) {
         _attackcastwait += 1;
         if(_attackcastwait >= _attackcasttime) {
             unit_heal(_heal_target, _heal_amount);
+            heal_fx(_heal_target, 0);
             unit_mana(id, -_heal_cost);
             _attackcastwait = 0;
             _heal_casting = false;
@@ -280,7 +282,7 @@ if(_hoj_cooldown <= 0 && _hoj_timer <= 0 && _manatype_mana >= _hoj_cost) {
         _hoj_timer = _hoj_duration;
         _hoj_cooldown = _hoj_cooldown_time;
         unit_mana(id, -_hoj_cost);
-        create_heroicstrike_effect(maxid.x, maxid.y);
+        class_strike_fx(maxid, 4);
         create_text_effect(maxid.x, maxid.y, c_yellow, "-hammer of justice-");
         fx_spell(maxid, "hammer of justice");
     }
@@ -363,7 +365,7 @@ if(units_exists(_target)) {
         }
         else if(_judgement_cooldown <= 0 && _manatype_mana >= _judgement_cost) {
             // Paladin Special Ability: Judgement
-            create_heroicstrike_effect(_target.x, _target.y);
+            class_strike_fx(_target, 3);
             create_text_effect(x, y, c_yellow, "-judgement-");
             fx_spell(_target, "judgement");
             unit_damage(_target, c_yellow, _judgement_damage);
@@ -372,7 +374,7 @@ if(units_exists(_target)) {
         }
         else if(_crusaderstrike_cooldown <= 0 && _manatype_mana >= _crusaderstrike_cost) {
             // Paladin Special Ability: Crusader Strike
-            create_heroicstrike_effect(_target.x, _target.y);
+            class_strike_fx(_target, 3);
             create_text_effect(x, y, c_yellow, "-crusader strike-");
             fx_spell(_target, "crusader strike");
             unit_damage(_target, c_yellow, _attackdamage * _crusaderstrike_multiplier);

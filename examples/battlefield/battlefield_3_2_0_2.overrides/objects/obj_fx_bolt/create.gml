@@ -8,4 +8,7 @@ _maxlife = 14;
 _w = 1;
 _n = 10;
 _jag = 7;
+_c0 = make_color_rgb(30, 0, 45);     // outer smoke
+_c1 = make_color_rgb(140, 50, 215);  // body
+_c2 = make_color_rgb(225, 190, 255); // core (additive)
 image_speed = 0;

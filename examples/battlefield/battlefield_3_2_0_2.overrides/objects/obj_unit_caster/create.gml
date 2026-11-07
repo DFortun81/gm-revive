@@ -91,3 +91,7 @@ _blizzard_radius = range_cast / 2;       // matches the obj_blizzard pulse ring
 _blizzard_tick_time = 10;                // damage every 10 steps
 _blizzard_tick = 0;
 _blizzard_min_targets = 3;               // only worth channelling on a group
+
+// (gm-revive overrides) Wand: see unit_fallback
+_wand_cooldown = 0;
+_wand_cooldown_time = room_speed * 1.5;

@@ -171,7 +171,7 @@ if(units_exists(_target)) {
                     dir = point_direction(x, y, _target.x, _target.y);
                     path_add_point(path, x + cos(degtorad(dir)) * 10, y - sin(degtorad(dir)) * 10, sprite_height / 2);
                     path_add_point(path, _target.x, _target.y, _target.sprite_height / 2);
-                    create_lightning_effect(path);
+                    fx_path_bolts(path, 0);
                     
                     unit_damage(_target, c_yellow, _lightningbolt_amount);
                     unit_mana(id, -_lightningbolt_manacost);
@@ -231,7 +231,7 @@ if(units_exists(_target)) {
                         unit_damage(_id, c_yellow, d);
                         d *= 0.6;
                     }
-                    create_lightning_effect(path);
+                    fx_path_bolts(path, 0);
                     ds_list_destroy(ds);
                     
                     unit_mana(id, -_chainlightning_manacost);
@@ -331,6 +331,7 @@ if(units_exists(_target)) {
                 else {
                     // Cast completed!
                     unit_heal(_target, _healingwave_amount);
+                    heal_fx(_target, 2);
                     unit_mana(id, -_healingwave_manacost);
                     _attackcastwait = 0;
                     _target = -1;
@@ -349,6 +350,7 @@ if(units_exists(_target)) {
                 else {
                     // Cast completed!
                     unit_heal(_target, _lesserhealingwave_amount);
+                    heal_fx(_target, 2);
                     unit_mana(id, -_lesserhealingwave_manacost);
                     _attackcastwait = 0;
                     _target = -1;
@@ -404,9 +406,10 @@ if(units_exists(_target)) {
                         _id = ds_list_find_value(ds, i);
                         path_add_point(path, _id.x, _id.y, _id.sprite_height / 2);
                         unit_heal(_id, d);
+                        heal_fx(_id, 2);
                         d *= 0.6;
                     }
-                    create_chainheal_effect(path);
+                    fx_path_bolts(path, 1);
                     ds_list_destroy(ds);
                     
                     unit_mana(id, -_chainheal_manacost);

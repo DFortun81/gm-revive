@@ -29,6 +29,14 @@ if(_polymorphed) {
 
 if(global.cutscene_active) exit;
 
+// (gm-revive overrides) Healer Special Ability: Psychic Scream
+_scream_cooldown -= 1;
+if(healer_scream()) {
+    event_inherited();
+    depth = -y;
+    exit;
+}
+
 // (gm-revive overrides) Healer Special Ability: Prayer of Healing
 if(healer_prayer()) {
     event_inherited();
@@ -147,6 +155,7 @@ if(units_exists(_target)) {
             if(_attackcastwait >= _flashheal_casttime) {
                 // Flash Heal Effect
                 unit_heal(_target, _flashheal_amount);
+                heal_fx(_target, 0);
                 unit_mana(id, -_flashheal_manacost);
                 _attackcastwait = 0;
                 _attackcasttime = _normal_attackcasttime;
@@ -160,6 +169,7 @@ if(units_exists(_target)) {
             if(_attackcastwait >= _greaterheal_casttime) {
                 // Greater Heal Effect
                 unit_heal(_target, _greaterheal_amount);
+                heal_fx(_target, 1);
                 unit_mana(id, -_greaterheal_manacost);
                 _attackcastwait = 0;
                 _attackcasttime = _normal_attackcasttime;

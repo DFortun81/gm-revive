@@ -16,10 +16,10 @@ if(_poh_casting) {
                 if(_health < _maxhealth) with(me) { unit_heal(other.id, _poh_amount); fx_spell(other.id, "prayer of healing"); }
             }
         }
-        with(instance_create(x, y, obj_pulse)) {
-            image_blend = make_color_rgb(255, 250, 200);
-            _range = me._poh_radius;
-        }
+        // (gm-revive overrides) a wave of golden light rolls out (was a flat disc)
+        with(fx_make(1, x, y, 0, make_color_rgb(200, 160, 60), _poh_radius / 11, 30)) { _squash = 0.45; _add = false; _alpha = 0.5; }
+        with(fx_make(1, x, y, 0, make_color_rgb(255, 245, 190), _poh_radius / 14, 24)) { _squash = 0.45; _alpha = 0.85; }
+        with(fx_make(0, x, y, sprite_height * 0.6, make_color_rgb(255, 245, 200), 1.2, 14)) _grow = 1.6;
         unit_mana(id, -_poh_manacost);
         _poh_casting = false;
         _attackcastwait = 0;

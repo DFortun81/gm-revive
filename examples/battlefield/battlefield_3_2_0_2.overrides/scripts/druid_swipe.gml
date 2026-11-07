@@ -6,7 +6,7 @@ var i, n, best, bestdist, dist, hit;
 if(!units_exists(_target)) exit;
 create_text_effect(x, y, c_yellow, "-swipe-");
 fx_spell(_target, "swipe");
-create_heroicstrike_effect(_target.x, _target.y);
+class_strike_fx(_target, 2);
 unit_damage(_target, c_yellow, _swipe_amount);
 
 hit = ds_list_create();
@@ -25,7 +25,7 @@ for(n = 0; n < _swipe_cleave_count; n += 1) {
     }
     if(best == -1) break;
     ds_list_add(hit, best);
-    create_heroicstrike_effect(best.x, best.y);
+    class_strike_fx(best, 2);
     unit_damage(best, c_yellow, _swipe_amount * _swipe_cleave_percent);
 }
 ds_list_destroy(hit);

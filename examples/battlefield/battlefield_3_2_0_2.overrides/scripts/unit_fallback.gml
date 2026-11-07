@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 var me, n, ax, ay, dir, nx, ny, best, bd, d, k, tries, ok, margin;
 if(dead || _stunned || _polymorphed || global.cutscene_active) return false;
-if(!variable_local_exists("_wand_cooldown")) _wand_cooldown = 0;
+if(!variable_local_exists("_wand_cooldown")) { _wand_cooldown = 0; _wand_cooldown_time = room_speed * 1.5; }
 me = id;
 // Back away from whoever is hitting me in melee
 n = 0; ax = 0; ay = 0;
@@ -51,5 +51,5 @@ with(fx_make(0, x + lengthdir_x(8, point_direction(x, y, best.x, best.y)), y, sp
 _direction = point_direction(x, y, best.x, best.y);
 _dir = deg_to_dir(_direction);
 image_single = _dir * 4;
-_wand_cooldown = room_speed * 1.5;
+if(variable_local_exists("_wand_cooldown_time")) _wand_cooldown = _wand_cooldown_time; else _wand_cooldown = room_speed * 1.5;
 return true;

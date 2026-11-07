@@ -69,3 +69,13 @@ _poh_manacost = 6;
 _poh_radius = 160;
 _poh_min_targets = 3;
 _poh_min_missing = 20;
+
+// (gm-revive overrides) Wand: see unit_fallback
+_wand_cooldown = 0;
+_wand_cooldown_time = room_speed * 1.5;
+// (gm-revive overrides) Psychic Scream: when melee enemies are on the Healer, it screams and everything
+// within reach is frozen in terror for 4 s (any stun-immune or Divine Shielded unit shrugs it off)
+_scream_cooldown = 0;
+_scream_cooldown_time = room_speed * 30;
+_scream_range = 70;
+_scream_duration = room_speed * 4;

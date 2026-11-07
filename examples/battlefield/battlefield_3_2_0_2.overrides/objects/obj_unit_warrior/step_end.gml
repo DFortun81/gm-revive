@@ -240,6 +240,7 @@ if(_charge_casting) {
             _dir = deg_to_dir(point_direction(x, y, _target.x, _target.y));
             
             create_charge_effect(x, y);
+            charge_fx(_target);
             
             _movespeed = _normal_movespeed * 3;
             _charge_charging = true;
@@ -378,7 +379,7 @@ if(!_charge_casting && !_polymorphed) {
             if((_target._health / _target._maxhealth) <= 0.35 && _manatype_rage >= 20 && _execute_cooldown <= 0) {
                 // Execute!
                 create_text_effect(x, y, c_yellow, "-execute!-");
-                create_heroicstrike_effect(_target.x, _target.y);
+                class_strike_fx(_target, 1);
                 unit_damage(_target, c_yellow, _manatype_rage + _attackdamage * 4);
                 unit_mana(id, -_manatype_rage);
                 _execute_cooldown = _execute_cooldown_time;
@@ -386,7 +387,7 @@ if(!_charge_casting && !_polymorphed) {
             else if(_manatype_rage >= _thunderclap_cost && _thunderclap_cooldown <= 0) {
                 // Warrior Special Ability: Thunderclap
                 // Blasts nearby enemies increasing the time between their attacks by 20% for 30 seconds and doing 16-20 damage to them.
-                create_thunderclap_effect(x, y);
+                shockwave_fx(range_melee * 2);
                 create_text_effect(x, y, c_white, "-thunderclap-");
                 with(obj_unit) {
                     if(_faction != other._faction) {
@@ -403,7 +404,7 @@ if(!_charge_casting && !_polymorphed) {
             }
             else if(_manatype_rage >= 10 && _heroicstrike_cooldown <= 0) {
                 // Heroic Strike!
-                create_heroicstrike_effect(_target.x, _target.y);
+                class_strike_fx(_target, 0);
                 unit_damage(_target, c_yellow, _attackdamage * 2.25);
                 unit_mana(id, -10);
                 _heroicstrike_cooldown = _heroicstrike_cooldown_time;

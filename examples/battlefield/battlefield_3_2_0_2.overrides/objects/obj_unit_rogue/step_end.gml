@@ -89,6 +89,7 @@ if(_casting) {
         }
         if(_attackcastwait mod room_speed == 0) {
             unit_heal(_target, _bandage_amount / (_bandage_duration / room_speed));
+            heal_fx(_target, 4);
         }
         _bandage_hp = _health;
         _attackcastwait -= 1;
@@ -316,9 +317,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
                 _stealthed = true;
                 _stealth_cooldown = _stealth_cooldown_time;
                 
-                repeat(5) {
-                    with(instance_create(x, y, obj_evocation_effect)) image_blend = c_black;
-                }
+                vanish_fx();
                 
                 // Clear all focusses on me!
                 for(i = 0;i < target_amount; i += 1) {

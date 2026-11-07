@@ -272,6 +272,7 @@ if(_shapeshift_form == druid_form_normal) {
                 if(_attackcastwait >= _attackcasttime) {
                     // Cast Successful
                     unit_heal(_target, _nourish_amount);
+                    heal_fx(_target, 3);
                     unit_mana(id, -_nourish_manacost);
                     _target._nourish_tick_timer = _nourish_healovertime_time * room_speed;
                     _target._nourish_tick_seconds = _nourish_healovertime_time;
@@ -357,7 +358,7 @@ else if(_shapeshift_form == druid_form_kitty) {
             _desty = y;
             if(_target._health / _target._maxhealth < _bite_threshold && _bite_cooldown <= 0 && _manatype_energy >= 25) {
                 // Druid Special Ability: Ferocious Bite
-                create_heroicstrike_effect(_target.x, _target.y);
+                class_strike_fx(_target, 2);
                 create_text_effect(x, y, c_yellow, "-ferocious bite-");
                 fx_spell(_target, "ferocious bite");
                 unit_damage(_target, c_yellow, _bite_damage + _manatype_energy);
@@ -379,7 +380,7 @@ else if(_shapeshift_form == druid_form_kitty) {
             }
             else if(_manatype_energy >= _shred_cost + 20) {
                 // Druid Special Ability: Shred (keep a little Energy back for Rake and Bite)
-                create_heroicstrike_effect(_target.x, _target.y);
+                class_strike_fx(_target, 2);
                 create_text_effect(x, y, c_yellow, "-shred-");
                 unit_damage(_target, c_yellow, _attackdamage * _shred_multiplier);
                 _manatype_energy -= _shred_cost;
