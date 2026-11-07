@@ -195,7 +195,7 @@ if(_shapeshift_form == druid_form_normal) {
         with(obj_totem) {
             if(_faction == other._faction) {
                 if(_totem_class == totem_class_water) {
-                    dist = point_distance(x, y, other.x, other.y);
+                    dist = unit_dist(id, other);
                     if(_totem_id == totem_id_manatide) {
                         if(dist < p_dist) {
                             priority = 0;
@@ -335,7 +335,7 @@ else if(_shapeshift_form == druid_form_kitty) {
             if(t._jobclass == class_healer || t._jobclass == class_caster) sc -= 5;
             if(t._attackcastwait > 0) sc -= 5;
             if(t._polymorphed) sc += 50;
-            sc += point_distance(x, y, t.x, t.y) / 100;
+            sc += unit_dist(id, t) / 100;
             if(sc < bestscore) {
                 bestscore = sc;
                 best = t;
@@ -346,11 +346,11 @@ else if(_shapeshift_form == druid_form_kitty) {
 
     if(units_exists(_target)) {
         var dist, dir;
-        dist = point_distance(x, y, _target.x, _target.y);
+        dist = unit_dist(id, _target);
         if(dist >= _attackrange) {
             dir = point_direction(_target.x, _target.y, x, y);
-            _destx = round(_target.x + cos(degtorad(dir)) * (_attackrange - 1));
-            _desty = round(_target.y - sin(degtorad(dir)) * (_attackrange - 1));
+            _destx = round(_target.x + cos(degtorad(dir)) * (_attackrange - 1 + unit_hitbox(_target) + unit_hitbox(id)));
+            _desty = round(_target.y - sin(degtorad(dir)) * (_attackrange - 1 + unit_hitbox(_target) + unit_hitbox(id)));
         }
         else {
             _destx = x;
@@ -463,7 +463,7 @@ else if(_shapeshift_form == druid_form_bear) {
     for(i = 0; i < enemies; i += 1) {
         t = ds_list_find_value(_enemylist, i);
         if(t._polymorphed) continue;
-        sc = point_distance(x, y, t.x, t.y) / 100;
+        sc = unit_dist(id, t) / 100;
         if(units_exists(t._target)) {
             if(t._target != id && t._target._faction == _faction && (t._target._jobclass == class_healer || t._target._jobclass == class_caster)) sc -= 20;
             else if(t._target == id) sc -= 10;
@@ -477,7 +477,7 @@ else if(_shapeshift_form == druid_form_bear) {
 
     if(units_exists(_target)) {
         var dist, dir;
-        dist = point_distance(x, y, _target.x, _target.y);
+        dist = unit_dist(id, _target);
 
         // Druid Special Ability: Growl
         // Taunt an enemy that is attacking one of our Healers or Casters
@@ -493,8 +493,8 @@ else if(_shapeshift_form == druid_form_bear) {
 
         if(dist >= _attackrange) {
             dir = point_direction(_target.x, _target.y, x, y);
-            _destx = round(_target.x + cos(degtorad(dir)) * (_attackrange - 1));
-            _desty = round(_target.y - sin(degtorad(dir)) * (_attackrange - 1));
+            _destx = round(_target.x + cos(degtorad(dir)) * (_attackrange - 1 + unit_hitbox(_target) + unit_hitbox(id)));
+            _desty = round(_target.y - sin(degtorad(dir)) * (_attackrange - 1 + unit_hitbox(_target) + unit_hitbox(id)));
         }
         else {
             _destx = x;

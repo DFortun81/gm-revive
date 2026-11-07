@@ -14,7 +14,7 @@ if(_frost_cooldown <= 0 && !_stunned && ds_list_size(_enemylist) > 0) {
     for(i = 0; i < ds_list_size(_enemylist); i += 1) {
         u = ds_list_find_value(_enemylist, i);
         if(units_exists(u)) {
-            if(!u.dead && point_distance(x, y, u.x, u.y) < _frost_range) {
+            if(!u.dead && unit_dist(id, u) < _frost_range) {
                 with(instance_create(x, y, obj_frostbolt)) {
                     _master = u;
                     _damage = other._frost_damage * other._enrage_mult;
@@ -101,7 +101,7 @@ else if(_volley_cooldown <= 0) {
     _message = "Kneel before the shadow!";
     create_text_effect(x, y, c_purple, "-casting shadow volley-");
 }
-else if(_bolt_cooldown <= 0 && point_distance(x, y, _target.x, _target.y) < range_cast) {
+else if(_bolt_cooldown <= 0 && unit_dist(id, _target) < range_cast) {
     _cast = 1; _raid_casting = false; _attackcasttime = _bolt_casttime;
 }
 if(_cast != 0) {

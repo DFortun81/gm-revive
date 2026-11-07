@@ -16,7 +16,7 @@ for(n = 0; n < _swipe_cleave_count; n += 1) {
     bestdist = range_melee * 1.5;
     with(obj_unit) {
         if(_faction != other._faction && !dead && ds_list_find_index(hit, id) == -1) {
-            dist = point_distance(x, y, other._target.x, other._target.y);
+            dist = unit_dist(id, other._target);
             if(dist < bestdist) {
                 bestdist = dist;
                 best = id;

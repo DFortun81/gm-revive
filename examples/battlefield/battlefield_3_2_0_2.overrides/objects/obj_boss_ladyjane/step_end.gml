@@ -90,7 +90,7 @@ if(_rend_timer > 0) {
 if(_charging > 0) {
     _charging -= 1;
     if(units_exists(_charge_target)) {
-        d = point_distance(x, y, _charge_target.x, _charge_target.y);
+        d = unit_dist(id, _charge_target);
         if(d > range_melee) {
             dir = point_direction(x, y, _charge_target.x, _charge_target.y);
             x += lengthdir_x(min(9, d - range_melee + 2), dir); y += lengthdir_y(min(9, d - range_melee + 2), dir);
@@ -108,7 +108,7 @@ if(_charging > 0) {
 }
 
 // Heroic Strike on her tank
-if(_heroic_cooldown <= 0 && point_distance(x, y, _target.x, _target.y) <= range_melee) {
+if(_heroic_cooldown <= 0 && unit_dist(id, _target) <= range_melee) {
     unit_damage(_target, c_red, _heroic_damage * _enrage_mult * _dmg_mult);
     create_heroicstrike_effect(_target.x, _target.y);
     create_text_effect(x, y, c_white, "-heroic strike-");
@@ -119,7 +119,7 @@ if(_heroic_cooldown <= 0 && point_distance(x, y, _target.x, _target.y) <= range_
     }
 }
 // Execute: finish off a target under 20%
-if(_execute_cooldown <= 0 && point_distance(x, y, _target.x, _target.y) <= range_melee && _target._health < _target._maxhealth * 0.2) {
+if(_execute_cooldown <= 0 && unit_dist(id, _target) <= range_melee && _target._health < _target._maxhealth * 0.2) {
     unit_damage(_target, c_red, _execute_damage * _enrage_mult * _dmg_mult);
     create_text_effect(x, y, c_red, "-execute-");
     fx_spell(_target, "ferocious bite");
@@ -128,11 +128,11 @@ if(_execute_cooldown <= 0 && point_distance(x, y, _target.x, _target.y) <= range
 // Thunder Clap: everyone close to her
 if(_clap_cooldown <= 0) {
     n = 0;
-    for(i = 0; i < ds_list_size(_enemylist); i += 1) { u = ds_list_find_value(_enemylist, i); if(!u.dead && point_distance(x, y, u.x, u.y) < _clap_range) n += 1; }
+    for(i = 0; i < ds_list_size(_enemylist); i += 1) { u = ds_list_find_value(_enemylist, i); if(!u.dead && unit_dist(id, u) < _clap_range) n += 1; }
     if(n >= 2) {
         for(i = 0; i < ds_list_size(_enemylist); i += 1) {
             u = ds_list_find_value(_enemylist, i);
-            if(!u.dead && point_distance(x, y, u.x, u.y) < _clap_range) unit_damage(u, c_yellow, _clap_damage * _enrage_mult * _dmg_mult);
+            if(!u.dead && unit_dist(id, u) < _clap_range) unit_damage(u, c_yellow, _clap_damage * _enrage_mult * _dmg_mult);
         }
         create_thunderclap_effect(x, y);
         create_text_effect(x, y, c_white, "-thunder clap-");
@@ -142,11 +142,11 @@ if(_clap_cooldown <= 0) {
 // Intimidating Shout: everyone near her freezes with fear
 if(_shout_cooldown <= 0) {
     n = 0;
-    for(i = 0; i < ds_list_size(_enemylist); i += 1) { u = ds_list_find_value(_enemylist, i); if(!u.dead && point_distance(x, y, u.x, u.y) < _shout_range) n += 1; }
+    for(i = 0; i < ds_list_size(_enemylist); i += 1) { u = ds_list_find_value(_enemylist, i); if(!u.dead && unit_dist(id, u) < _shout_range) n += 1; }
     if(n >= 3) {
         for(i = 0; i < ds_list_size(_enemylist); i += 1) {
             u = ds_list_find_value(_enemylist, i);
-            if(!u.dead && point_distance(x, y, u.x, u.y) < _shout_range && u != _target) unit_stun(u, _shout_fear);
+            if(!u.dead && unit_dist(id, u) < _shout_range && u != _target) unit_stun(u, _shout_fear);
         }
         create_text_effect(x, y, c_white, "-intimidating shout-");
         _message = "Back off!"; _message_timer = room_speed * 1.5;
@@ -161,7 +161,7 @@ if(_charge_cooldown <= 0) {
     for(i = 0; i < ds_list_size(_enemylist); i += 1) {
         u = ds_list_find_value(_enemylist, i);
         if(u.dead || u._stealthed || u == _target) continue;
-        d = point_distance(x, y, u.x, u.y);
+        d = unit_dist(id, u);
         if(d < _charge_min_range) continue;
         sc = d + random(60);
         if(u._jobclass == class_healer || u._jobclass == class_caster) sc += 150;

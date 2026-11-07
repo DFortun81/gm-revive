@@ -34,10 +34,10 @@ maxhp = 0;
 if(_windshear_cooldown <= 0) {
     var ws, wsi, wsu;
     ws = -1;
-    if(unit_is_casting(_target) && point_distance(x, y, _target.x, _target.y) < range_cast) ws = _target;
+    if(unit_is_casting(_target) && unit_dist(id, _target) < range_cast) ws = _target;
     else {
         with(obj_unit) {
-            if(ws == -1 && _faction != other._faction && !dead && point_distance(x, y, other.x, other.y) < range_cast) {
+            if(ws == -1 && _faction != other._faction && !dead && unit_dist(id, other) < range_cast) {
                 if(unit_is_casting(id)) ws = id;
             }
         }
@@ -71,7 +71,7 @@ if(units_exists(_target)) {
     }
     else if(enemies_inrange(_faction, range_totem) > 0) create_totem(totem_class_fire, totem_id_magma);
 
-    dist = point_distance(x, y, _target.x, _target.y);
+    dist = unit_dist(id, _target);
     if(_target._faction != _faction) {
         // Damaging
         if(dist < range_cast) {
@@ -134,7 +134,7 @@ if(units_exists(_target)) {
                     maxdist = 9999;
                     with(obj_unit) {
                         if(_faction != other._faction) {
-                            jdist = point_distance(x, y, t.x, t.y);
+                            jdist = unit_dist(id, t);
                             if(jdist < range_totem && ds_list_find_index(ds, id) < 0 && (!_stealthed || (_stealthed && dist <= _stealthed_visibility))) {
                                 if(jdist < maxdist || (jdist == maxdist && round(random(2)) == 0)) {
                                     maxdist = jdist;
@@ -203,7 +203,7 @@ if(units_exists(_target)) {
                         maxdist = 9999;
                         with(obj_unit) {
                             if(_faction != other._faction) {
-                                jdist = point_distance(x, y, t.x, t.y);
+                                jdist = unit_dist(id, t);
                                 if(jdist < range_totem && ds_list_find_index(ds, id) < 0 && (!_stealthed || (_stealthed && dist <= _stealthed_visibility))) {
                                     if(jdist < maxdist || (jdist == maxdist && round(random(2)) == 0)) {
                                         maxdist = jdist;
@@ -296,7 +296,7 @@ if(units_exists(_target)) {
                     maxhp = 0;
                     with(obj_unit) {
                         if(_faction == other._faction) {
-                            jdist = point_distance(x, y, t.x, t.y);
+                            jdist = unit_dist(id, t);
                             if(jdist < range_totem && ds_list_find_index(ds, id) < 0) {
                                 if(_maxhealth - _health > maxhp) {
                                     j = id;
@@ -378,7 +378,7 @@ if(units_exists(_target)) {
                         maxhp = 0;
                         with(obj_unit) {
                             if(_faction == other._faction) {
-                                jdist = point_distance(x, y, t.x, t.y);
+                                jdist = unit_dist(id, t);
                                 if(jdist < range_totem && ds_list_find_index(ds, id) < 0) {
                                     if(_maxhealth - _health > maxhp) {
                                         j = id;
@@ -466,7 +466,7 @@ if(!units_exists(_target)) {
     with(obj_unit) {
         if(_faction != other._faction) {
             // Look for enemy targets
-            dist = point_distance(x, y, other.x, other.y);
+            dist = unit_dist(id, other);
             if(!(!_stealthed || (_stealthed && dist <= _stealthed_visibility))) continue;
             if(dist < _attackrange) {
                 // We want to store polymorphed units in the queue, but prioritize them so that everything else gets smacked before they do
@@ -516,7 +516,7 @@ if(!units_exists(_target)) {
         // Anyone moving towards something within my sight?
         with(obj_unit) {
             if(_faction == other._faction && _jobclass != class_healer) {
-                dist = point_distance(x, y, other.x, other.y);
+                dist = unit_dist(id, other);
                 if(dist < _sightdistance) {
                     if((_destx != x || _desty != y) && units_exists(_target)) {
                         other._destx = _destx;
@@ -551,7 +551,7 @@ if(!units_exists(_target)) {
         with(obj_unit) {
             if(_faction == other._faction) {
                 // I only care about my own faction and among them, whom is the most damage in my sight
-                dist = point_distance(x, y, other.x, other.y);
+                dist = unit_dist(id, other);
                 if(dist < _sightdistance) {
                     calculate_incoming_effects(id, other.id);
                     hp = ((_maxhealth - _health) - global.calc_healing);

@@ -111,7 +111,7 @@ if(!_layonhands_used && _manatype_mana >= _layonhands_minmana) {
     maxhp = 0.15;
     with(obj_unit) {
         if(_faction == other._faction && !dead && _jobclass != class_mirrorimage && _damagereduction < 1) {
-            if(point_distance(x, y, other.x, other.y) < other._heal_range) {
+            if(unit_dist(id, other) < other._heal_range) {
                 hp = _health / _maxhealth;
                 if(hp < maxhp) {
                     maxhp = hp;
@@ -137,7 +137,7 @@ if(_bop_cooldown <= 0 && _bop_timer <= 0 && _manatype_mana >= _bop_cost) {
         if(_faction == other._faction && !dead && id != other.id) {
             if(_jobclass == class_healer || _jobclass == class_caster || _jobclass == class_shaman) {
                 hp = _health / _maxhealth;
-                if(hp < maxhp && current_time > _forbearance_end && point_distance(x, y, other.x, other.y) < other._heal_range) {
+                if(hp < maxhp && current_time > _forbearance_end && unit_dist(id, other) < other._heal_range) {
                     n = id;
                     with(obj_unit) {
                         if(_target == n && _faction != other._faction && !dead) {
@@ -169,7 +169,7 @@ if(_bop_cooldown <= 0 && _bop_timer <= 0 && _manatype_mana >= _bop_cost) {
 if(_heal_casting) {
     // Keep casting unless the target died, got healed by someone else or wandered off
     if(!units_exists(_heal_target)) _heal_casting = false;
-    else if(_heal_target.dead || _heal_target._health >= _heal_target._maxhealth || point_distance(x, y, _heal_target.x, _heal_target.y) > _heal_range * 1.25) _heal_casting = false;
+    else if(_heal_target.dead || _heal_target._health >= _heal_target._maxhealth || unit_dist(id, _heal_target) > _heal_range * 1.25) _heal_casting = false;
 
     if(!_heal_casting) {
         _attackcastwait = 0;
@@ -201,7 +201,7 @@ else if(_manatype_mana >= _flashoflight_cost) {
     others = 0;
     group = 0;
     with(obj_unit) {
-        if(_faction == other._faction && !dead && id != other.id && _jobclass != class_mirrorimage && point_distance(x, y, other.x, other.y) < range_heal * 1.5) {
+        if(_faction == other._faction && !dead && id != other.id && _jobclass != class_mirrorimage && unit_dist(id, other) < range_heal * 1.5) {
             group += 1;
             if(_jobclass == class_healer || _jobclass == class_shaman || (_jobclass == class_druid && _shapeshift_form == druid_form_normal)) others += 1;
         }
@@ -210,7 +210,7 @@ else if(_manatype_mana >= _flashoflight_cost) {
     if(others == 0 && group >= 2) maxhp = _heal_threshold_alone; else maxhp = _heal_threshold;
     with(obj_unit) {
         if(_faction == other._faction && !dead && _jobclass != class_mirrorimage) {
-            if(point_distance(x, y, other.x, other.y) < other._heal_range) {
+            if(unit_dist(id, other) < other._heal_range) {
                 hp = _health / _maxhealth;
                 if(hp < maxhp) {
                     maxhp = hp;
@@ -254,7 +254,7 @@ if(_hoj_cooldown <= 0 && _hoj_timer <= 0 && _manatype_mana >= _hoj_cost) {
     priority = 99;
     with(obj_unit) {
         if(_faction != other._faction && !dead && !_stunimmune && !_polymorphed) {
-            if(point_distance(x, y, other.x, other.y) < range_shout && (!_stealthed || point_distance(x, y, other.x, other.y) <= _stealthed_visibility)) {
+            if(unit_dist(id, other) < range_shout && (!_stealthed || unit_dist(id, other) <= _stealthed_visibility)) {
                 if(_attackcastwait > 0 && priority > 0) {
                     priority = 0;
                     maxid = id;
@@ -297,7 +297,7 @@ if(!units_exists(_target)) {
     maxdist = 9999;
     with(obj_unit) {
         if(_faction != other._faction && !dead) {
-            dist = point_distance(x, y, other.x, other.y);
+            dist = unit_dist(id, other);
             if(dist >= other._sightdistance) continue;
             if(_stealthed && dist > _stealthed_visibility) continue;
 
@@ -334,12 +334,12 @@ if(!units_exists(_target)) {
 }
 
 if(units_exists(_target)) {
-    dist = point_distance(x, y, _target.x, _target.y);
+    dist = unit_dist(id, _target);
     if(dist >= _attackrange) {
         // Walk up to the target
         dir = point_direction(_target.x, _target.y, x, y);
-        _destx = round(_target.x + cos(degtorad(dir)) * (_attackrange - 1));
-        _desty = round(_target.y - sin(degtorad(dir)) * (_attackrange - 1));
+        _destx = round(_target.x + cos(degtorad(dir)) * (_attackrange - 1 + unit_hitbox(_target) + unit_hitbox(id)));
+        _desty = round(_target.y - sin(degtorad(dir)) * (_attackrange - 1 + unit_hitbox(_target) + unit_hitbox(id)));
     }
     else {
         _destx = x;
@@ -349,7 +349,7 @@ if(units_exists(_target)) {
         n = 0;
         with(obj_unit) {
             if(_faction != other._faction && !dead) {
-                if(point_distance(x, y, other.x, other.y) < other._consecration_range) n += 1;
+                if(unit_dist(id, other) < other._consecration_range) n += 1;
             }
         }
         if(n >= 2 && _consecration_cooldown <= 0 && _consecration_timer <= 0 && _manatype_mana >= _consecration_cost) {
@@ -391,7 +391,7 @@ else {
     // Nothing to fight: follow an ally that is going somewhere, otherwise wander
     with(obj_unit) {
         if(_faction == other._faction && id != other.id && _jobclass != class_healer) {
-            if(point_distance(x, y, other.x, other.y) < other._sightdistance) {
+            if(unit_dist(id, other) < other._sightdistance) {
                 if((_destx != x || _desty != y) && units_exists(_target)) {
                     other._destx = _destx;
                     other._desty = _desty;

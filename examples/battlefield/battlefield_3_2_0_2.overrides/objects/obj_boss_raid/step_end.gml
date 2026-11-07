@@ -41,7 +41,7 @@ bestthreat = -1;
 for(i = 0; i < enemies; i += 1) {
     u = ds_list_find_value(_enemylist, i);
     if(u._polymorphed || u._stealthed) continue;
-    if(u._raid_threat > bestthreat || (u._raid_threat == bestthreat && point_distance(x, y, u.x, u.y) < point_distance(x, y, best.x, best.y))) {
+    if(u._raid_threat > bestthreat || (u._raid_threat == bestthreat && unit_dist(id, u) < unit_dist(id, best))) {
         bestthreat = u._raid_threat;
         best = u;
     }
@@ -56,18 +56,18 @@ if(cur == -1 || bestthreat > cur._raid_threat * _threat_switch) {
     _target = best;
 }
 
-d = point_distance(x, y, _target.x, _target.y);
+d = unit_dist(id, _target);
 _direction = point_direction(x, y, _target.x, _target.y);
 _dir = deg_to_dir(_direction);
 if((_melee && d > range_melee) || (!_melee && d > _keep_range)) {
     dir = point_direction(_target.x, _target.y, x, y);
     if(_melee) {
-        _destx = round(_target.x + cos(degtorad(dir)) * (range_melee - 4));
-        _desty = round(_target.y - sin(degtorad(dir)) * (range_melee - 4));
+        _destx = round(_target.x + cos(degtorad(dir)) * (range_melee - 4 + unit_hitbox(_target) + unit_hitbox(id)));
+        _desty = round(_target.y - sin(degtorad(dir)) * (range_melee - 4 + unit_hitbox(_target) + unit_hitbox(id)));
     }
     else {
-        _destx = round(_target.x + cos(degtorad(dir)) * (_keep_range - 4));
-        _desty = round(_target.y - sin(degtorad(dir)) * (_keep_range - 4));
+        _destx = round(_target.x + cos(degtorad(dir)) * (_keep_range - 4 + unit_hitbox(_target) + unit_hitbox(id)));
+        _desty = round(_target.y - sin(degtorad(dir)) * (_keep_range - 4 + unit_hitbox(_target) + unit_hitbox(id)));
     }
 }
 else {

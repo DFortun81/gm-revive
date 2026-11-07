@@ -96,7 +96,7 @@ if(!_casting) {
     ds_list_clear(_aoelist);
     for(i = 0;i < size;i += 1) {
         index = ds_list_find_value(_enemylist, i);
-        if(point_distance(x, y, index.x, index.y) < 250) {
+        if(unit_dist(id, index) < 250) {
             ds_list_add(other._aoelist, index);
         }
     }
@@ -209,7 +209,7 @@ else {
             ds_list_clear(_aoelist);
             for(i = 0;i < size;i += 1) {
                 index = ds_list_find_value(_enemylist, i);
-                if(point_distance(x, y, index.x, index.y) < 250) {
+                if(unit_dist(id, index) < 250) {
                     ds_list_add(other._aoelist, index);
                 }
             }
@@ -251,7 +251,7 @@ else {
             ds_list_clear(_aoelist);
             for(i = 0;i < size;i += 1) {
                 index = ds_list_find_value(_enemylist, i);
-                if(point_distance(x, y, index.x, index.y) < 250) {
+                if(unit_dist(id, index) < 250) {
                     ds_list_add(other._aoelist, index);
                 }
             }

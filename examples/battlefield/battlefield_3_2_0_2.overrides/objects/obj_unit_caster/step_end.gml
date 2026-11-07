@@ -82,7 +82,7 @@ if(!_casting && !global.cutscene_active) {
             priority = 999999999;
             for(i = 0;i < size; i += 1;) {
                 index = ds_list_find_value(_enemylist, i);
-                dist = point_distance(x, y, index.x, index.y);
+                dist = unit_dist(id, index);
                 if(dist < range_cast) {
                     // They are in casting range
                     if(index._polymorphed) {
@@ -159,7 +159,7 @@ if(!_casting && !global.cutscene_active) {
         for(i = 0;i < size;i += 1) {
             index = ds_list_find_value(_allylist, i);
             if(index._jobclass != class_healer) {
-                dist = point_distance(x, y, index.x, index.y);
+                dist = unit_dist(id, index);
                 if(dist < _sightdistance) {
                     if((index._destx != index.x || index._desty != index.y) && units_exists(index._target)) {
                         _destx = index._destx;
@@ -183,7 +183,7 @@ if(!_casting && !global.cutscene_active) {
     }
     
     if(units_exists(_target)) {
-        dist = point_distance(x, y, _target.x, _target.y);
+        dist = unit_dist(id, _target);
         if(dist < range_cast) {
             // Instant Cast abilities
             if(_fireblast_cooldown <= 0) {
@@ -258,7 +258,7 @@ if(_target != -1) {
         if(index._target == id) {
             t = true; tar = index;
             
-            dist = point_distance(x, y, index.x, index.y);
+            dist = unit_dist(id, index);
             if(index._casting || dist <= range_melee) {
                 d = true; // DANGER! DANGER! OH SHIT SON!
             }
@@ -317,7 +317,7 @@ if(_casting) {
     else {
         // Target-Based Spells (that require range)
         if(units_exists(_target)) {
-            dist = point_distance(x, y, _target.x, _target.y);
+            dist = unit_dist(id, _target);
         }
         else dist = 999999;
         rng = range_cast;

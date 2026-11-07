@@ -14,7 +14,7 @@ alone = true;
 with(obj_unit) {
     if(_faction == me._faction && !dead && _jobclass != class_mirrorimage && id != me.id) {
         alone = false;
-        if(_health / _maxhealth < me._offense_panic && point_distance(x, y, me.x, me.y) < me._sightdistance) panic = true;
+        if(_health / _maxhealth < me._offense_panic && unit_dist(id, me) < me._sightdistance) panic = true;
     }
 }
 if(me._health / me._maxhealth < _offense_panic) panic = true;
@@ -23,7 +23,7 @@ if(_manatype_mana < _manatype_maxmana * _offense_min_mana) panic = true;
 if(_smite_casting) {
     d = 999999;
     if(units_exists(_smite_target)) {
-        if(!_smite_target.dead && !_smite_target._polymorphed) d = point_distance(x, y, _smite_target.x, _smite_target.y);
+        if(!_smite_target.dead && !_smite_target._polymorphed) d = unit_dist(id, _smite_target);
     }
     if(panic || d > _smite_range || _manatype_mana < _smite_manacost) {
         _smite_casting = false;
@@ -55,7 +55,7 @@ best = -1;
 bestd = 999999;
 with(obj_unit) {
     if(_faction != me._faction && !dead && !_polymorphed && !_stealthed) {
-        d = point_distance(x, y, me.x, me.y);
+        d = unit_dist(id, me);
         if(d < bestd && d < me._sightdistance) {
             bestd = d;
             best = id;

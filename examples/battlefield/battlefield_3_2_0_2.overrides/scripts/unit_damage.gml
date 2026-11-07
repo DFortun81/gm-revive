@@ -26,7 +26,7 @@ if(instance_exists(argument0)) {
         if(_vamp_timer > 0 && instance_exists(_vamp_boss)) {
             dmg *= 0.5;
             vb = _vamp_boss;
-            if(point_distance(x, y, argument0.x, argument0.y) <= range_melee * 1.6 && random(1) < vb._vamp_spread) marquis_vampirize(argument0, vb);
+            if(unit_dist(id, argument0) <= range_melee * 1.6 && random(1) < vb._vamp_spread) marquis_vampirize(argument0, vb);
         }
     }
     dmg = max(0, dmg - (dmg * argument0._damagereduction));

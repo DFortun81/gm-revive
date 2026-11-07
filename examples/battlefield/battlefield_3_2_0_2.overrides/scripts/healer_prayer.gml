@@ -12,7 +12,7 @@ if(_poh_casting) {
     _attackcastwait += 1;
     if(_attackcastwait >= _attackcasttime) {
         with(obj_unit) {
-            if(_faction == me._faction && !dead && _jobclass != class_mirrorimage && point_distance(x, y, me.x, me.y) < me._poh_radius) {
+            if(_faction == me._faction && !dead && _jobclass != class_mirrorimage && unit_dist(id, me) < me._poh_radius) {
                 if(_health < _maxhealth) with(me) { unit_heal(other.id, _poh_amount); fx_spell(other.id, "prayer of healing"); }
             }
         }
@@ -31,7 +31,7 @@ if(_poh_casting) {
 if((_attackcastwait > 0 && !_smite_casting) || _manatype_mana < _poh_manacost) return false;
 n = 0;
 with(obj_unit) {
-    if(_faction == me._faction && !dead && _jobclass != class_mirrorimage && point_distance(x, y, me.x, me.y) < me._poh_radius) {
+    if(_faction == me._faction && !dead && _jobclass != class_mirrorimage && unit_dist(id, me) < me._poh_radius) {
         if(_maxhealth - _health >= me._poh_min_missing) n += 1;
     }
 }

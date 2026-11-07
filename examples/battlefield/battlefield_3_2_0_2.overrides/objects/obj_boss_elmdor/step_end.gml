@@ -46,7 +46,7 @@ ds_list_clear(_targetlist);
 with(obj_unit) {
     if(_faction != other._faction && !dead) {
         ds_list_add(other._enemylist, id);
-        if(point_distance(x, y, other.x, other.y) < range_cast) ds_list_add(other._targetlist, id);
+        if(unit_dist(id, other) < range_cast) ds_list_add(other._targetlist, id);
     }
 }
 
@@ -97,7 +97,7 @@ else {
         if(_target != id && _target != -1) {
             // Attack that target!
             
-            if(point_distance(x, y, _target.x, _target.y) > range_melee) {
+            if(unit_dist(id, _target) > range_melee) {
                 // Vaelric Special Ability: Mist Step (was Teleport). He dissolves into mist and reforms
                 // behind his target, using the mist strip drawn for the later version of the game.
                 if(_teleport_cooldown <= 0 && _manatype_mana > _teleport_cost) {

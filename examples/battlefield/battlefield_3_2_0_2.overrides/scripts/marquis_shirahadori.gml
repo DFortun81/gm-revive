@@ -9,7 +9,7 @@ var b, a, melee;
 b = argument0; a = argument1;
 if(!instance_exists(a)) return false;
 if(!object_is_ancestor(a.object_index, obj_unit)) return false;
-if(point_distance(a.x, a.y, b.x, b.y) > range_melee * 1.6) return false;
+if(unit_dist(a, b) > range_melee * 1.6) return false;
 melee = false;
 switch(a._jobclass) {
     case class_warrior: case class_rogue: case class_paladin: case class_shaman: melee = true; break;

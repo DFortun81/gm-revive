@@ -5,13 +5,13 @@ _hateful_cooldown -= 1;
 if(_hateful_cooldown > 0) exit;
 
 // Hateful Strike
-d = point_distance(x, y, _target.x, _target.y);
+d = unit_dist(id, _target);
 hs = -1;
 hsh = -1;
 for(i = 0; i < ds_list_size(_enemylist); i += 1) {
     u = ds_list_find_value(_enemylist, i);
     if(u == _target || u._polymorphed) continue;
-    if(point_distance(x, y, u.x, u.y) <= range_melee + 12 && u._health > hsh) {
+    if(unit_dist(id, u) <= range_melee + 12 && u._health > hsh) {
         hsh = u._health;
         hs = u;
     }

@@ -56,7 +56,7 @@ with(obj_unit) {
                 _range = me._blight_burst_range;
             }
             with(obj_unit) {
-                if(_faction != me._faction && !dead && id != other.id && point_distance(x, y, other.x, other.y) < me._blight_burst_range) {
+                if(_faction != me._faction && !dead && id != other.id && unit_dist(id, other) < me._blight_burst_range) {
                     unit_damage(id, c_lime, me._blight_burst_damage * me._enrage_mult);
                     if(_blight_timer_on <= 0) _blight_timer_on = me._blight_duration;
                 }

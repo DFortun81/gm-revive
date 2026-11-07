@@ -12,7 +12,7 @@ if(_absorbamount > 0) return false; // let Mana Shield soak it first
 me = id; n = 0; ax = 0; ay = 0;
 with(obj_unit) {
     if(_faction != me._faction && !dead && !_polymorphed && !_stunned && _target == me && _jobclass != class_mirrorimage) {
-        if(point_distance(x, y, me.x, me.y) <= range_melee + 8) {
+        if(unit_dist(id, me) <= range_melee + 8) {
             n += 1; ax += x; ay += y;
         }
     }

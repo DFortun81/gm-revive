@@ -55,7 +55,7 @@ if(_attackcastwait <= 0) {
                 continue;
             }
             
-            dist = point_distance(x, y, other.x, other.y);
+            dist = unit_dist(id, other);
             if(dist < _sightdistance) {
                 calculate_incoming_effects(id, other.id);
                 
@@ -84,7 +84,7 @@ if(_smite_casting || (_attackcastwait <= 0 && !_poh_casting && maxhp < _offense_
 
 if(units_exists(_target)) {
     // Yes, we have a target
-    dist = point_distance(x, y, _target.x, _target.y);
+    dist = unit_dist(id, _target);
     if(dist >= _attackrange / 1.25) {
         // Move into our attack range
         _attackcastwait = 0;

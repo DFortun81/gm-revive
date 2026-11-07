@@ -8,7 +8,7 @@ for(i = ds_list_size(_aura_list) - 1; i >= 0; i -= 1) {
     u = ds_list_find_value(_aura_list, i);
     inrange = false;
     if(!dead && instance_exists(u)) {
-        if(!u.dead && point_distance(x, y, u.x, u.y) < _aura_range) inrange = true;
+        if(!u.dead && unit_dist(id, u) < _aura_range) inrange = true;
     }
     if(!inrange) {
         if(instance_exists(u)) {
@@ -26,7 +26,7 @@ if(dead) exit;
 
 with(obj_unit) {
     if(_faction == other._faction && !dead && _jobclass != class_mirrorimage) {
-        if(point_distance(x, y, other.x, other.y) < other._aura_range) {
+        if(unit_dist(id, other) < other._aura_range) {
             if(ds_list_find_index(other._aura_list, id) == -1) {
                 ds_list_add(other._aura_list, id);
                 _devotion_sources += 1;

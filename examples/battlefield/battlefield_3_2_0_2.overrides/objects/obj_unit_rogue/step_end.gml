@@ -127,7 +127,7 @@ brave = alone || _stealth_wait > room_speed * 12 || healthy;
 
 // Does a target exist?
 if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
-    dist = point_distance(x, y, _target.x, _target.y);
+    dist = unit_dist(id, _target);
     if(_target._stealthed && dist > _target._stealthed_visibility) { _target = -1; exit; }
     if(dist > _attackrange * 2) {
         // Is Sprint off cooldown?
@@ -157,7 +157,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
                 else {
                     for(i = 0; i < enemies; i += 1) {
                         index = ds_list_find_value(_enemylist, i);
-                        if(point_distance(x, y, index.x, index.y) < _attackrange && unit_is_casting(index)) {
+                        if(unit_dist(id, index) < _attackrange && unit_is_casting(index)) {
                             kt = index;
                             break;
                         }
@@ -275,7 +275,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
             mt = false;
             for(i = 0; i < target_amount; i += 1) {
                 index = ds_list_find_value(_targetlist, i);
-                if(point_distance(x, y, index.x, index.y) <= range_melee + 8) mt = true;
+                if(unit_dist(id, index) <= range_melee + 8) mt = true;
             }
             if(mt) {
                 _evasion_timer = _evasion_duration;
@@ -334,7 +334,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
         
         for(i = 0;i < enemies;i += 1) {
             with(ds_list_find_value(_enemylist, i)) {
-                dist = point_distance(x, y, other.x, other.y);
+                dist = unit_dist(id, other);
                 if(dist < maxdist) {
                     maxdist = dist;
                     other._target = id;
@@ -343,7 +343,7 @@ if(units_exists(_target) && ds_list_find_index(_enemylist, _target) >= 0) {
         }
         
         if(allies >= enemies || brave) {
-            dist = point_distance(x, y, _target.x, _target.y);
+            dist = unit_dist(id, _target);
             if(dist < _attackrange) {
                 // Ambush the bastard!
                 if(_health > (_maxhealth * .4) || !_vanish_active) {
@@ -421,7 +421,7 @@ else {
     
     for(i = 0;i < enemies; i += 1;) {
         with(ds_list_find_value(_enemylist, i)) {
-            dist = point_distance(x, y, other.x, other.y);
+            dist = unit_dist(id, other);
             if(!_polymorphed) {
                 // He's within my Line of Sight
                 if(_jobclass == class_healer && (priority > -1 || (priority == -1 && dist < maxdist))) {

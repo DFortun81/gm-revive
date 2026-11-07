@@ -55,14 +55,14 @@ best = -1;
 bestsc = 999999;
 with(obj_unit) {
     if(_faction != other._faction && !dead && !_stealthed && _jobclass != class_mirrorimage) {
-        sc = point_distance(x, y, other.x, other.y);
+        sc = unit_dist(id, other);
         if(_jobclass == class_healer || _jobclass == class_caster) sc -= 150;
         if(sc < bestsc) { bestsc = sc; best = id; }
     }
 }
 _target = best;
 if(best == -1) { _destx = x; _desty = y; exit; }
-d = point_distance(x, y, best.x, best.y);
+d = unit_dist(id, best);
 _direction = point_direction(x, y, best.x, best.y);
 _dir = deg_to_dir(_direction);
 
@@ -79,7 +79,7 @@ if(!_reborn) {
         u = -1; bestsc = 999999;
         with(obj_unit) {
             if(_faction != other._faction && !dead && !_stunned && !_stunimmune && _jobclass != class_mirrorimage && _bossid == -1) {
-                sc = point_distance(x, y, other.x, other.y);
+                sc = unit_dist(id, other);
                 if(sc < range_cast) {
                     if(_jobclass == class_healer || _jobclass == class_paladin || _jobclass == class_shaman || _jobclass == class_druid) sc -= 200;
                     if(sc < bestsc) { bestsc = sc; u = id; }
@@ -98,8 +98,8 @@ if(!_reborn) {
 }
 if(d > _attackrange) {
     dir = point_direction(best.x, best.y, x, y);
-    _destx = round(best.x + cos(degtorad(dir)) * (_attackrange - 2));
-    _desty = round(best.y - sin(degtorad(dir)) * (_attackrange - 2));
+    _destx = round(best.x + cos(degtorad(dir)) * (_attackrange - 2 + unit_hitbox(best) + unit_hitbox(id)));
+    _desty = round(best.y - sin(degtorad(dir)) * (_attackrange - 2 + unit_hitbox(best) + unit_hitbox(id)));
 }
 else {
     _destx = x; _desty = y;

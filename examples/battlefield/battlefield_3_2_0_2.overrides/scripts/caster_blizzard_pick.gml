@@ -10,7 +10,7 @@ size = ds_list_size(_enemylist);
 for(i = 0; i < size; i += 1) {
     u = ds_list_find_value(_enemylist, i);
     if(u.dead || u._polymorphed || u._jobclass == class_mirrorimage) continue;
-    if(point_distance(x, y, u.x, u.y) >= range_cast) continue;
+    if(unit_dist(id, u) >= range_cast) continue;
     n = caster_blizzard_count(u.x, u.y);
     if(n > bestn) {
         bestn = n;

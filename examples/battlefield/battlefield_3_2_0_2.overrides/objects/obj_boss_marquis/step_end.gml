@@ -72,7 +72,7 @@ if(_cast != 0) {
             // Muramasa: the ghosts of the sword strike everyone in casting range
             for(i = 0; i < ds_list_size(_enemylist); i += 1) {
                 u = ds_list_find_value(_enemylist, i);
-                if(!u.dead && point_distance(x, y, u.x, u.y) < range_cast) {
+                if(!u.dead && unit_dist(id, u) < range_cast) {
                     unit_damage(u, c_purple, _muramasa_damage * _enrage_mult);
                     p = fx_make(7, u.x, u.y, u.sprite_height * 0.5, make_color_rgb(190, 170, 255), 0.8, 10); p.image_angle = random(360); p._dz = 3;
                 }
@@ -136,14 +136,14 @@ if(_kiku_cooldown <= 0) {
     n = 0;
     for(i = 0; i < ds_list_size(_enemylist); i += 1) {
         u = ds_list_find_value(_enemylist, i);
-        if(u.dead || point_distance(x, y, u.x, u.y) > _kiku_range) continue;
+        if(u.dead || unit_dist(id, u) > _kiku_range) continue;
         d = ((point_direction(x, y, u.x, u.y) - _direction + 540) mod 360) - 180;
         if(abs(d) <= _kiku_arc) n += 1;
     }
     if(n >= 2) {
         for(i = 0; i < ds_list_size(_enemylist); i += 1) {
             u = ds_list_find_value(_enemylist, i);
-            if(u.dead || point_distance(x, y, u.x, u.y) > _kiku_range) continue;
+            if(u.dead || unit_dist(id, u) > _kiku_range) continue;
             d = ((point_direction(x, y, u.x, u.y) - _direction + 540) mod 360) - 180;
             if(abs(d) <= _kiku_arc) unit_damage(u, c_yellow, _kiku_damage * _enrage_mult);
         }
@@ -167,7 +167,7 @@ if(_vamp_cooldown <= 0) {
     for(i = 0; i < ds_list_size(_enemylist); i += 1) {
         u = ds_list_find_value(_enemylist, i);
         if(u == _target || u.dead || u._stealthed || u._canheal || u._jobclass < 0 || u._jobclass == class_mirrorimage || u._bossid != -1) continue;
-        v = point_distance(x, y, u.x, u.y);
+        v = unit_dist(id, u);
         if(v < bestv) { bestv = v; best = u; }
     }
     if(best != -1) {
