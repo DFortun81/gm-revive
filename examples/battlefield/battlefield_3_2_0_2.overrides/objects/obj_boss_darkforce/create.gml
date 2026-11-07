@@ -17,4 +17,4 @@ _blackwave_casttime = room_speed * 30; // (gm-revive overrides) 30 s, as in Call
 
 _attackcasttime = _blackwave_casttime;
 _attackcastwait = 0;
-_height = 64;
+_height = 130; // (gm-revive overrides) how high above Zio the face hovers: up clear of the damage text and health bars (was 64)
