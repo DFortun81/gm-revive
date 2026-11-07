@@ -13,7 +13,7 @@ switch(_kind) {
     case 6: f = 1; s = _size; ang = image_angle; a = _alpha * (1 - t); break;                                 // star
     case 8: f = 2; s = _size * (1 - 0.85 * t); ys = _squash; a = _alpha * min(1, t * 4) * (1 - t * 0.5); break; // implode
     case 9: f = 5; s = _size * (0.4 + 0.6 * t); a = _alpha * min(1, _life / 3); break;                       // bubble
-    case 10: f = 3; s = _size; ys = _squash; ang = image_angle; a = _alpha * min(1, t * 5) * min(1, (1 - t) * 4); break; // rune
+    case 10: f = 3; s = _size; ys = _squash; ang = 0; a = _alpha * min(1, t * 5) * min(1, (1 - t) * 4); break; // rune (kept flat on the ground: no rotation)
     case 7: f = 4; s = _size * (0.85 + 0.3 * t); ang = image_angle; a = _alpha * (1 - t); break;             // slash
 }
 if(_kind == 5) n = 12; else n = 0;

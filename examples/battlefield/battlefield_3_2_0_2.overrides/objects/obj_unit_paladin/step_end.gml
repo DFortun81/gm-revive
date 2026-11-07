@@ -361,6 +361,7 @@ if(units_exists(_target)) {
             _consecration_cooldown = _consecration_cooldown_time;
             unit_mana(id, -_consecration_cost);
             paladin_consecration_pulse(x, y, _consecration_range);
+            with(instance_create(x, y, obj_fx_consecration)) { _r = other._consecration_range; _life = other._consecration_duration; }
             create_text_effect(x, y, c_yellow, "-consecration-");
         }
         else if(_judgement_cooldown <= 0 && _manatype_mana >= _judgement_cost) {
