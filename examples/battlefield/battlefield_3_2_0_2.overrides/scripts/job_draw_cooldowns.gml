@@ -2,11 +2,56 @@
 // Draws the unit's ability cooldowns in a window whose bottom-left corner is (x, y): a bar that
 // empties as the ability comes back, or "ready". Used for the selected unit.
 // (gm-revive overrides: the original was an empty stub with just the first two arguments)
+// Classes list ability prefixes (vars[i] + "_cooldown" / "_cooldown_time"); bosses name the two
+// variables directly in cdn[i] / ctn[i], since some count their own timers. "__enrage" is the raid
+// bosses' enrage clock, shown as time left until it hits and then ENRAGED.
 ////////////////////////////////////////////////////////////////////////////////////////////
-var names, vars, n, i, cd, cdt, wx, wy, w, rh, frac;
+var names, vars, cdn, ctn, n, i, cd, cdt, wx, wy, w, rh, frac, o, boss;
 if(!argument1 || !instance_exists(argument0)) exit;
 n = 0;
-switch(argument0._jobclass) {
+o = argument0.object_index;
+boss = true;
+switch(o) {
+    case obj_boss_stitchgut:
+        names[0] = "Hateful Strike"; cdn[0] = "_hateful_cooldown"; ctn[0] = "_hateful_cooldown_time";
+        n = 1;
+    break;
+    case obj_boss_lichcaller:
+        names[0] = "Shadow Bolt"; cdn[0] = "_bolt_cooldown"; ctn[0] = "_bolt_cooldown_time";
+        names[1] = "Dark Mending"; cdn[1] = "_mend_cooldown"; ctn[1] = "_mend_cooldown_time";
+        names[2] = "Shadow Volley"; cdn[2] = "_volley_cooldown"; ctn[2] = "_volley_cooldown_time";
+        names[3] = "Frostbolt Volley"; cdn[3] = "_frost_cooldown"; ctn[3] = "_frost_cooldown_time";
+        n = 4;
+    break;
+    case obj_boss_broodmother:
+        names[0] = "Call the Brood"; cdn[0] = "_brood_cooldown"; ctn[0] = "_brood_cooldown_time";
+        n = 1;
+    break;
+    case obj_boss_blighted:
+        names[0] = "Blight Aura"; cdn[0] = "_aura_timer"; ctn[0] = "_aura_time";
+        names[1] = "Festering Blight"; cdn[1] = "_blight_timer"; ctn[1] = "_blight_time";
+        n = 2;
+    break;
+    case obj_boss_zio:
+        names[0] = "Corrosion"; cdn[0] = "_corrsion_cooldown"; ctn[0] = "_corrsion_cooldown_time";
+        names[1] = "Hewn"; cdn[1] = "_hewn_cooldown"; ctn[1] = "_hewn_cooldown_time";
+        names[2] = "Magic Barrier"; cdn[2] = "_magicbarrier_cooldown"; ctn[2] = "_magicbarrier_cooldown_time";
+        names[3] = "Nightmare"; cdn[3] = "_nightmare_cooldown"; ctn[3] = "_nightmare_cooldown_time";
+        n = 4;
+    break;
+    case obj_boss_elmdor:
+        names[0] = "Muramasa"; cdn[0] = "_muramasa_cooldown"; ctn[0] = "_muramasa_cooldown_time";
+        names[1] = "Masamune"; cdn[1] = "_masamune_cooldown"; ctn[1] = "_masamune_cooldown_time";
+        names[2] = "Teleport"; cdn[2] = "_teleport_cooldown"; ctn[2] = "_teleport_cooldown_time";
+        n = 3;
+    break;
+    default: boss = false; break;
+}
+if(boss && object_is_ancestor(o, obj_boss_raid)) {
+    names[n] = "Enrage"; cdn[n] = "__enrage"; ctn[n] = "";
+    n += 1;
+}
+if(!boss) switch(argument0._jobclass) {
     case class_warrior:
         names[0] = "Charge"; vars[0] = "_charge";
         names[1] = "Heroic Strike"; vars[1] = "_heroicstrike";
@@ -72,6 +117,7 @@ switch(argument0._jobclass) {
         n = 6;
     break;
 }
+if(!boss) for(i = 0; i < n; i += 1) { cdn[i] = vars[i] + "_cooldown"; ctn[i] = vars[i] + "_cooldown_time"; }
 if(n == 0) exit; // Healers have no cooldowns (Prayer of Healing included)
 
 rh = 16; w = 190;
@@ -82,15 +128,20 @@ draw_window_skinned(wx, wy, wx + w, argument3);
 draw_set_alpha(1);
 draw_set_font(fnt_normal);
 for(i = 0; i < n; i += 1) {
-    with(argument0) {
-        cd = variable_local_get(vars[i] + "_cooldown");
-        cdt = variable_local_get(vars[i] + "_cooldown_time");
+    if(cdn[i] == "__enrage") with(argument0) { cd = _enrage_time - _fight_steps; cdt = _enrage_time; }
+    else with(argument0) {
+        cd = variable_local_get(cdn[i]);
+        cdt = variable_local_get(ctn[i]);
     }
     draw_set_halign(fa_left);
     draw_set_color(c_white);
     draw_text(wx + 10, wy + 6 + i * rh, names[i]);
     draw_set_halign(fa_right);
-    if(cd <= 0 || cdt <= 0) {
+    if(cdn[i] == "__enrage" && cd <= 0) {
+        draw_set_color(c_red);
+        draw_text(wx + w - 10, wy + 6 + i * rh, "ENRAGED");
+    }
+    else if(cd <= 0 || cdt <= 0) {
         draw_set_color(c_lime);
         draw_text(wx + w - 10, wy + 6 + i * rh, "ready");
     }
