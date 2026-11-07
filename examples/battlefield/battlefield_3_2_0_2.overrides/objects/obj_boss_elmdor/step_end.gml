@@ -5,13 +5,14 @@ event_inherited();
 // (gm-revive overrides) Both armies fight him together now (a common enemy, like Zio), so his health
 // is set per unit on the field here, once (the game's create event gives him 6,000 a unit)
 if(!variable_local_exists("_health_per_unit")) {
-    _health_per_unit = 3000;
+    _health_per_unit = 2600;
     _maxhealth = _health_per_unit * instance_number(obj_unit);
     _health = _maxhealth;
     _drain_victim = -1;   // Blood Suck: who he's draining, and how they looked before
     _drain_y0 = 0;
     _drain_blend0 = c_white;
     _drain_pulse = 0;     // flares his red glow when a drain heals him
+    _phase_time = 0;      // Mist Step: steps left out of phase (gone as mist, between leaving and reforming)
 }
 if(_drain_pulse > 0) _drain_pulse -= 1;
 
@@ -45,6 +46,15 @@ with(obj_unit) {
 var enemies, targets, i, priority, pid, index, val, p;
 enemies = ds_list_size(_enemylist);
 targets = ds_list_size(_targetlist);
+
+// (gm-revive overrides) Out of phase after Mist Step: he waits as mist, then reforms near a target
+if(_phase_time > 0) {
+    _phase_time -= 1;
+    image_alpha = 0; _stealthed_alpha = 0;
+    _destx = x; _desty = y;
+    if(_phase_time <= 0) vaelric_mist_reform();
+    exit;
+}
 
 if(enemies == 0) {
     _casting = false;
@@ -86,26 +96,17 @@ else {
                 if(_teleport_cooldown <= 0 && _manatype_mana > _teleport_cost) {
                     with(instance_create(x, y, obj_fx_strip)) { _spr = spr_vaelric_mist; _glow = spr_vaelric_mist_glow; _f0 = 0; _f1 = 11; _len = 18; }
                     repeat(4) with(instance_create(x, y, obj_fx_bat)) _ang = random(360);
-                    // (gm-revive overrides) He reforms behind his target as before, but only if that's well
-                    // inside the screen; otherwise on the side of the target toward the middle of the field,
-                    // so he never lands off screen
-                    var dir, mx0, my0, mx1, my1, nx, ny;
-                    mx0 = 48; my0 = 80; mx1 = room_width - 48; my1 = room_height - 48;
-                    dir = degtorad(_target._direction - 180);
-                    nx = _target.x + cos(dir) * (range_melee * 3);
-                    ny = _target.y - sin(dir) * (range_melee * 3);
-                    if(nx < mx0 || nx > mx1 || ny < my0 || ny > my1) {
-                        dir = degtorad(point_direction(_target.x, _target.y, room_width / 2, room_height / 2));
-                        nx = _target.x + cos(dir) * (range_melee * 3);
-                        ny = _target.y - sin(dir) * (range_melee * 3);
-                    }
-                    x = median(mx0, nx, mx1);
-                    y = median(my0, ny, my1);
-                    _destx = x;
-                    _desty = y;
-                    with(instance_create(x, y, obj_fx_strip)) { _spr = spr_vaelric_mist; _glow = spr_vaelric_mist_glow; _f0 = 11; _f1 = 0; _len = 18; _master = other.id; }
+                    // (gm-revive overrides) He stays out of phase for a second and a half before he
+                    // reforms (vaelric_mist_reform), so the armies get a chance to move about; while he's
+                    // gone he can't be seen, targeted or hurt
+                    _phase_time = round(room_speed * 1.5);
+                    _stealthed = true; _stealthed_visibility = 0;
+                    image_alpha = 0; _stealthed_alpha = 0;
+                    _destx = x; _desty = y;
+                    with(obj_unit) if(_target == other.id) _target = -1;   // they lose sight of him
                     unit_mana(id, -_teleport_cost);
                     _teleport_cooldown = _teleport_cooldown_time;
+                    exit;
                 }
             }
             

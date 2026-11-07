@@ -5,6 +5,9 @@ barsize = 16;
 if(!_stealthed) _stealthed_alpha += (image_alpha - _stealthed_alpha) / 10;
 else _stealthed_alpha += (0.1 - _stealthed_alpha) / 10;
 
+// (gm-revive overrides) Count Vaelric out of phase after Mist Step: nothing to draw (not even his bars)
+if(object_index == obj_boss_elmdor && variable_local_exists("_phase_time")) { if(_phase_time > 0) exit; }
+
 // (gm-revive overrides) Count Vaelric's red glow (his glow strip from the later version of the game)
 // pulses round him while Blood Suck drains someone, and flares each time it heals him
 var vg, vfx, vfy, vtx, vty, vi, vn, vt, vpx, vpy, vqx, vqy, vk;

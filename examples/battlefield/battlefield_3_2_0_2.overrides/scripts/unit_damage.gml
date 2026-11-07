@@ -5,6 +5,12 @@ var dmg, v, vb;
 v = argument2 * 0.25; // Variant
 dmg = argument2 + round(random(v) - (v / 2));
 if(instance_exists(argument0)) {
+    // (gm-revive overrides) Count Vaelric can't be hurt while he's out of phase after Mist Step
+    if(argument0.object_index == obj_boss_elmdor) {
+        var ph; ph = 0;
+        with(argument0) if(variable_local_exists("_phase_time")) ph = _phase_time;
+        if(ph > 0) return 0;
+    }
     // (gm-revive overrides) Zio's Magic Barrier: holy power (Paladins, Healers) breaks it four times as
     // fast (4x); anything else only scratches it, at 15% strength. Like the Psycho Wand in Phantasy Star IV.
     if(argument0.object_index == obj_boss_zio) {
