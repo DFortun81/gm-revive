@@ -160,3 +160,35 @@ class SpriteOverrideTests(unittest.TestCase):
             with self.assertRaises(ov.OverrideError) as cm:
                 ov.apply(project(), d)
             self.assertIn('does not divide', str(cm.exception))
+
+
+class SoundOverrideTests(unittest.TestCase):
+    def test_sounds_are_replaced_and_added(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, 'sounds'))
+            with open(os.path.join(d, 'sounds', 'snd_hit.wav'), 'wb') as fh:
+                fh.write(b'RIFFnew')
+            with open(os.path.join(d, 'sounds', 'snd_theme.mid'), 'wb') as fh:
+                fh.write(b'MThd')
+            with open(os.path.join(d, 'sounds', 'snd_theme.json'), 'w') as fh:
+                fh.write('{"kind": 1, "volume": 0.5}')
+            g = project()
+            g['sounds'] = [{'name': 'snd_hit', 'index': 0, 'kind': 0, 'ext': '.wav', 'file': 'hit.wav', 'data': b'RIFFold',
+                            'effects': 0, 'volume': 1.0, 'pan': 0.0, 'preload': True}]
+            changes = ov.apply(g, d)
+            self.assertEqual(g['sounds'][0]['data'], b'RIFFnew')
+            new = g['sounds'][1]
+            self.assertEqual((new['name'], new['index'], new['kind'], new['ext'], new['volume']), ('snd_theme', 1, 1, '.mid', 0.5))
+            self.assertIn('sound snd_hit (replaced)', changes)
+            self.assertIn('sound snd_theme (added)', changes)
+
+    def test_unknown_sound_options_are_reported(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, 'sounds'))
+            with open(os.path.join(d, 'sounds', 'snd_x.wav'), 'wb') as fh:
+                fh.write(b'RIFF')
+            with open(os.path.join(d, 'sounds', 'snd_x.json'), 'w') as fh:
+                fh.write('{"loop": true}')
+            with self.assertRaises(ov.OverrideError) as cm:
+                ov.apply(project(), d)
+            self.assertIn('unknown keys', str(cm.exception))

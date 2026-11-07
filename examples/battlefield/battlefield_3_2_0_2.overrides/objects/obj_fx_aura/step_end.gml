@@ -15,6 +15,7 @@ switch(_kind) {
     case 5: on = on && _master._haste_timer > 0; break;
     case 6: on = on && _master._vamp_timer > 0; break;
     case 7: on = true; break; // stays for the whole fight; draws only while the barrier holds
+    case 8: on = on && _master._zio_curse > 0; break;
 }
 if(_ending < 0) {
     if(!on) {
@@ -67,6 +68,11 @@ if(_ending < 0) {
         }
         _last_absorb = _master._absorbamount;
         if(_hit > 0) _hit -= 1;
+    }
+    if(_kind == 8 && _t mod 6 == 0) {
+        // the curse: black wisps rising off the unit
+        p = fx_make(0, x + random_range(-7, 7), y, random_range(6, _master.sprite_height * 0.8), make_color_rgb(25, 10, 35), 0.3, 24);
+        p._add = false; p._vh = 0.4; p._grow = 1.8; p._alpha = 0.7;
     }
     if(_kind == 4 && _t mod 7 == 0) {
         p = fx_make(0, x + random_range(-7, 7), y, random_range(6, _master.sprite_height * 0.8), make_color_rgb(150, 60, 200), 0.3, 22);

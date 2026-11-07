@@ -8,6 +8,8 @@ Layout (default folder: <project name>.overrides next to the project file):
                                             or changes an existing object's properties
     sprites/<sprite_name>.png               replaces that sprite's images, or adds a new sprite
     sprites/<sprite_name>.json              (optional) how to cut the PNG into frames, see below
+    sounds/<sound_name>.wav|.mp3|.ogg|.mid  replaces that sound, or adds a new one
+    sounds/<sound_name>.json                (optional) {"kind": 0 sound effect / 1 music, "volume": 0-1}
 
 object.json keys (all optional; names refer to resources in the project or to other new objects):
     {"sprite": "spr_name", "parent": "obj_name", "mask": "spr_name", "depth": 0,
@@ -92,6 +94,9 @@ def apply(g, folder):
     spdir = os.path.join(folder, 'sprites')
     if os.path.isdir(spdir):
         changes += _apply_sprites(g, spdir)
+    sndir = os.path.join(folder, 'sounds')
+    if os.path.isdir(sndir):
+        changes += _apply_sounds(g, sndir)
     odir = os.path.join(folder, 'objects')
     if os.path.isdir(odir):
         objects = {o['name']: o for o in g['objects'] if o}
@@ -269,6 +274,49 @@ def _apply_sprites(g, spdir):
             g['sprites'].append(sp)
             by_name[name] = sp
             changes.append(f'sprite {name} (added, {count} frames of {fw}x{fh})')
+    return changes
+
+
+SOUND_TYPES = ('.wav', '.mp3', '.ogg', '.mid', '.midi')
+SOUND_KEYS = {'kind', 'volume'}
+
+
+def _apply_sounds(g, sndir):
+    """sounds/<name>.<ext> replaces a sound's data or adds a new sound (a new one is a sound effect unless
+    its .json says "kind": 1, background music). MIDI is rendered to MP3 by the build like the game's own."""
+    changes = []
+    g.setdefault('sounds', [])
+    by_name = {s['name']: s for s in g['sounds'] if s}
+    for f in sorted(os.listdir(sndir)):
+        name, ext = os.path.splitext(f)
+        if ext.lower() not in SOUND_TYPES:
+            continue
+        opts = {}
+        jp = os.path.join(sndir, name + '.json')
+        if os.path.exists(jp):
+            try:
+                with open(jp, encoding='utf-8') as fh:
+                    opts = json.load(fh)
+            except ValueError as e:
+                raise OverrideError(f'overrides: sounds/{name}.json is not valid JSON: {e}')
+            bad = set(opts) - SOUND_KEYS
+            if bad:
+                raise OverrideError(f'overrides: sounds/{name}.json: unknown keys {sorted(bad)} (allowed: {sorted(SOUND_KEYS)})')
+        with open(os.path.join(sndir, f), 'rb') as fh:
+            data = fh.read()
+        if name in by_name:
+            sn = by_name[name]
+            sn.update({'ext': ext.lower(), 'file': f, 'data': data})
+            for k in opts:
+                sn[k] = opts[k]
+            changes.append(f'sound {name} (replaced)')
+        else:
+            sn = {'name': name, 'index': len(g['sounds']), 'kind': int(opts.get('kind', 0)), 'ext': ext.lower(),
+                  'file': f, 'data': data, 'effects': 0, 'volume': float(opts.get('volume', 1)), 'pan': 0.0,
+                  'preload': True}
+            g['sounds'].append(sn)
+            by_name[name] = sn
+            changes.append(f'sound {name} (added)')
     return changes
 
 

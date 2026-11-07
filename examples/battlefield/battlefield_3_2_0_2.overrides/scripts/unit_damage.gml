@@ -1,10 +1,15 @@
-// (gm-revive overrides: the game's own unit_damage, plus the two hooks for Marquis Elmdor below)
+// (gm-revive overrides: the game's own unit_damage, plus hooks for Zio's Magic Barrier and Marquis Elmdor below)
 // unit_damage(id, color, damage, disallow_text);
 ///////////////////////////////////////////////////
 var dmg, v, vb;
 v = argument2 * 0.25; // Variant
 dmg = argument2 + round(random(v) - (v / 2));
 if(instance_exists(argument0)) {
+    // (gm-revive overrides) Zio's Magic Barrier: holy power (Paladins, Healers) breaks it four times as
+    // fast (4x); anything else only scratches it, at 15% strength. Like the Psycho Wand in Phantasy Star IV.
+    if(argument0.object_index == obj_boss_zio) {
+        if(argument0._absorbamount > 0) dmg *= zio_barrier_factor(argument0, id);
+    }
     // (gm-revive overrides) Marquis Elmdor's Shirahadori catches melee blows
     if(argument0.object_index == obj_boss_marquis) {
         if(marquis_shirahadori(argument0, id, dmg)) return 0;

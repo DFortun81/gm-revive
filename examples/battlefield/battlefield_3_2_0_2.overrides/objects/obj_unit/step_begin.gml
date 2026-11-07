@@ -19,6 +19,31 @@ if(object_index == obj_boss_zio) {
         _fx_barrier._kind = 7;
     }
 }
+// While Zio is on the field both armies fight him together (the common enemy, as in Phantasy Star IV):
+// the Horde joins the Alliance, and goes back to its own side when he's gone (gm-revive overrides)
+if(_bossid == -1) {
+    if(instance_exists(obj_boss_zio)) {
+        if(_faction == "Horde") { _zio_faction = "Horde"; _faction = "Alliance"; _target = -1; }
+    }
+    else if(variable_local_exists("_zio_faction")) {
+        if(_zio_faction != "") { _faction = _zio_faction; _zio_faction = ""; _target = -1; }
+    }
+}
+// Zio's Black Wave curse hurts every second until the unit is healed to full (gm-revive overrides)
+if(variable_local_exists("_zio_curse")) {
+    if(_zio_curse > 0) {
+        if(dead || _health >= _maxhealth) { _zio_curse = 0; if(!dead) create_text_effect(x, y, c_white, "-curse lifted-"); }
+        else if(!global.toggle_pause && !global.cutscene_active) {
+            if(!variable_local_exists("_zio_curse_tick")) _zio_curse_tick = 0;
+            _zio_curse_tick += 1;
+            if(_zio_curse_tick >= room_speed) {
+                _zio_curse_tick = 0;
+                if(instance_exists(obj_boss_zio)) { with(obj_boss_zio) unit_damage(other.id, c_purple, other._zio_curse); }
+                else unit_damage(id, c_purple, _zio_curse);
+            }
+        }
+    }
+}
 // Stars over anyone stunned, however they were stunned (gm-revive overrides)
 if(!variable_local_exists("_fx_stun")) _fx_stun = -1;
 if(_stunned && !dead && !instance_exists(_fx_stun)) {

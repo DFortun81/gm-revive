@@ -75,6 +75,9 @@ switch(_kind) {
             draw_set_blend_mode(bm_normal);
         }
     break;
+    case 8: // Black Wave curse: a dark haze (the rising wisps are particles)
+        draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.4, 0.8, 1, 0, make_color_rgb(30, 10, 45), 0.35 * fade);
+    break;
     case 4: // Shadow Word: Pain: a dark haze around the target (the rising wisps are particles)
         draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.4, 0.8, 1, 0, make_color_rgb(90, 30, 130), 0.3 * fade);
     break;
