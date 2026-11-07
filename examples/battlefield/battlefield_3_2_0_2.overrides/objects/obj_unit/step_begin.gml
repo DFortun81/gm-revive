@@ -17,6 +17,16 @@ if(_stunned && !dead && !instance_exists(_fx_stun)) {
     _fx_stun._master = id;
     _fx_stun._kind = 0;
 }
+// Marquis Elmdor's Vampire wears off after a while, or once the vampire is beaten down to a quarter of
+// its health (the stand-in for being knocked out and raised), or if the Marquis is gone
+if(variable_local_exists("_vamp_timer")) {
+    if(_vamp_timer > 0) {
+        _vamp_timer -= 1;
+        if(_vamp_timer <= 0) { _vamp_timer = 1; marquis_unvamp(id); }
+        else if(dead || _health < _maxhealth * 0.25 || !instance_exists(_vamp_boss)) marquis_unvamp(id);
+        else if(_vamp_boss.dead) marquis_unvamp(id);
+    }
+}
 if(_silenced > 0) {
     _silenced -= 1;
     _attackcastwait = 0;

@@ -93,9 +93,10 @@ faction_set_unit_sprite("Alliance", class_druid, spr_blue_druid);
 faction_set_unit_sprite("Alliance", class_paladin, spr_blue_paladin);
 
 boss_create("Zio", obj_boss_zio, snd_ziointro, snd_zioboss);
-boss_create("Elmdor", obj_boss_elmdor, snd_elmdor_main, snd_elmdor_main);
+boss_create("Vaelric", obj_boss_elmdor, snd_elmdor_main, snd_elmdor_main); // (gm-revive overrides) was "Elmdor": now a vampire lord, see obj_boss_marquis
 // (gm-revive overrides) the raid bosses (key 8 spawns them in turn): Stitchgut the tank-and-spank,
-// Lichcaller the interrupt check, Broodmother the adds fight, The Blighted the healing check
+// Lichcaller the interrupt check, Broodmother the adds fight, The Blighted the healing check,
+// Marquis Elmdor the duel (from Final Fantasy Tactics: Shirahadori, Vampire, Celia and Lede)
 global.boss_stitchgut = ds_list_size(global.boss_name);
 boss_create("Stitchgut", obj_boss_stitchgut, snd_zioboss, snd_zioboss);
 global.boss_lichcaller = ds_list_size(global.boss_name);
@@ -108,16 +109,22 @@ global.raid_boss_ids[2] = global.boss_broodmother;
 global.boss_blighted = ds_list_size(global.boss_name);
 boss_create("Blighted", obj_boss_blighted, snd_zioboss, snd_zioboss);
 global.raid_boss_ids[3] = global.boss_blighted;
+global.boss_marquis = ds_list_size(global.boss_name);
+boss_create("Elmdor", obj_boss_marquis, snd_elmdor_main, snd_elmdor_main);
+global.raid_boss_ids[4] = global.boss_marquis;
+global.raid_boss_count = 5;
 // The faction each one spawns as; the game shows it in front of the name ("Dark Prophet Zio")
 global.raid_boss_titles[0] = "Abomination";
 global.raid_boss_titles[1] = "Undying";
 global.raid_boss_titles[2] = "Hive";
 global.raid_boss_titles[3] = "The"; // shown as "The Blighted"
+global.raid_boss_titles[4] = "Marquis";
 // Names for the match label, results and messages
 global.raid_boss_display[0] = "Stitchgut";
 global.raid_boss_display[1] = "Lichcaller";
 global.raid_boss_display[2] = "Broodmother";
 global.raid_boss_display[3] = "The Blighted";
+global.raid_boss_display[4] = "Marquis Elmdor";
 if(!variable_global_exists("raid_boss_next")) global.raid_boss_next = 0;
 
 // (gm-revive overrides) The armies now come from match_setup: each reset picks one of several

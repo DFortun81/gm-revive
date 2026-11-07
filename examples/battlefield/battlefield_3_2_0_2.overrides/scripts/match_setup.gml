@@ -20,7 +20,7 @@ switch(f) {
     case 5: n = 15; break; // Boss: a random 15-unit raid against one of the raid bosses
     default: n = 0; break;
 }
-global.match_boss = irandom(3); // which raid boss, if this is a Boss match
+global.match_boss = irandom(global.raid_boss_count - 1); // which raid boss, if this is a Boss match
 global.match_over = false;
 global.match_end_timer = 0;
 global.match_steps = 0;

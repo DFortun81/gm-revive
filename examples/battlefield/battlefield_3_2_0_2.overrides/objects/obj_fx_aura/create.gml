@@ -1,6 +1,7 @@
 // An effect that stays on a unit while something lasts (gm-revive overrides), drawn from spr_fx_misc.
 // _kind: 0 stunned (circling stars), 1 Divine Shield / Blessing of Protection (a golden bubble),
-// 2 Evasion (afterimages), 3 Evocation (a rune circle with motes spiralling in), 4 Shadow Word: Pain
+// 2 Evasion (afterimages), 3 Evocation (a rune circle with motes spiralling in), 4 Shadow Word: Pain,
+// 5 Masamune (Regen and Haste on Marquis Elmdor), 6 Vampire
 _master = -1;
 _kind = 0;
 _t = 0;

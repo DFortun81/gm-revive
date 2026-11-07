@@ -3,7 +3,7 @@ if(global.toggle_pause) exit;
 if(!instance_exists(_master)) { instance_destroy(); exit; }
 _t += 1;
 x = _master.x; y = _master.y;
-if(_kind == 2 || _kind == 3) depth = _master.depth + 1; // behind the unit
+if(_kind == 2 || _kind == 3 || _kind == 5) depth = _master.depth + 1; // behind the unit
 else depth = _master.depth - 1;
 on = !_master.dead;
 switch(_kind) {
@@ -12,6 +12,8 @@ switch(_kind) {
     case 2: on = on && _master._evasion_timer > 0; break;
     case 3: on = on && _master._evocation_casting; break;
     case 4: on = on && instance_exists(_src); if(on) on = _src._swp_timer > 0 && _src._swp_target == _master; break;
+    case 5: on = on && _master._haste_timer > 0; break;
+    case 6: on = on && _master._vamp_timer > 0; break;
 }
 if(_ending < 0) {
     if(!on) {
@@ -36,6 +38,16 @@ if(_ending < 0) {
         if(irandom(2) == 0) p._col = make_color_rgb(150, 90, 255);
         p._master = _master; p._ang = random(360); p._rad = 24 + random(10);
         p._ch = _master.sprite_height * 0.5; p._spin = 8;
+    }
+    if(_kind == 5 && _t mod 10 == 0) {
+        // Regen: green motes rising off him
+        p = fx_make(2, x + random_range(-10, 10), y, random_range(4, _master.sprite_height), make_color_rgb(130, 255, 150), 0.35, 20);
+        p._vh = 0.6;
+    }
+    if(_kind == 6 && _t mod 9 == 0) {
+        // Vampire: a drop of blood now and then
+        p = fx_make(0, x + random_range(-5, 5), y, random_range(8, _master.sprite_height * 0.8), make_color_rgb(150, 0, 20), 0.18, 22);
+        p._add = false; p._vh = -0.5; p._grow = 0.6;
     }
     if(_kind == 4 && _t mod 7 == 0) {
         p = fx_make(0, x + random_range(-7, 7), y, random_range(6, _master.sprite_height * 0.8), make_color_rgb(150, 60, 200), 0.3, 22);

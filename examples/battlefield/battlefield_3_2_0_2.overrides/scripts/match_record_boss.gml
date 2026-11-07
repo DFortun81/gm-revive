@@ -18,6 +18,10 @@ with(obj_boss_lichcaller) {
     global.boss_extra[1] += _kicks + _setbacks;
     global.boss_extra2[1] += _mends_landed;
 }
+with(obj_boss_marquis) {
+    global.boss_extra[4] += _vamps;
+    global.boss_extra2[4] += _caught;
+}
 with(obj_boss_broodmother) {
     global.boss_extra[2] += _broodlings_killed;
     global.boss_extra2[2] += _broodlings_hatched;

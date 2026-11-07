@@ -32,6 +32,23 @@ switch(o) {
         names[1] = "Festering Blight"; cdn[1] = "_blight_timer"; ctn[1] = "_blight_time";
         n = 2;
     break;
+    case obj_boss_marquis:
+        names[0] = "Chirijiraden"; cdn[0] = "_chiri_cooldown"; ctn[0] = "_chiri_cooldown_time";
+        names[1] = "Kikuichimonji"; cdn[1] = "_kiku_cooldown"; ctn[1] = "_kiku_cooldown_time";
+        names[2] = "Vampire"; cdn[2] = "_vamp_cooldown"; ctn[2] = "_vamp_cooldown_time";
+        names[3] = "Masamune"; cdn[3] = "_masamune_cooldown"; ctn[3] = "_masamune_cooldown_time";
+        names[4] = "Muramasa"; cdn[4] = "_muramasa_cooldown"; ctn[4] = "_muramasa_cooldown_time";
+        n = 5;
+    break;
+    case obj_marquis_assassin:
+        names[0] = "Ultima"; cdn[0] = "_ultima_cooldown"; ctn[0] = "_ultima_cooldown_time";
+        n = 1;
+        if(!argument0._reborn) {
+            names[1] = "Shadow Stitch"; cdn[1] = "_stitch_cooldown"; ctn[1] = "_stitch_cooldown_time";
+            names[2] = "Death"; cdn[2] = "_death_cooldown"; ctn[2] = "_death_cooldown_time";
+            n = 3;
+        }
+    break;
     case obj_boss_zio:
         names[0] = "Corrosion"; cdn[0] = "_corrsion_cooldown"; ctn[0] = "_corrsion_cooldown_time";
         names[1] = "Hewn"; cdn[1] = "_hewn_cooldown"; ctn[1] = "_hewn_cooldown_time";
@@ -40,9 +57,9 @@ switch(o) {
         n = 4;
     break;
     case obj_boss_elmdor:
-        names[0] = "Muramasa"; cdn[0] = "_muramasa_cooldown"; ctn[0] = "_muramasa_cooldown_time";
-        names[1] = "Masamune"; cdn[1] = "_masamune_cooldown"; ctn[1] = "_masamune_cooldown_time";
-        names[2] = "Teleport"; cdn[2] = "_teleport_cooldown"; ctn[2] = "_teleport_cooldown_time";
+        names[0] = "Crimson Tempest"; cdn[0] = "_muramasa_cooldown"; ctn[0] = "_muramasa_cooldown_time";
+        names[1] = "Sanguine Lance"; cdn[1] = "_masamune_cooldown"; ctn[1] = "_masamune_cooldown_time";
+        names[2] = "Mist Step"; cdn[2] = "_teleport_cooldown"; ctn[2] = "_teleport_cooldown_time";
         n = 3;
     break;
     default: boss = false; break;

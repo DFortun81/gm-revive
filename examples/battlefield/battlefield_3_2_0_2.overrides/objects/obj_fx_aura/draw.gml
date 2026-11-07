@@ -49,6 +49,18 @@ switch(_kind) {
         }
         draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.5, 1.1, 1.4, 0, make_color_rgb(60, 140, 255), 0.25 * fade);
     break;
+    case 5: // Masamune's Haste: afterimages trailing behind him
+        a = 5 + sin(_t * 0.3) * 2;
+        draw_sprite_ext(_master.sprite_index, _master.image_index, x - lengthdir_x(a * 1.8, _master._direction), y - lengthdir_y(a * 1.8, _master._direction), 1, 1, 0, make_color_rgb(150, 220, 255), 0.18 * fade);
+        draw_sprite_ext(_master.sprite_index, _master.image_index, x - lengthdir_x(a, _master._direction), y - lengthdir_y(a, _master._direction), 1, 1, 0, make_color_rgb(170, 230, 255), 0.32 * fade);
+        draw_sprite_ext(sprite_index, 3, x, y, 1.1, 0.5, _t * 2, make_color_rgb(120, 230, 140), 0.45 * fade);
+    break;
+    case 6: // Vampire: a red haze and a pair of glowing eyes' worth of menace
+        draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.45, 0.9, 1.1, 0, make_color_rgb(170, 0, 30), 0.35 * fade);
+        draw_set_blend_mode(bm_add);
+        draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.45, 0.45, 0.55, 0, make_color_rgb(200, 30, 50), 0.35 * fade);
+        draw_set_blend_mode(bm_normal);
+    break;
     case 4: // Shadow Word: Pain: a dark haze around the target (the rising wisps are particles)
         draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.4, 0.8, 1, 0, make_color_rgb(90, 30, 130), 0.3 * fade);
     break;

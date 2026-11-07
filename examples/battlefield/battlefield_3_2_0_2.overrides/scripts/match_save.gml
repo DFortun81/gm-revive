@@ -14,7 +14,7 @@ for(i = 0; i < 8; i += 1) {
     ini_write_real("classes", "wins" + string(i), global.match_cls_wins[i]);
 }
 ini_section_delete("boss"); // the old single-boss section (now boss0)
-for(b = 0; b < 4; b += 1) {
+for(b = 0; b < global.raid_boss_count; b += 1) {
     sec = "boss" + string(b);
     ini_write_real(sec, "kills", global.boss_kills[b]);
     ini_write_real(sec, "wipes", global.boss_wipes[b]);
