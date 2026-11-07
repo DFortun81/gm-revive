@@ -16,9 +16,18 @@ s += "  -  " + string(secs div 60) + ":";
 if(secs mod 60 < 10) s += "0";
 s += string(secs mod 60) + "      [5] results   [6] auto-reset ";
 if(global.match_auto) s += "on"; else s += "off";
-// (below the game's own boss health window while a boss is out)
+// Below the game's own boss window while a boss is out, and below the bosses' dialogue boxes while
+// they're talking (the boss window is 12 + 32 px a boss tall, each dialogue box 36 px; see obj_sky)
 yy = view_yview[0] + 2;
-if(instance_exists(obj_boss)) yy = view_yview[0] + 56;
+if(instance_exists(obj_boss)) {
+    n = instance_number(obj_boss);
+    yy = view_yview[0] + 12 + n * 32 + 6;
+    if(global.cutscene_active) {
+        f = false;
+        with(obj_boss) if(_message != "") f = true;
+        if(f) yy += n * 36 + 4;
+    }
+}
 draw_set_halign(fa_center);
 draw_set_color(c_black);
 draw_text(cx + 1, yy + 1, s);
