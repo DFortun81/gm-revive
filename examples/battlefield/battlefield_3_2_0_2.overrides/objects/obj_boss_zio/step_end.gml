@@ -22,8 +22,6 @@ if(!variable_local_exists("_barrier_up")) {
     _hewn_cooldown_time = room_speed * 8; // as in Call to Arms (the game's was 4 s, which shredded a raid)
     _last_holy = 0;
 }
-// Both armies' totems fight him too (the units themselves switch in obj_unit's begin step)
-with(obj_totem) if(_faction == "Horde") { _zio_faction = "Horde"; _faction = "Alliance"; }
 // The barrier broke
 if(_barrier_up && _absorbamount <= 0) {
     _barrier_up = false;

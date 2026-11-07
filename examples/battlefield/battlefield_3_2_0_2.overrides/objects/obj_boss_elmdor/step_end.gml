@@ -2,6 +2,13 @@
 // real Marquis Elmdor became his own raid boss (obj_boss_marquis). Same mechanics; only the lines and
 // spell names changed: Muramasa is Crimson Tempest, Masamune is Sanguine Lance, Teleport is Mist Step.
 event_inherited();
+// (gm-revive overrides) Both armies fight him together now (a common enemy, like Zio), so his health
+// is set per unit on the field here, once (the game's create event gives him 6,000 a unit)
+if(!variable_local_exists("_health_per_unit")) {
+    _health_per_unit = 3000;
+    _maxhealth = _health_per_unit * instance_number(obj_unit);
+    _health = _maxhealth;
+}
 
 if(dead) exit;
 

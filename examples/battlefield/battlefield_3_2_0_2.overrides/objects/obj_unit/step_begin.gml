@@ -19,10 +19,11 @@ if(object_index == obj_boss_zio) {
         _fx_barrier._kind = 7;
     }
 }
-// While Zio is on the field both armies fight him together (the common enemy, as in Phantasy Star IV):
-// the Horde joins the Alliance, and goes back to its own side when he's gone (gm-revive overrides)
+// While Zio or Count Vaelric is on the field both armies fight him together (a common enemy): the Horde
+// joins the Alliance, and goes back to its own side when he's gone (gm-revive overrides; their totems
+// switch in obj_battlefield's step)
 if(_bossid == -1) {
-    if(instance_exists(obj_boss_zio)) {
+    if(instance_exists(obj_boss_zio) || instance_exists(obj_boss_elmdor)) {
         if(_faction == "Horde") { _zio_faction = "Horde"; _faction = "Alliance"; _target = -1; }
     }
     else if(variable_local_exists("_zio_faction")) {
