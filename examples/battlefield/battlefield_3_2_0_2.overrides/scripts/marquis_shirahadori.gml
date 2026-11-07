@@ -20,7 +20,7 @@ b._caught += 1;
 raid_threat(a, argument2, false);
 if(current_time - b._last_caught > 400) {
     b._last_caught = current_time;
-    create_text_effect(b.x, b.y, c_white, "-shirahadori-"); boss_sfx(snd_bfx_shirahadori);
+    create_text_effect(b.x, b.y, c_white, "-shirahadori-");
     with(fx_make(6, b.x, b.y, b.sprite_height * 0.55, c_white, 0.4, 10)) _spin = 25;
 }
 return true;
