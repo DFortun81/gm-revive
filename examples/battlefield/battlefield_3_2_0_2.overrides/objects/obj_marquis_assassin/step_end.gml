@@ -27,7 +27,9 @@ if(dead && !_reborn && instance_exists(_master)) {
 }
 if(dead) exit;
 if(variable_local_exists("_message_timer")) { if(_message_timer > 0) { _message_timer -= 1; if(_message_timer <= 0) _message = ""; } }
-if(_stunned || _polymorphed) { _casting = false; _attackcastwait = 0; exit; }
+// Standing still (stunned, casting, fighting) shows the standing frame; only the winged demon keeps
+// flapping. Walking is animated by obj_unit as for every unit.
+if(_stunned || _polymorphed) { if(!_reborn) image_single = _dir * 4; _casting = false; _attackcastwait = 0; exit; }
 
 _attackcooldown -= 1;
 _stitch_cooldown -= 1;
@@ -37,6 +39,7 @@ _ultima_cooldown -= 1;
 // Casting Ultima (Kick / Wind Shear stop it: unit_interrupt clears _casting)
 if(_casting) {
     _destx = x; _desty = y;
+    if(!_reborn) image_single = _dir * 4; else image_single = _dir * 4 + floor(_subindex mod 4);
     if(_silenced > 0) { _casting = false; _attackcastwait = 0; exit; }
     _attackcastwait += 1;
     if(_attackcastwait >= _ultima_casttime) {
@@ -100,7 +103,8 @@ if(d > _attackrange) {
 }
 else {
     _destx = x; _desty = y;
-    image_single = _dir * 4 + floor(_subindex mod 4);
+    // Celia and Lede walk, so they stand still while they fight; the winged Ultima Demon keeps flapping
+    if(_reborn) image_single = _dir * 4 + floor(_subindex mod 4); else image_single = _dir * 4;
     if(!_reborn && _death_cooldown <= 0 && best._health < best._maxhealth * 0.12 && best._bossid == -1) {
         // the killing blow
         create_text_effect(best.x, best.y, c_purple, "-death-");
