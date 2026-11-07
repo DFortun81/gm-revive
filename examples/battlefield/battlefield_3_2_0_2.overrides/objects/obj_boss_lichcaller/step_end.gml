@@ -1,10 +1,44 @@
-var i, u;
+var i, u, p;
 event_inherited();
 if(dead || global.toggle_pause) exit;
 
 _bolt_cooldown -= 1;
 _mend_cooldown -= 1;
 _volley_cooldown -= 1;
+_frost_cooldown -= 1;
+
+// Frostbolt Volley: instant, so it goes off whatever else is happening, even mid-cast
+if(_frost_cooldown <= 0 && !_stunned && ds_list_size(_enemylist) > 0) {
+    var n;
+    n = 0;
+    for(i = 0; i < ds_list_size(_enemylist); i += 1) {
+        u = ds_list_find_value(_enemylist, i);
+        if(units_exists(u)) {
+            if(!u.dead && point_distance(x, y, u.x, u.y) < _frost_range) {
+                with(instance_create(x, y, obj_frostbolt)) {
+                    _master = u;
+                    _damage = other._frost_damage * other._enrage_mult;
+                    _h = other.sprite_height * 0.6;
+                    _speed = 4.5 + random(1.5);
+                }
+                n += 1;
+            }
+        }
+    }
+    if(n > 0) {
+        _frost_volleys += 1;
+        create_text_effect(x, y, c_aqua, "-frostbolt volley-");
+        _message = "Feel the chill of the grave!";
+        _frost_message_timer = room_speed * 2;
+        p = fx_make(0, x, y, sprite_height * 0.6, make_color_rgb(100, 180, 255), 1.3, 16);
+        with(fx_make(1, x, y, 0, make_color_rgb(150, 215, 255), 1.8, 18)) _squash = 0.5;
+    }
+    _frost_cooldown = _frost_cooldown_time;
+}
+if(_frost_message_timer > 0) {
+    _frost_message_timer -= 1;
+    if(_frost_message_timer <= 0 && _cast == 0) _message = "";
+}
 
 // Kicked (unit_interrupt sets the flag): the spell is lost and comes back a bit sooner
 if(_raid_cast_interrupted) {

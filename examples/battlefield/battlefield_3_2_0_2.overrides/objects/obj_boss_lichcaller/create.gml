@@ -3,6 +3,8 @@
 // heal on itself) or Shadow Volley (damage to the whole raid). Both can be stopped: Rogue Kick cancels
 // the cast and locks it out for a moment, the Shaman's Wind Shear totem knocks the cast bar back to
 // the start. A raid that can't do either faces a fight that heals itself and wears them down.
+// On top of that, like Kel'Thuzad, it throws an instant Frostbolt Volley at the whole raid every so
+// often, even in the middle of another cast. Nothing can stop it: it's there for the healers.
 event_inherited();
 _interuptimmune = false;      // Dark Mending and Shadow Volley can be interrupted (Shadow Bolt can't)
 
@@ -28,6 +30,14 @@ _volley_damage = 70;
 _volley_casttime = room_speed * 2.5;
 _volley_cooldown_time = room_speed * 18;
 _volley_cooldown = room_speed * 12;
+
+// Frostbolt Volley: instant, can't be interrupted, a frostbolt at every enemy within reach
+_frost_damage = 60;
+_frost_range = range_cast * 2;
+_frost_cooldown_time = room_speed * 10;
+_frost_cooldown = room_speed * 7;
+_frost_volleys = 0;
+_frost_message_timer = 0;
 
 _retry_time = room_speed * 5;  // an interrupted spell comes back this much sooner than its cooldown
 _cast = 0;                     // 0 nothing, 1 Shadow Bolt, 2 Dark Mending, 3 Shadow Volley
