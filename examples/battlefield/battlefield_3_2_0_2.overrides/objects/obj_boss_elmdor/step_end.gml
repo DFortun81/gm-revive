@@ -68,13 +68,16 @@ else {
             // Attack that target!
             
             if(point_distance(x, y, _target.x, _target.y) > range_melee) {
-                // Elmdor Special Ability: Teleport
+                // Vaelric Special Ability: Mist Step (was Teleport). He dissolves into mist and reforms
+                // behind his target, using the mist strip drawn for the later version of the game.
                 if(_teleport_cooldown <= 0 && _manatype_mana > _teleport_cost) {
+                    with(instance_create(x, y, obj_fx_strip)) { _spr = spr_vaelric_mist; _glow = spr_vaelric_mist_glow; _f0 = 0; _f1 = 11; _len = 18; }
                     var dir; dir = degtorad(_target._direction - 180);
                     x = _target.x + cos(dir) * (range_melee * 3);
                     y = _target.y - sin(dir) * (range_melee * 3);
                     _destx = x;
                     _desty = y;
+                    with(instance_create(x, y, obj_fx_strip)) { _spr = spr_vaelric_mist; _glow = spr_vaelric_mist_glow; _f0 = 11; _f1 = 0; _len = 18; _master = other.id; }
                     unit_mana(id, -_teleport_cost);
                     _teleport_cooldown = _teleport_cooldown_time;
                 }

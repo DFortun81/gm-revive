@@ -61,6 +61,20 @@ switch(_kind) {
         draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.45, 0.45, 0.55, 0, make_color_rgb(200, 30, 50), 0.35 * fade);
         draw_set_blend_mode(bm_normal);
     break;
+    case 7: // Zio's Magic Barrier: his own glow strips, frame for frame, pulsing; brighter as it's fresher
+        if(_master._absorbamount <= 0 || _master._absorbmax <= 0) break;
+        a = 0.45 + 0.55 * min(1, _master._absorbamount / _master._absorbmax);
+        draw_sprite_ext(spr_zio_barrier, _master.image_index, x, y, 1, 1, 0, c_white, a * (0.35 + 0.1 * sin(_t * 0.12)));
+        draw_set_blend_mode(bm_add);
+        draw_sprite_ext(spr_zio_barrier, _master.image_index, x, y, 1, 1, 0, c_white, a * (0.4 + 0.15 * sin(_t * 0.12)));
+        draw_set_blend_mode(bm_normal);
+        draw_sprite_ext(spr_zio_barrier_edge, _master.image_index, x, y, 1, 1, 0, c_white, min(1, a * 0.7 + _hit * 0.08));
+        if(_hit > 0) {
+            draw_set_blend_mode(bm_add);
+            draw_sprite_ext(spr_zio_barrier_edge, _master.image_index, x, y, 1, 1, 0, c_white, _hit * 0.1);
+            draw_set_blend_mode(bm_normal);
+        }
+    break;
     case 4: // Shadow Word: Pain: a dark haze around the target (the rising wisps are particles)
         draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.4, 0.8, 1, 0, make_color_rgb(90, 30, 130), 0.3 * fade);
     break;

@@ -10,6 +10,15 @@ if(_stun_timer > 0) {
         if(!held) _stunned = false;
     }
 }
+// Zio's Magic Barrier glows round him while it holds (gm-revive overrides; the glow strips are the
+// ones drawn for the later version of the game)
+if(object_index == obj_boss_zio) {
+    if(!variable_local_exists("_fx_barrier")) {
+        _fx_barrier = instance_create(x, y, obj_fx_aura);
+        _fx_barrier._master = id;
+        _fx_barrier._kind = 7;
+    }
+}
 // Stars over anyone stunned, however they were stunned (gm-revive overrides)
 if(!variable_local_exists("_fx_stun")) _fx_stun = -1;
 if(_stunned && !dead && !instance_exists(_fx_stun)) {
