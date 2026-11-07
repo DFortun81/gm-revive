@@ -2,3 +2,4 @@
 global.cutscene = false;
 global.cutscene_intro = false;
 global.cutscene_focus = -1;
+if(variable_local_exists("_drain_victim")) vaelric_drain_end();

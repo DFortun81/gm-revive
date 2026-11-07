@@ -8,7 +8,12 @@ if(!variable_local_exists("_health_per_unit")) {
     _health_per_unit = 3000;
     _maxhealth = _health_per_unit * instance_number(obj_unit);
     _health = _maxhealth;
+    _drain_victim = -1;   // Blood Suck: who he's draining, and how they looked before
+    _drain_y0 = 0;
+    _drain_blend0 = c_white;
+    _drain_pulse = 0;     // flares his red glow when a drain heals him
 }
+if(_drain_pulse > 0) _drain_pulse -= 1;
 
 if(dead) exit;
 
@@ -18,6 +23,7 @@ _masamune_cooldown -= 1;
 _bloodsuck_cooldown -= 1;
 _teleport_cooldown -= 1;
 
+if(!_casting && variable_local_exists("_drain_victim")) { if(_drain_victim != -1) vaelric_drain_end(); }
 if(!_casting) {
     _masamune_casting = false;
     _muramasa_casting = false;
@@ -36,7 +42,7 @@ with(obj_unit) {
     }
 }
 
-var enemies, targets, i, priority, pid, index, val;
+var enemies, targets, i, priority, pid, index, val, p;
 enemies = ds_list_size(_enemylist);
 targets = ds_list_size(_targetlist);
 
@@ -79,6 +85,7 @@ else {
                 // behind his target, using the mist strip drawn for the later version of the game.
                 if(_teleport_cooldown <= 0 && _manatype_mana > _teleport_cost) {
                     with(instance_create(x, y, obj_fx_strip)) { _spr = spr_vaelric_mist; _glow = spr_vaelric_mist_glow; _f0 = 0; _f1 = 11; _len = 18; }
+                    repeat(4) with(instance_create(x, y, obj_fx_bat)) _ang = random(360);
                     var dir; dir = degtorad(_target._direction - 180);
                     x = _target.x + cos(dir) * (range_melee * 3);
                     y = _target.y - sin(dir) * (range_melee * 3);
@@ -185,9 +192,27 @@ else {
             else _message = "Your blood, the roses on unhallow'd graves!";
             
             if(_target != id) {
-                create_bloodsuck_effect(_target.x, _target.y, id);
+                // (gm-revive overrides) The drain shows: the victim is lifted off the ground and pales
+                // as it goes on, with a red haze at its chest; a blood ribbon runs from it to his mouth
+                // and his red glow flares each time it heals him (obj_boss draw; bats when it ends)
+                if(_drain_victim != _target) {
+                    vaelric_drain_end();
+                    _drain_victim = _target;
+                    _drain_y0 = _target.y;
+                    _drain_blend0 = _target._blendcolor;
+                    with(instance_create(_target.x, _target.y, obj_fx_aura)) { _master = other._target; _kind = 9; _src = other.id; }
+                }
+                var dk;
+                dk = 1 - _attackcastwait / max(1, _attackcasttime);
+                _target.y = _drain_y0 - 5 * min(1, dk * 5);
+                _target._blendcolor = merge_color(_drain_blend0, make_color_rgb(185, 165, 190), round(min(1, dk * 1.5) * 5) / 5);
                 unit_damage(_target, c_yellow, _bloodsuck_amount / _bloodsuck_casttime, true);
-                if(_attackcastwait mod (room_speed / 2) == 0) unit_heal(id, (_bloodsuck_amount / (_bloodsuck_casttime / (room_speed / 2))) * 4);
+                if(_attackcastwait mod (room_speed / 2) == 0) {
+                    unit_heal(id, (_bloodsuck_amount / (_bloodsuck_casttime / (room_speed / 2))) * 4);
+                    _drain_pulse = 12;
+                    p = fx_make(0, x, y, sprite_height * 0.55, make_color_rgb(170, 0, 20), 0.9, 14); p._add = false; p._grow = 1.5;
+                    repeat(3) { p = fx_make(0, x + random_range(-8, 8), y, sprite_height * random_range(0.6, 0.9), make_color_rgb(200, 10, 30), 0.2, 16); p._add = false; p._vh = -0.8; p._grow = 0.6; }
+                }
                 if(!_target._stunimmune) {
                     _target._destx = _target.x;
                     _target._desty = _target.y;
@@ -201,6 +226,8 @@ else {
                 // Stop casting
                 _attackcastwait = -1;
                 if(_target != id) _target._stunned = false;
+                vaelric_drain_end();
+                repeat(6) with(instance_create(x, y, obj_fx_bat)) _ang = random(360);
                 unit_mana(id, -_bloodsuck_cost);
                 create_text_effect(x, y, c_white, "-blood suck ends-");
                 _bloodsuck_cooldown = _bloodsuck_cooldown_time;

@@ -75,6 +75,12 @@ switch(_kind) {
             draw_set_blend_mode(bm_normal);
         }
     break;
+    case 9: // drained by Blood Suck: a red haze at the chest
+        draw_sprite_ext(sprite_index, 0, x, _master.y - _master.sprite_height * 0.55, 0.65, 0.65, 0, make_color_rgb(150, 0, 20), (0.35 + 0.1 * sin(_t * 0.3)) * fade);
+        draw_set_blend_mode(bm_add);
+        draw_sprite_ext(sprite_index, 0, x, _master.y - _master.sprite_height * 0.55, 0.3, 0.3, 0, make_color_rgb(200, 20, 40), 0.4 * fade);
+        draw_set_blend_mode(bm_normal);
+    break;
     case 8: // Black Wave curse: a dark haze (the rising wisps are particles)
         draw_sprite_ext(sprite_index, 0, x, y - _master.sprite_height * 0.4, 0.8, 1, 0, make_color_rgb(30, 10, 45), 0.35 * fade);
     break;

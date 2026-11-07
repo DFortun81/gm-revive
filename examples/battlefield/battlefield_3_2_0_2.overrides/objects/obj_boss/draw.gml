@@ -5,8 +5,57 @@ barsize = 16;
 if(!_stealthed) _stealthed_alpha += (image_alpha - _stealthed_alpha) / 10;
 else _stealthed_alpha += (0.1 - _stealthed_alpha) / 10;
 
+// (gm-revive overrides) Count Vaelric's red glow (his glow strip from the later version of the game)
+// pulses round him while Blood Suck drains someone, and flares each time it heals him
+var vg, vfx, vfy, vtx, vty, vi, vn, vt, vpx, vpy, vqx, vqy, vk;
+vg = 0;
+if(object_index == obj_boss_elmdor && variable_local_exists("_drain_victim")) {
+    if(_bloodsuck_casting && _drain_victim != -1) vg = 0.45 + 0.15 * sin(current_time / 120) + _drain_pulse * 0.04;
+}
+if(vg > 0) {
+    draw_sprite_ext(spr_vaelric_glow, image_index, x, y + 2, 1.3, 1.18, 0, c_white, vg * 0.8 * _stealthed_alpha);
+    draw_set_blend_mode(bm_add);
+    draw_sprite_ext(spr_vaelric_glow, image_index, x, y + 2, 1.3, 1.18, 0, c_white, vg * 0.35 * _stealthed_alpha);
+    draw_set_blend_mode(bm_normal);
+}
 draw_sprite_ext(sprite_index, image_index, x, y, 1, 1, -45, c_black, _stealthed_alpha / 10);
 draw_sprite_ext(sprite_index, image_index, x, y, 1, 1, 0, _blendcolor, _stealthed_alpha);
+// and a faint red sheen over him while he feeds
+if(vg > 0) {
+    draw_set_blend_mode(bm_add);
+    draw_sprite_ext(spr_vaelric_glow, image_index, x, y, 1, 1, 0, c_white, vg * 0.22 * _stealthed_alpha);
+    draw_set_blend_mode(bm_normal);
+}
+// (gm-revive overrides) Blood Suck: a wavy ribbon of blood from the victim's chest to his mouth, with
+// drops running along it toward him
+if(vg > 0 && units_exists(_drain_victim)) {
+    vfx = _drain_victim.x; vfy = _drain_victim.y - _drain_victim.sprite_height * 0.55;
+    vtx = x; vty = y - sprite_height * 0.62;
+    vn = 16; vpx = vfx; vpy = vfy;
+    for(vi = 1; vi <= vn; vi += 1) {
+        vt = vi / vn;
+        vqx = vfx + (vtx - vfx) * vt;
+        vqy = vfy + (vty - vfy) * vt - sin(vt * pi) * 12 + sin(vt * 14 - current_time / 70) * 2 * sin(vt * pi);
+        draw_set_alpha(0.6);
+        draw_set_color(make_color_rgb(80, 0, 10));
+        draw_line_width(vpx, vpy, vqx, vqy, 5);
+        draw_set_alpha(0.9);
+        draw_set_color(make_color_rgb(200, 20, 35));
+        draw_line_width(vpx, vpy, vqx, vqy, 2);
+        vpx = vqx; vpy = vqy;
+    }
+    draw_set_alpha(1);
+    draw_set_color(c_white);
+    for(vi = 0; vi < 6; vi += 1) {
+        vk = frac(current_time / 650 + vi / 6);
+        vqx = vfx + (vtx - vfx) * vk;
+        vqy = vfy + (vty - vfy) * vk - sin(vk * pi) * 12 + sin(vk * 14 - current_time / 70) * 2 * sin(vk * pi);
+        draw_sprite_ext(spr_fx_misc, 0, vqx, vqy, 0.26, 0.26, 0, make_color_rgb(150, 0, 15), 0.9);
+        draw_set_blend_mode(bm_add);
+        draw_sprite_ext(spr_fx_misc, 0, vqx, vqy, 0.14, 0.14, 0, make_color_rgb(255, 60, 70), 0.9);
+        draw_set_blend_mode(bm_normal);
+    }
+}
 // (gm-revive overrides) The white flash as a boss dies used one silhouette made from frame 0 (facing
 // south), so it didn't line up when the boss faced any other way. Zio and Count Vaelric now have a white
 // silhouette for every frame of their sprites, and the one for the frame they're showing is drawn.
