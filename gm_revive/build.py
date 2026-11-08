@@ -77,7 +77,7 @@ def midi_to_mp3(path, soundfont, log):
 
 def event_label(et, en):
     """A readable name for an event (eject comments): 'end step', 'alarm 3', 'key release M', ..."""
-    if et == 3: return {0: 'begin step', 1: 'step', 2: 'end step'}.get(en, f'step {en}')
+    if et == 3: return {0: 'step', 1: 'begin step', 2: 'end step'}.get(en, f'step {en}')   # GM8: ev_step_normal 0, ev_step_begin 1
     if et == 2: return f'alarm {en}'
     if et == 8: return 'draw' if en == 0 else f'draw {en}'
     if et in (5, 9, 10):
