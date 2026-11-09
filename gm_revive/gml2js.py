@@ -55,9 +55,30 @@ action_kill_object sprite_collision_mask path_start path_end timeline_set
 mp_linear_step mp_potential_step instance_nearest_self
 event_user event_perform event_perform_object move_bounce_solid move_bounce_all move_contact_solid
 move_contact_all move_outside_solid move_outside_all collision_rectangle collision_point collision_circle collision_line
-collision_ellipse path_start
+collision_ellipse path_start instance_deactivate_region instance_activate_region instance_deactivate_all
 variable_local_exists variable_local_get variable_local_set variable_local_array_get variable_local_array_set
 '''.split())
+
+# Global names the generated code and runtime use; a resource can't be a JS constant with one of these names
+RUNTIME_GLOBALS = {'OBJECTS', 'ROOMS', 'TIMELINES', 'PATHS', 'ASSETS', 'EXTRA_FILES', 'EXTRA_PLAY', 'SCRIPT_LIST',
+                   'IMAGE_DATA', 'ROOM_ORDER', 'Math', 'Object', 'Array', 'String', 'Number', 'JSON', 'Date', 'Map', 'Set',
+                   'Proxy', 'Promise', 'Audio', 'Image', 'DOMMatrix', 'window', 'document', 'console', 'globalThis',
+                   'localStorage', 'performance', 'location', 'fetch', 'setTimeout', '__UNINIT', '__init_constants', 'name'}
+
+
+def js_name_ok(n):
+    """Can this resource/script name be used as a JavaScript identifier in the generated code?
+    GM6/7 allowed names with spaces or dashes ("Easy Ride", "sprK1-Magnum"); GML can't refer to those by name
+    anyway, so the converter uses their index numbers instead."""
+    return bool(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', n)) and n not in JS_RESERVED and n not in KEYWORDS and n not in RUNTIME_GLOBALS
+
+
+def script_ref(n):
+    return f'S.{n}' if js_name_ok(n) else f'S[{json.dumps(n)}]'
+
+
+# Built-ins that take GML source code as a string argument (index of that argument)
+CODE_STRING_ARGS = {'object_event_add': 3, 'execute_string': 0}
 
 
 class Tok:
@@ -361,7 +382,7 @@ class Emitter:
         if n == 'all': return '(-3)'
         if n in s.globalvars or n in ctx.globalvars: return f'G.{n}'
         if n in ctx.constants: return f'K.{n}'
-        if n in ctx.resources: return n
+        if n in ctx.resources: return n if js_name_ok(n) else f'({ctx.resources[n]})'
         if n in GLOBAL_BUILTINS or n in BUILTIN_ARRAYS and n != 'alarm' or n.startswith(BUILTIN_PREFIXES):
             ctx.used_builtins.add(n); return f'B.{n}'
         return f'self.{s.safe_field(n)}'
@@ -438,12 +459,28 @@ class Emitter:
         a = [s.ex(x) for x in args]
         ctx = s.ctx
         if fname in ctx.scripts:
-            return f'S.{fname}(' + ', '.join(['self', 'other'] + a) + ')'
+            return script_ref(fname) + '(' + ', '.join(['self', 'other'] + a) + ')'
         if fname == 'event_inherited': return 'B.event_inherited(self, other)'
         if fname == 'script_execute':
             return 'B.script_execute(' + ', '.join(['self', 'other'] + a) + ')'
         if fname == 'instance_create':
             return 'B.instance_create(' + ', '.join(a) + ')'
+        # GML handed over as a string (object_event_add, execute_string) can't be translated in the
+        # browser, but when it's a literal it can be translated here, at build time, into a function.
+        if fname in CODE_STRING_ARGS:
+            k = CODE_STRING_ARGS[fname]
+            if len(args) > k and args[k][0] == 'str':
+                try:
+                    body, _, _ = translate(ctx, args[k][1], fname == 'execute_string', 2)
+                    fn = 'function (self, other) {\n' + body + '    }'
+                    if fname == 'execute_string':
+                        return f'({fn})(self, other)'
+                    a[k] = fn
+                except ParseError:
+                    pass
+            if fname == 'execute_string':
+                ctx.used_builtins.add(fname)
+                return 'B.execute_string(' + ', '.join(['self', 'other'] + a) + ')'
         ctx.used_builtins.add(fname)
         if fname in SELF_FUNCS:
             return f'B.{fname}(' + ', '.join(['self'] + a) + ')'
@@ -487,6 +524,16 @@ class Emitter:
 
     # ---------- statements
     def st(s, node, ind):
+        k = node[0]
+        # track enclosing loops/switches: GML allows break/continue outside them, where they end the event like exit
+        if k in ('while', 'dountil', 'for', 'repeat', 'with', 'switch'):
+            loops = getattr(s, 'loops', [])
+            s.loops = loops + [k]
+            try: return s.st_(node, ind)
+            finally: s.loops = loops
+        return s.st_(node, ind)
+
+    def st_(s, node, ind):
         pad = '    ' * ind
         k = node[0]
         if k == 'empty': return ''
@@ -534,8 +581,11 @@ class Emitter:
                 else: out += f'{pad}    case B.sw({s.ex(val)}):\n'
                 out += ''.join(s.st(b, ind + 2) for b in body)
             return out + f'{pad}}}\n'
-        if k == 'break': return pad + 'break;\n'
-        if k == 'continue': return pad + 'continue;\n'
+        if k in ('break', 'continue'):
+            loops = getattr(s, 'loops', [])
+            if k == 'break' and loops or k == 'continue' and any(x != 'switch' for x in loops):
+                return pad + k + ';\n'
+            return pad + ('return 0;\n' if s.is_script else 'return;\n')
         if k == 'exit': return pad + ('return 0;\n' if s.is_script else 'return;\n')
         if k == 'return': return pad + f'return {s.ex(node[1])};\n'
         raise ParseError(f'cannot emit statement {k}')
@@ -543,7 +593,7 @@ class Emitter:
 
 class Context:
     def __init__(s, resources, scripts, constants):
-        s.resources = set(resources); s.scripts = set(scripts); s.constants = set(constants)
+        s.resources = dict(resources) if isinstance(resources, dict) else dict.fromkeys(resources); s.scripts = set(scripts); s.constants = set(constants)
         s.globalvars = set(); s.used_builtins = set()
 
 

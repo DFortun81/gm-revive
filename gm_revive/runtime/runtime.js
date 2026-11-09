@@ -48,6 +48,11 @@ const B = (() => {
         ev_mouse_leave: 11, ev_global_left_button: 50, ev_global_right_button: 51, ev_global_middle_button: 52,
         ev_global_left_press: 53, ev_global_right_press: 54, ev_global_middle_press: 55, ev_global_left_release: 56,
         ev_global_right_release: 57, ev_global_middle_release: 58,
+        cr_default: 0, cr_none: -1, cr_arrow: -2, cr_cross: -3, cr_beam: -4, cr_size_nesw: -6, cr_size_ns: -7,
+        cr_size_nwse: -8, cr_size_we: -9, cr_uparrow: -10, cr_hourglass: -11, cr_drag: -12, cr_nodrop: -13,
+        cr_hsplit: -14, cr_vsplit: -15, cr_multidrag: -16, cr_sqlwait: -17, cr_no: -18, cr_appstart: -19,
+        cr_help: -20, cr_handpoint: -21, cr_size_all: -22,
+        dll_cdecl: 0, dll_stdcall: 1, ty_real: 0, ty_string: 1,
     };
     Object.assign(B, C);
 
@@ -65,7 +70,7 @@ const B = (() => {
         mouse: { x: 0, y: 0, buttons: new Set(), pressed: new Set(), released: new Set(), wheel: 0 },
         fps: 0, frameCount: 0, fpsTime: 0,
         eventStack: [],
-        extraFiles: {},
+        extraFiles: {}, extraText: {},
         surfaceTarget: null,
         prim: null,
         tintCache: new Map(),
@@ -77,6 +82,23 @@ const B = (() => {
     B.view_wport = [640, 640, 640, 640, 640, 640, 640, 640]; B.view_hport = [480, 480, 480, 480, 480, 480, 480, 480];
     B.view_hborder = [32, 32, 32, 32, 32, 32, 32, 32]; B.view_vborder = [32, 32, 32, 32, 32, 32, 32, 32];
     B.view_object = [-1, -1, -1, -1, -1, -1, -1, -1]; B.view_visible = [false, false, false, false, false, false, false, false];
+    B.view_angle = [0, 0, 0, 0, 0, 0, 0, 0];
+    // Room backgrounds 0-7: set from the room when it starts (gotoRoom) and read when drawing,
+    // so games can change them at run time.
+    const bg8 = v => [v, v, v, v, v, v, v, v];
+    B.background_visible = bg8(false); B.background_foreground = bg8(false); B.background_index = bg8(-1);
+    B.background_x = bg8(0); B.background_y = bg8(0); B.background_htiled = bg8(true); B.background_vtiled = bg8(true);
+    B.background_xscale = bg8(1); B.background_yscale = bg8(1); B.background_hspeed = bg8(0); B.background_vspeed = bg8(0);
+    B.background_blend = bg8(16777215); B.background_alpha = bg8(1); B.background_stretch = bg8(false);
+    B.background_color = 0; B.background_showcolor = true;
+    const bgSizeArray = key => {
+        const arr = [];
+        for (let n = 0; n < 8; n++) Object.defineProperty(arr, n, { get: () => { const b = R.backgrounds[Math.round(B.background_index[n])]; return b ? b[key] : 0; } });
+        return arr;
+    };
+    const bgWidths = bgSizeArray('width'), bgHeights = bgSizeArray('height');
+    Object.defineProperty(B, 'background_width', { get: () => bgWidths });
+    Object.defineProperty(B, 'background_height', { get: () => bgHeights });
     B.view_enabled = false; B.view_current = 0;
     B.room_width = 640; B.room_height = 480; B.room_speed = 30; B.room_caption = '';
     B.working_directory = '.'; B.program_directory = '.'; B.temp_directory = '.';
@@ -95,6 +117,14 @@ const B = (() => {
     Object.defineProperty(B, 'instance_count', { get: () => R.instances.length });
 
     // ------------------------------------------------------------------ helpers
+    // 2D affine matrices {a,b,c,d,e,f} as used by canvas setTransform. mulM(m, n) applies n first, then m.
+    const IDENT = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+    const mulM = (m, n) => ({
+        a: m.a * n.a + m.c * n.b, b: m.b * n.a + m.d * n.b, c: m.a * n.c + m.c * n.d, d: m.b * n.c + m.d * n.d,
+        e: m.a * n.e + m.c * n.f + m.e, f: m.b * n.e + m.d * n.f + m.f,
+    });
+    // ctx.__base is the transform drawing on that context starts from (view, then world transform)
+    function setBase(ctx, m) { ctx.__base = m; ctx.setTransform(m.a, m.b, m.c, m.d, m.e, m.f); }
     B.T = v => v > 0.5;
     B.toArr = v => (Array.isArray(v) ? v : []);
     B.toArr2 = (a, i) => { i = Math.round(i); return Array.isArray(a[i]) ? a[i] : (a[i] = []); };
@@ -338,6 +368,67 @@ const B = (() => {
         if (perf) runEvent(self, 'create_0', self);
         return 0;
     };
+    // ---- deactivation: deactivated instances leave the instance list (no events, drawing, with or
+    // collisions) until activated again. Non-persistent ones are dropped when the room ends.
+    R.inactive = [];
+    function deactivate(test) {
+        const out = R.instances.filter(i => !i.__dead && test(i));
+        if (!out.length) return 0;
+        for (const i of out) { i.__inactive = true; R.byId.delete(i.id); R.inactive.push(i); }
+        const gone = new Set(out);
+        R.instances = R.instances.filter(i => !gone.has(i)); R.version++;
+        return 0;
+    }
+    function activate(test) {
+        const back = R.inactive.filter(test);
+        if (!back.length) return 0;
+        const set = new Set(back);
+        R.inactive = R.inactive.filter(i => !set.has(i));
+        for (const i of back) { i.__inactive = false; R.byId.set(i.id, i); R.instances.push(i); }
+        R.instances.sort((a, b) => a.__order - b.__order); R.version++;
+        return 0;
+    }
+    const matchesObj = (i, obj) => { obj = Math.round(obj); return obj >= 100000 ? i.id === obj : obj === -3 || objIsA(i.object_index, obj); };
+    function inRegion(i, l, t, w, h) {
+        const b = i.__bbox() || { l: i.x, r: i.x + 1, t: i.y, b: i.y + 1 };
+        return b.l < l + w && b.r > l && b.t < t + h && b.b > t;
+    }
+    B.instance_deactivate_all = (self, notme) => deactivate(i => !(B.T(notme) && i === self));
+    B.instance_activate_all = () => activate(() => true);
+    B.instance_deactivate_object = obj => deactivate(i => matchesObj(i, obj));
+    B.instance_activate_object = obj => activate(i => matchesObj(i, obj));
+    B.instance_deactivate_region = (self, l, t, w, h, inside, notme) =>
+        deactivate(i => !(B.T(notme) && i === self) && inRegion(i, l, t, w, h) === B.T(inside));
+    B.instance_activate_region = (self, l, t, w, h, inside) => activate(i => inRegion(i, l, t, w, h) === B.T(inside));
+
+    // ---- objects made at run time (object_add / object_event_add). Event code given as a string
+    // literal is translated by the converter at build time and arrives here as a function.
+    const EVENT_KINDS = ['create', 'destroy', 'alarm', 'step', 'collision', 'keyboard', 'mouse', 'other', 'draw', 'keypress', 'keyrelease'];
+    B.object_add = () => {
+        OBJECTS.push({ name: 'object' + OBJECTS.length, sprite: -1, visible: true, solid: false, depth: 0, persistent: false, parent: -1, mask: -1, events: {} });
+        return OBJECTS.length - 1;
+    };
+    B.object_exists = obj => !!OBJECTS[Math.round(obj)];
+    B.object_delete = obj => { OBJECTS[Math.round(obj)] = null; return 0; };
+    const warned = new Set();
+    const warnOnce = msg => { if (!warned.has(msg)) { warned.add(msg); console.warn('[gm-revive] ' + msg); } };
+    B._warnOnce = warnOnce;
+    B.object_event_add = (obj, type, num, code) => {
+        const o = OBJECTS[Math.round(obj)]; if (!o) return 0;
+        if (typeof code !== 'function') { warnOnce('object_event_add: event code built at run time can\'t be translated in the browser'); return 0; }
+        o.events[EVENT_KINDS[type] + '_' + Math.round(num)] = code;
+        for (const x of OBJECTS) if (x) x.__coll = null;
+        return 0;
+    };
+    B.object_event_clear = (obj, type, num) => { const o = OBJECTS[Math.round(obj)]; if (o) delete o.events[EVENT_KINDS[type] + '_' + Math.round(num)]; return 0; };
+    B.object_set_sprite = (obj, v) => { const o = OBJECTS[Math.round(obj)]; if (o) o.sprite = v; return 0; };
+    B.object_set_solid = (obj, v) => { const o = OBJECTS[Math.round(obj)]; if (o) o.solid = B.T(v); return 0; };
+    B.object_set_visible = (obj, v) => { const o = OBJECTS[Math.round(obj)]; if (o) o.visible = B.T(v); return 0; };
+    B.object_set_depth = (obj, v) => { const o = OBJECTS[Math.round(obj)]; if (o) o.depth = v; return 0; };
+    B.object_set_persistent = (obj, v) => { const o = OBJECTS[Math.round(obj)]; if (o) o.persistent = B.T(v); return 0; };
+    B.object_set_parent = (obj, v) => { const o = OBJECTS[Math.round(obj)]; if (o) { o.parent = v; for (const x of OBJECTS) if (x) x.__coll = null; } return 0; };
+    B.object_set_mask = (obj, v) => { const o = OBJECTS[Math.round(obj)]; if (o) o.mask = v; return 0; };
+    B.execute_string = (self, other, code) => { warnOnce('execute_string: code built at run time can\'t be translated in the browser'); return 0; };
     B.object_get_sprite = obj => OBJECTS[obj] ? OBJECTS[obj].sprite : -1;
     B.object_get_name = obj => OBJECTS[obj] ? OBJECTS[obj].name : '';
     B.object_get_parent = obj => OBJECTS[obj] ? OBJECTS[obj].parent : -1;
@@ -1116,8 +1207,58 @@ const B = (() => {
         action_fullscreen: () => 0,
     });
 
+    // Step towards a point, stopping in front of solid (or any) instances; true once it gets there.
+    B.mp_linear_step = (self, x, y, sp, all) => {
+        const d = Math.hypot(x - self.x, y - self.y);
+        if (d === 0) return true;
+        const k = Math.min(1, sp / d), nx = self.x + (x - self.x) * k, ny = self.y + (y - self.y) * k;
+        self.__dir = B.point_direction(self.x, self.y, x, y);
+        if (!(B.T(all) ? B.place_empty : B.place_free)(self, nx, ny)) return false;
+        self.x = nx; self.y = ny;
+        return k >= 1;
+    };
+
+    // GameMaker 6's drag & drop particle actions share one particle system with numbered types and emitters.
+    const DP = { sys: -1, types: [], ems: [] };
+    const dpSys = () => { if (DP.sys < 0 || !PS(DP.sys)) { DP.sys = B.part_system_create(); DP.types = []; DP.ems = []; } return DP.sys; };
+    const dpType = n => { n = Math.round(n); if (DP.types[n] == null || !PT(DP.types[n])) DP.types[n] = B.part_type_create(); return DP.types[n]; };
+    const dpEm = n => { n = Math.round(n); const s = dpSys(); if (DP.ems[n] == null || !EM(s, DP.ems[n])) DP.ems[n] = B.part_emitter_create(s); return DP.ems[n]; };
+    Object.assign(B, {
+        action_set_sprite: (self, spr, scale) => { self.sprite_index = spr; self.image_xscale = scale; self.image_yscale = scale; return 0; },
+        action_set_life: (self, v, rel) => { B.lives = rel ? B.lives + v : v; return 0; },
+        action_if_life: (self, v, op) => cmp(B.lives, v, op),
+        action_linear_step: (self, x, y, sp, all, rel) => { B.mp_linear_step(self, rx(self, x, rel), ry(self, y, rel), sp, all); return 0; },
+        action_potential_step: (self, x, y, sp, all, rel) => { B.mp_linear_step(self, rx(self, x, rel), ry(self, y, rel), sp, all); return 0; },
+        action_partsyst_create: (self, depth) => { B.part_system_depth(dpSys(), depth); return 0; },
+        action_partsyst_destroy: () => { if (DP.sys >= 0) B.part_system_destroy(DP.sys); DP.sys = -1; return 0; },
+        action_partsyst_clear: () => { if (DP.sys >= 0) B.part_particles_clear(DP.sys); return 0; },
+        action_parttype_create: (self, n, shape, spr, smin, smax, sincr) => {
+            const t = dpType(n);
+            if (spr >= 0) B.part_type_sprite(t, spr, false, false, false); else B.part_type_shape(t, shape);
+            B.part_type_size(t, smin, smax, sincr, 0); return 0;
+        },
+        action_parttype_color: (self, n, kind, c1, c2, a1, a2) => {
+            const t = dpType(n);
+            if (kind === 0) B.part_type_color_mix(t, c1, c2); else B.part_type_color2(t, c1, c2);
+            B.part_type_alpha2(t, a1, a2); return 0;
+        },
+        action_parttype_life: (self, n, mn, mx) => B.part_type_life(dpType(n), mn, mx),
+        action_parttype_speed: (self, n, smin, smax, dmin, dmax, fric) => {
+            const t = dpType(n); B.part_type_speed(t, smin, smax, -fric, 0); B.part_type_direction(t, dmin, dmax, 0, 0); return 0;
+        },
+        action_parttype_gravity: (self, n, amount, dir) => B.part_type_gravity(dpType(n), amount, dir),
+        action_parttype_secondary: (self, n, stype, snum, dtype, dnum) => {
+            const t = dpType(n);
+            B.part_type_step(t, snum, stype >= 0 ? dpType(stype) : -1); B.part_type_death(t, dnum, dtype >= 0 ? dpType(dtype) : -1); return 0;
+        },
+        action_partemit_create: (self, n, shape, x1, x2, y1, y2) => { B.part_emitter_region(dpSys(), dpEm(n), x1, x2, y1, y2, shape, 0); return 0; },
+        action_partemit_destroy: (self, n) => { if (DP.sys >= 0 && DP.ems[n] != null) { B.part_emitter_destroy(DP.sys, DP.ems[n]); DP.ems[n] = null; } return 0; },
+        action_partemit_burst: (self, n, type, num) => B.part_emitter_burst(dpSys(), dpEm(n), dpType(type), num),
+        action_partemit_stream: (self, n, type, num) => B.part_emitter_stream(dpSys(), dpEm(n), dpType(type), num),
+    });
+
     // ------------------------------------------------------------------ input
-    B.keyboard_check = k => (k === 1 ? R.keys.size + R.fPressed.size > 0 : k === 0 ? R.keys.size + R.fPressed.size === 0 : R.keys.has(Math.round(k)) || R.fPressed.has(Math.round(k)));
+    B.keyboard_check =k => (k === 1 ? R.keys.size + R.fPressed.size > 0 : k === 0 ? R.keys.size + R.fPressed.size === 0 : R.keys.has(Math.round(k)) || R.fPressed.has(Math.round(k)));
     // pressed/released state belongs to the whole frame (step and draw events see the same presses)
     R.fPressed = new Set(); R.fReleased = new Set(); R.fmPressed = new Set(); R.fmReleased = new Set();
     B.keyboard_check_pressed = k => (k === 1 ? R.fPressed.size > 0 : R.fPressed.has(Math.round(k)));
@@ -1159,7 +1300,13 @@ const B = (() => {
         snapshot(); return R.queue[R.queue.length - 1];
     }
     B.screen_refresh = () => { snapshot(); return 0; };
-    B.screen_redraw = () => { const keep = R.ctx; draw(); R.ctx = keep; snapshot(); return 0; };
+    B.screen_redraw = () => {
+        // with a surface as the target this draws the room into it (a common way to capture the screen)
+        const keep = R.ctx, target = R.surfaceTarget, view = R.curView, saved = R.savedView;
+        draw(); R.ctx = keep; R.surfaceTarget = target; R.curView = view; R.savedView = saved; setBase(keep, mulM(view, R.world));
+        if (!target) snapshot();
+        return 0;
+    };
     B.sleep = ms => { lastFrame().hold += Math.max(0, ms); return 0; };
     B.keyboard_wait = () => { lastFrame().waitKey = true; return 0; };
     B.mouse_wait = B.keyboard_wait;
@@ -1189,7 +1336,18 @@ const B = (() => {
     B.window_set_caption = s => { B.room_caption = s; return 0; };
     B.window_get_caption = () => B.room_caption;
     B.cursor_sprite = -1;
-    B.window_set_cursor = c => { if (R.canvas) R.canvas.style.cursor = c === -1 ? 'none' : ''; return 0; };
+    const CURSORS = { '-1': 'none', '-3': 'crosshair', '-4': 'text', '-6': 'nesw-resize', '-7': 'ns-resize', '-8': 'nwse-resize',
+        '-9': 'ew-resize', '-11': 'wait', '-12': 'grab', '-13': 'no-drop', '-18': 'not-allowed', '-19': 'progress', '-20': 'help',
+        '-21': 'pointer', '-22': 'move' };
+    B.window_set_cursor = c => { if (R.canvas) R.canvas.style.cursor = CURSORS[Math.round(c)] || ''; return 0; };
+    B.window_get_cursor = () => 0;
+    // The game window is the canvas; there is no separate desktop to measure, so the "display" is the window too.
+    B.window_get_width = () => (R.canvas ? R.canvas.width : B.room_width);
+    B.window_get_height = () => (R.canvas ? R.canvas.height : B.room_height);
+    B.window_get_region_width = B.window_get_width;
+    B.window_get_region_height = B.window_get_height;
+    B.display_get_width = B.window_get_width;
+    B.display_get_height = B.window_get_height;
     B.game_end = () => { R.ended = true; return 0; };
 
     function gotoRoom(index) {
@@ -1197,6 +1355,7 @@ const B = (() => {
         if (!first) {
             for (const i of [...R.instances]) if (!i.__dead) runEvent(i, 'other_5', i);  // room end
             for (const i of R.instances) if (!i.persistent) killInstance(i);
+            R.inactive = R.inactive.filter(i => i.persistent);
             compact();
         }
         const rm = ROOMS[index];
@@ -1210,6 +1369,16 @@ const B = (() => {
             B.view_hport[k] = v.ph; B.view_hborder[k] = v.hbor; B.view_vborder[k] = v.vbor; B.view_object[k] = v.obj;
         });
         if (!B.view_enabled) { B.view_xview[0] = 0; B.view_yview[0] = 0; B.view_wview[0] = rm.width; B.view_hview[0] = rm.height; }
+        B.background_color = rm.color || 0; B.background_showcolor = !!rm.draw_color;
+        for (let n = 0; n < 8; n++) {
+            const rb = (rm.backgrounds || [])[n] || { visible: false, foreground: false, index: -1, x: 0, y: 0, htiled: true, vtiled: true, hspeed: 0, vspeed: 0, stretch: false };
+            B.background_visible[n] = !!rb.visible; B.background_foreground[n] = !!rb.foreground; B.background_index[n] = rb.index;
+            B.background_x[n] = rb.x; B.background_y[n] = rb.y; B.background_htiled[n] = !!rb.htiled; B.background_vtiled[n] = !!rb.vtiled;
+            B.background_hspeed[n] = rb.hspeed; B.background_vspeed[n] = rb.vspeed; B.background_stretch[n] = !!rb.stretch;
+            B.background_xscale[n] = rb.xscale ?? 1; B.background_yscale[n] = rb.yscale ?? 1;
+            B.background_blend[n] = rb.blend ?? 16777215; B.background_alpha[n] = rb.alpha ?? 1;
+        }
+        R.tiles = (rm.tiles || []).map(t => ({ ...t, __d: undefined }));
         resizeCanvas();
         const created = [];
         for (const d of rm.instances) {
@@ -1229,6 +1398,7 @@ const B = (() => {
     function restartGame() {
         for (const i of [...R.instances]) if (!i.__dead) runEvent(i, 'other_3', i);   // game end
         for (const i of R.instances) killInstance(i);
+        R.inactive = [];
         compact();
         for (const k of Object.keys(G)) delete G[k];
         B.score = 0; lives = -1; health = 100;
@@ -1318,14 +1488,20 @@ const B = (() => {
     B.surface_get_height = s => (R.surfaces[s] ? R.surfaces[s].height : 0);
     B.surface_set_target = s => {
         const c = R.surfaces[s]; if (!c) return 0;
-        R.surfaceTarget = R.ctx; R.ctx = c.getContext('2d'); R.ctx.setTransform(1, 0, 0, 1, 0, 0); return 0;
+        if (!R.surfaceTarget) { R.surfaceTarget = R.ctx; R.savedView = R.curView; }
+        R.curView = IDENT; R.ctx = c.getContext('2d'); setBase(R.ctx, R.world); return 0;
     };
-    B.surface_reset_target = () => { if (R.surfaceTarget) { R.ctx = R.surfaceTarget; R.surfaceTarget = null; } return 0; };
+    B.surface_reset_target = () => {
+        if (R.surfaceTarget) { R.ctx = R.surfaceTarget; R.surfaceTarget = null; R.curView = R.savedView || IDENT; setBase(R.ctx, mulM(R.curView, R.world)); }
+        return 0;
+    };
     B.draw_surface = (s, x, y) => { const c = R.surfaces[s]; if (c) withAlpha(() => R.ctx.drawImage(c, x, y)); return 0; };
 
     // ------------------------------------------------------------------ drawing
     const D = R.draw;
-    function applyBlend() { R.ctx.globalCompositeOperation = D.blend; }
+    // bm_subtract is dest * (1 - src). Canvas has no such mode: on surfaces it's mostly used to punch
+    // see-through holes (light/transition masks), which destination-out reproduces; on screen 'difference' is closer.
+    function applyBlend() { R.ctx.globalCompositeOperation = D.blend === 'subtract' ? (R.ctx === R.mainCtx ? 'difference' : 'destination-out') : D.blend; }
     function withAlpha(fn, alpha) {
         const ctx = R.ctx; ctx.globalAlpha = Math.max(0, Math.min(1, alpha === undefined ? D.alpha : alpha));
         applyBlend(); fn(ctx); ctx.globalAlpha = 1;
@@ -1338,7 +1514,7 @@ const B = (() => {
     B.draw_set_font = f => { D.font = f; return 0; };
     B.draw_set_halign = a => { D.halign = a; return 0; };
     B.draw_set_valign = a => { D.valign = a; return 0; };
-    const BLEND = { 0: 'source-over', 1: 'lighter', 2: 'screen', 3: 'difference' };
+    const BLEND = { 0: 'source-over', 1: 'lighter', 2: 'screen', 3: 'subtract' };
     B.draw_set_blend_mode = m => { D.blend = BLEND[m] || 'source-over'; return 0; };
     B.draw_set_blend_mode_ext = (src, dst) => {
         // Common GM8 combinations mapped onto canvas composite modes
@@ -1410,10 +1586,14 @@ const B = (() => {
         return 0;
     };
     B.draw_primitive_begin = kind => { R.prim = { kind, v: [] }; return 0; };
+    B.draw_primitive_begin_texture = (kind, tex) => { R.prim = { kind, v: [], tex }; return 0; };
+    B.draw_vertex_texture = (x, y, u, v) => { if (R.prim) R.prim.v.push({ x, y, u, v, c: 16777215, a: D.alpha }); return 0; };
+    B.draw_vertex_texture_color = (x, y, u, v, c, a) => { if (R.prim) R.prim.v.push({ x, y, u, v, c, a }); return 0; };
     B.draw_vertex = (x, y) => { if (R.prim) R.prim.v.push({ x, y, c: D.color, a: D.alpha }); return 0; };
     B.draw_vertex_color = (x, y, c, a) => { if (R.prim) R.prim.v.push({ x, y, c, a }); return 0; };
     B.draw_primitive_end = () => {
         const p = R.prim; R.prim = null; if (!p || p.v.length < 2) return 0;
+        if (p.tex !== undefined && p.tex >= 0) return texturedPrimitive(p);
         const ctx = R.ctx; applyBlend();
         const tri = (a, b, c) => {
             const g = ctx.createLinearGradient(a.x, a.y, c.x, c.y);
@@ -1433,6 +1613,94 @@ const B = (() => {
         }
         return 0;
     };
+
+    // ---- d3d_transform_*: the 2D part (translation, scaling, rotation about z) of GameMaker's world transform.
+    // R.world applies to everything drawn after it's set; R.curView is the view transform of the current
+    // draw target (the identity outside the draw event and on surfaces).
+    R.world = IDENT; R.worldStack = []; R.curView = IDENT;
+    const applyWorld = () => { setBase(R.ctx, mulM(R.curView, R.world)); return 0; };
+    const mT = (x, y) => ({ a: 1, b: 0, c: 0, d: 1, e: x, f: y });
+    const mS = (x, y) => ({ a: x, b: 0, c: 0, d: y, e: 0, f: 0 });
+    const mR = deg => { const r = -deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r); return { a: c, b: s, c: -s, d: c, e: 0, f: 0 }; };
+    const setW = m => { R.world = m; return applyWorld(); }, addW = m => setW(mulM(m, R.world));
+    B.d3d_transform_set_identity = () => setW(IDENT);
+    B.d3d_transform_set_translation = (x, y) => setW(mT(x, y));
+    B.d3d_transform_set_scaling = (x, y) => setW(mS(x, y));
+    B.d3d_transform_set_rotation_z = a => setW(mR(a));
+    B.d3d_transform_add_translation = (x, y) => addW(mT(x, y));
+    B.d3d_transform_add_scaling = (x, y) => addW(mS(x, y));
+    B.d3d_transform_add_rotation_z = a => addW(mR(a));
+    B.d3d_transform_stack_push = () => { R.worldStack.push(R.world); return 1; };
+    B.d3d_transform_stack_pop = () => { if (!R.worldStack.length) return 0; setW(R.worldStack.pop()); return 1; };
+    B.d3d_transform_stack_top = () => { if (R.worldStack.length) setW(R.worldStack[R.worldStack.length - 1]); return 1; };
+    B.d3d_transform_stack_discard = () => { R.worldStack.pop(); return 1; };
+    B.d3d_transform_stack_clear = () => { R.worldStack = []; return setW(IDENT); };
+    B.d3d_transform_stack_empty = () => !R.worldStack.length;
+
+    // ---- textures (background_get_texture / sprite_get_texture) for textured primitives.
+    // GameMaker pads textures to powers of two, and texture coordinates 0..1 span the padded size.
+    R.textures = []; const texIds = new Map();
+    let texRepeat = true;   // GameMaker's default is off; repeating suits the wrap-around uses seen in games
+    function texId(key, get) {
+        if (!texIds.has(key)) { R.textures.push({ get, canvas: null }); texIds.set(key, R.textures.length - 1); }
+        return texIds.get(key);
+    }
+    B.background_get_texture = b => texId('bg' + Math.round(b), () => { const g = R.backgrounds[Math.round(b)]; return g && g.image; });
+    B.sprite_get_texture = (spr, sub) => texId('spr' + Math.round(spr) + ':' + Math.round(sub), () => {
+        const sp = R.sprites[Math.round(spr)]; if (!sp || !sp.frames.length) return null;
+        return sp.frames[((Math.floor(sub) % sp.frames.length) + sp.frames.length) % sp.frames.length];
+    });
+    const pow2 = n => { let p = 1; while (p < n) p *= 2; return p; };
+    function texCanvas(id) {
+        const t = R.textures[Math.round(id)]; if (!t) return null;
+        const img = t.get(); if (!img) return null;
+        if (t.canvas && t.src === img) return t.canvas;
+        const c = makeCanvas(pow2(img.width), pow2(img.height)); c.getContext('2d').drawImage(img, 0, 0);
+        t.canvas = c; t.src = img; return c;
+    }
+    B.texture_get_width = id => { const t = R.textures[Math.round(id)], img = t && t.get(); return img ? img.width / pow2(img.width) : 0; };
+    B.texture_get_height = id => { const t = R.textures[Math.round(id)], img = t && t.get(); return img ? img.height / pow2(img.height) : 0; };
+    B.texture_set_repeat = v => { texRepeat = B.T(v); return 0; };
+    B.texture_set_interpolation = () => 0;
+    B.texture_set_blending = () => 0;
+    // Map texture pixel space onto the screen for one triangle: (u,v) of each vertex -> (x,y).
+    function triAffine(p0, p1, p2, W, H) {
+        const u0 = p0.u * W, v0 = p0.v * H, du1 = p1.u * W - u0, dv1 = p1.v * H - v0, du2 = p2.u * W - u0, dv2 = p2.v * H - v0;
+        const det = du1 * dv2 - du2 * dv1; if (Math.abs(det) < 1e-9) return null;
+        const dx1 = p1.x - p0.x, dy1 = p1.y - p0.y, dx2 = p2.x - p0.x, dy2 = p2.y - p0.y;
+        const a = (dx1 * dv2 - dx2 * dv1) / det, c = (dx2 * du1 - dx1 * du2) / det;
+        const b = (dy1 * dv2 - dy2 * dv1) / det, d = (dy2 * du1 - dy1 * du2) / det;
+        return { a, b, c, d, e: p0.x - a * u0 - c * v0, f: p0.y - b * u0 - d * v0 };
+    }
+    function texturedPrimitive(p) {
+        const tex = texCanvas(p.tex), ctx = R.ctx, v = p.v; if (!tex) return 0;
+        const W = tex.width, H = tex.height;
+        const img = tinted(tex, 'tex' + p.tex, v[0].c);
+        const pat = ctx.createPattern(img, texRepeat ? 'repeat' : 'no-repeat');
+        applyBlend();
+        ctx.globalAlpha = Math.max(0, Math.min(1, v.reduce((s, q) => s + q.a, 0) / v.length));
+        const fill = (pts, m) => {
+            pat.setTransform(new DOMMatrix([m.a, m.b, m.c, m.d, m.e, m.f]));
+            ctx.fillStyle = pat; ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+            for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
+            ctx.closePath(); ctx.fill();
+        };
+        const tris = [];
+        if (p.kind === 6) for (let i = 1; i < v.length - 1; i++) tris.push([v[0], v[i], v[i + 1]]);
+        else if (p.kind === 5) for (let i = 0; i < v.length - 2; i++) tris.push([v[i], v[i + 1], v[i + 2]]);
+        else for (let i = 0; i + 2 < v.length; i += 3) tris.push([v[i], v[i + 1], v[i + 2]]);
+        // A fan whose texture mapping is one affine map (the usual textured disc or quad) is filled in one go,
+        // which avoids hairline seams between the triangles.
+        if (p.kind === 6 && tris.length) {
+            let m = null; for (const t of tris) if ((m = triAffine(t[0], t[1], t[2], W, H))) break;
+            if (m && v.every(q => Math.abs(m.a * q.u * W + m.c * q.v * H + m.e - q.x) < 0.01 && Math.abs(m.b * q.u * W + m.d * q.v * H + m.f - q.y) < 0.01)) {
+                fill(v, m); ctx.globalAlpha = 1; return 0;
+            }
+        }
+        for (const t of tris) { const m = triAffine(t[0], t[1], t[2], W, H); if (m) fill(t, m); }
+        ctx.globalAlpha = 1;
+        return 0;
+    }
 
     // Tinted copies of sprite frames (GM multiplies the image by the blend color)
     function invalidateTint(spr) { for (const k of [...R.tintCache.keys()]) if (k.startsWith(spr + ':')) R.tintCache.delete(k); }
@@ -1454,7 +1722,7 @@ const B = (() => {
         ctx.globalAlpha = Math.max(0, Math.min(1, alpha)); applyBlend();
         if (!rot && xs === 1 && ys === 1) ctx.drawImage(img, x - ox, y - oy);
         else {
-            const b = ctx === R.mainCtx ? R.base : IDENT;
+            const b = ctx.__base || IDENT;
             const r = -rot * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
             // base * translate(x,y) * rotate(r) * scale(xs,ys)
             const a1 = c * xs, b1 = s * xs, c1 = -s * ys, d1 = c * ys;
@@ -1465,8 +1733,6 @@ const B = (() => {
         }
         ctx.globalAlpha = 1;
     }
-    const IDENT = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
-    R.base = IDENT;
     function frameOf(sp, sub, self) {
         if (sub < 0 && self) sub = self.image_index;
         const n = sp.frames.length; if (!n) return -1;
@@ -1559,6 +1825,25 @@ const B = (() => {
     // List them here so the converter/report know they're covered.
     B._extensions = ['WinSkin'];
 
+    // ---- DLLs (external_define / external_call). A DLL can't run in the browser; the ones games commonly
+    // ship are reimplemented in JS below (EXTERNAL[dll name][function name]). Others return 0 or ''.
+    const EXTERNAL = {};
+    B._EXTERNAL = EXTERNAL;
+    R.externals = [];
+    B.external_define = (dll, name, calltype, restype, argnumb) => {
+        const base = String(dll).replace(/\\/g, '/').split('/').pop().toLowerCase();
+        R.externals.push({ dll: base, name: String(name), restype });
+        return R.externals.length - 1;
+    };
+    B.external_call = (id, ...args) => {
+        const e = R.externals[Math.round(id)]; if (!e) return 0;
+        const lib = EXTERNAL[e.dll], fn = lib && (lib[e.name] || lib[e.name.toLowerCase()]);
+        if (fn) return fn(...args);
+        warnOnce(`external_call: ${e.dll} ${e.name} isn't available in the browser`);
+        return e.restype === 1 ? '' : 0;
+    };
+    B.external_free = () => 0;
+
     // WinSkin (RPG-Maker style window skins)
     const WS = { alpha: 0.4, alpha2: 0.7, back: -1 };
     B.winskin_init = (a1, a2, f1, f2, back) => { WS.alpha = a1; WS.alpha2 = a2; WS.back = back; return 0; };
@@ -1599,20 +1884,35 @@ const B = (() => {
         if (!snd.url) return null;
         const a = new Audio(snd.url); a.volume = Math.max(0, Math.min(1, (snd.volume == null ? 1 : snd.volume) * globalVolume)); return a;
     }
+    // Browsers block sound until the player clicks or presses a key. Sounds started before that (title
+    // music, mostly) are remembered and started on the first input, if nothing stopped them meanwhile.
+    const blocked = [];
+    function startAudio(a) {
+        const p = a.play();
+        // only looping sounds are worth starting late; while waiting they count as playing
+        if (p && p.catch) p.catch(() => { if (!a.__stopped && a.loop) { a.__pending = true; blocked.push(a); } });
+        return a;
+    }
+    B._startAudio = startAudio;
+    const unlock = () => { while (blocked.length) { const a = blocked.shift(); a.__pending = false; if (!a.__stopped) { const p = a.play(); if (p && p.catch) p.catch(() => { }); } } };
+    if (typeof window !== 'undefined') for (const ev of ['keydown', 'mousedown', 'touchstart']) window.addEventListener(ev, unlock, true);
+    const stopAudio = a => { a.__stopped = true; a.__pending = false; a.pause(); };
+    const audioPlaying = a => !a.ended && (!a.paused || a.__pending);
+    B._audioPlaying = audioPlaying; B._stopAudio = stopAudio;
     function play(i, loop) {
         const snd = soundObj(i); if (!snd || !snd.url) return 0;
-        snd.playing = snd.playing.filter(a => !a.ended && !a.paused);
-        if (snd.kind !== 0) { snd.playing.forEach(a => a.pause()); snd.playing = []; }  // music: single channel
+        snd.playing = snd.playing.filter(audioPlaying);
+        if (snd.kind !== 0) { snd.playing.forEach(stopAudio); snd.playing = []; }  // music: single channel
         const a = makeAudio(snd); a.loop = !!loop;
-        const p = a.play(); if (p && p.catch) p.catch(() => { });
+        startAudio(a);
         snd.playing.push(a);
         return 0;
     }
     B.sound_play = i => play(i, false);
     B.sound_loop = i => play(i, true);
-    B.sound_stop = i => { const s = soundObj(i); if (s) { s.playing.forEach(a => a.pause()); s.playing = []; } return 0; };
-    B.sound_stop_all = () => { R.sounds.forEach(s => { if (s) { s.playing.forEach(a => a.pause()); s.playing = []; } }); return 0; };
-    B.sound_isplaying = i => { const s = soundObj(i); return !!s && s.playing.some(a => !a.ended && !a.paused); };
+    B.sound_stop = i => { const s = soundObj(i); if (s) { s.playing.forEach(stopAudio); s.playing = []; } return 0; };
+    B.sound_stop_all = () => { R.sounds.forEach(s => { if (s) { s.playing.forEach(stopAudio); s.playing = []; } }); return 0; };
+    B.sound_isplaying = i => { const s = soundObj(i); return !!s && s.playing.some(audioPlaying); };
     B.sound_volume = (i, v) => { const s = soundObj(i); if (s) { s.volume = v; s.playing.forEach(a => a.volume = Math.max(0, Math.min(1, v * globalVolume))); } return 0; };
     B.sound_global_volume = v => {
         globalVolume = Math.max(0, Math.min(1, +v || 0));
@@ -1624,6 +1924,73 @@ const B = (() => {
         B.sound_stop(i); s.url = url; s.kind = kind === 3 ? 1 : kind; return 0;
     };
 
+
+    // ---- GMFMOD Simple (GMFMODSimple.dll): FMOD sound for GM6-8 games, used mainly for music in formats
+    // GameMaker can't play (.xm, .mod, .it, .s3m, .ogg). The build renders tracker modules to .ogg; here each
+    // FMOD sound is an audio file and each instance an <audio> element. 3D positioning, effects and
+    // spectrum data aren't emulated.
+    {
+        const FM = { sounds: [null], insts: [null], groupVol: {}, groupMute: {}, master: 1 };
+        const sound = id => FM.sounds[Math.round(id)];
+        const inst = id => FM.insts[Math.round(id)];
+        const volOf = n => { const s = n.snd; return Math.max(0, Math.min(1, n.vol * s.maxVol * (FM.groupVol[s.group] ?? 1) * FM.master * globalVolume)) * (FM.groupMute[s.group] || n.muted ? 0 : 1); };
+        const refresh = () => { for (const n of FM.insts) if (n) n.audio.volume = volOf(n); };
+        const start = (id, loop) => {
+            const s = sound(id); if (!s) return 0;
+            const a = new Audio(s.url); a.loop = loop;
+            const n = { audio: a, snd: s, vol: 1, muted: false };
+            FM.insts.push(n); a.volume = volOf(n); B._startAudio(a);
+            return FM.insts.length - 1;
+        };
+        const stopInst = n => { if (n) B._stopAudio(n.audio); };
+        const forGroup = (g, fn) => { for (const n of FM.insts) if (n && n.snd.group === Math.round(g)) fn(n); };
+        B._fmod = FM;
+        EXTERNAL['gmfmodsimple.dll'] = {
+            FMODinit: () => 1, FMODfree: () => { FM.insts.forEach(stopInst); return 1; }, FMODUpdate: () => 1,
+            FMODGetLastError: () => 0, FMODErrorStr: () => '',
+            FMODSoundAdd: (file) => {
+                const url = R.extraFiles[normFile(file)];
+                if (typeof url !== 'string') { warnOnce('GMFMOD: ' + file + ' was not bundled with the game'); return 0; }
+                FM.sounds.push({ url, maxVol: 1, group: 0 }); return FM.sounds.length - 1;
+            },
+            FMODSoundFree: id => { const s = sound(id); if (s) { FM.insts.forEach(n => { if (n && n.snd === s) stopInst(n); }); FM.sounds[Math.round(id)] = null; } return 1; },
+            FMODSoundPlay: id => start(id, false), FMODSoundLoop: id => start(id, true),
+            FMODSoundPlay3d: id => start(id, false), FMODSoundLoop3d: id => start(id, true),
+            FMODSoundSetMaxVolume: (id, v) => { const s = sound(id); if (s) { s.maxVol = v; refresh(); } return 1; },
+            FMODSoundSetGroup: (id, g) => { const s = sound(id); if (s) { s.group = Math.round(g); refresh(); } return 1; },
+            FMODSoundGetMaxDist: () => 0,
+            FMODAllStop: () => { FM.insts.forEach(stopInst); FM.insts = [null]; return 1; },
+            FMODInstanceStop: id => { stopInst(inst(id)); return 1; },
+            FMODInstanceIsPlaying: id => { const n = inst(id); return n && B._audioPlaying(n.audio) ? 1 : 0; },
+            FMODInstanceSetVolume: (id, v) => { const n = inst(id); if (n) { n.vol = v; n.audio.volume = volOf(n); } return 1; },
+            FMODInstanceGetVolume: id => { const n = inst(id); return n ? n.vol : 0; },
+            FMODInstanceSetMuted: (id, m) => { const n = inst(id); if (n) { n.muted = B.T(m); n.audio.volume = volOf(n); } return 1; },
+            FMODInstanceGetMuted: id => { const n = inst(id); return n && n.muted ? 1 : 0; },
+            FMODInstanceSetPaused: (id, p) => { const n = inst(id); if (n) { if (B.T(p)) n.audio.pause(); else if (!n.audio.__stopped) B._startAudio(n.audio); } return 1; },
+            FMODInstanceGetPaused: id => { const n = inst(id); return n && n.audio.paused ? 1 : 0; },
+            FMODInstanceGetSound: id => { const n = inst(id); return n ? FM.sounds.indexOf(n.snd) : 0; },
+            FMODInstanceSetFrequency: () => 1, FMODInstanceGetFrequency: () => 44100,
+            FMODInstanceSetPan: () => 1, FMODInstanceGetPan: () => 0,
+            FMODInstanceGetPosition: id => { const n = inst(id); return n && n.audio.duration ? n.audio.currentTime / n.audio.duration : 0; },
+            FMODInstanceSetPosition: (id, p) => { const n = inst(id); if (n && n.audio.duration) n.audio.currentTime = p * n.audio.duration; return 1; },
+            FMODGroupSetVolume: (g, v) => { FM.groupVol[Math.round(g)] = v; refresh(); return 1; },
+            FMODGroupGetVolume: g => FM.groupVol[Math.round(g)] ?? 1,
+            FMODGroupSetMuted: (g, m) => { FM.groupMute[Math.round(g)] = B.T(m); refresh(); return 1; },
+            FMODGroupGetMuted: g => (FM.groupMute[Math.round(g)] ? 1 : 0),
+            FMODGroupStop: g => { forGroup(g, stopInst); return 1; },
+            FMODGroupSetPaused: (g, p) => { forGroup(g, n => { if (B.T(p)) n.audio.pause(); else if (!n.audio.__stopped) B._startAudio(n.audio); }); return 1; },
+            FMODGroupGetPaused: () => 0, FMODGroupGetPitch: () => 1, FMODGroupSetPitch: () => 1, FMODGroupSetFrequency: () => 1, FMODGroupSetPan: () => 1,
+            FMODMasterSetVolume: v => { FM.master = v; refresh(); return 1; },
+            FMODGetNumInstances: () => FM.insts.filter(n => n && B._audioPlaying(n.audio)).length,
+        };
+        // everything else (3D listener, effects, blockers, spectrum, ...) is accepted and ignored
+        for (const name of ['FMODSoundSetEffects', 'FMODSoundSet3dMinMaxDistance', 'FMODSoundSet3dDopplerMax', 'FMODSoundSet3dCone',
+            'FMODInstanceSet3dPosition', 'FMODInstanceSet3dConeOrientation', 'FMODListenerSetNumber', 'FMODListenerSet3dPosition',
+            'FMODListenerSet3dPositionEx', 'FMODListenerHearsDistanceOnly', 'FMODSetWorldScale', 'FMODSetDopplerFPS'])
+            EXTERNAL['gmfmodsimple.dll'][name] = () => 1;
+        const prevGlobal = B.sound_global_volume;
+        B.sound_global_volume = v => { prevGlobal(v); refresh(); return 0; };
+    }
 
     // ------------------------------------------------------------------ high-score table (kept in localStorage)
     const HS = { back: -1, border: true, colBack: 16777215, colNew: 255, colOther: 0, font: 'Arial', size: 10, bold: false,
@@ -1717,7 +2084,84 @@ const B = (() => {
 
     // ------------------------------------------------------------------ files (bundled extra files next to the game)
     function normFile(f) { return String(f).replace(/\\/g, '/').replace(/^(\.?\/)+/, '').toLowerCase(); }
-    B.file_exists = f => (normFile(f) in R.extraFiles || iniStored(normFile(f)) !== null ? 1 : 0);
+    B.file_exists = f => (normFile(f) in R.extraFiles || iniStored(normFile(f)) !== null || vfsRead(normFile(f)) !== null ? 1 : 0);
+
+    // ---- files the game writes (file_bin_* / file_text_*). Each file is a string of byte values (0-255)
+    // kept in localStorage under the game's title, falling back to memory; bundled text files are read-only seeds.
+    const vfsMem = {};
+    const vfsKey = f => 'gm-revive-file:' + (R.baseTitle || (typeof document !== 'undefined' ? document.title : '')) + ':' + f;
+    function vfsRead(f) {
+        if (f in vfsMem) return vfsMem[f];
+        try { const v = typeof localStorage !== 'undefined' ? localStorage.getItem(vfsKey(f)) : null; if (v !== null) return (vfsMem[f] = v); } catch (e) { }
+        return f in R.extraText ? R.extraText[f] : null;
+    }
+    function vfsWrite(f, data) {
+        vfsMem[f] = data;
+        try { if (typeof localStorage !== 'undefined') localStorage.setItem(vfsKey(f), data); } catch (e) { }
+    }
+    B.file_delete = f => { f = normFile(f); vfsMem[f] = null; delete vfsMem[f]; try { localStorage.removeItem(vfsKey(f)); } catch (e) { } return 0; };
+    B.file_rename = (a, b) => { const d = vfsRead(normFile(a)); if (d === null) return 0; vfsWrite(normFile(b), d); B.file_delete(a); return 1; };
+    B.file_copy = (a, b) => { const d = vfsRead(normFile(a)); if (d !== null) vfsWrite(normFile(b), d); return 0; };
+    const files = [null];       // open file handles; ids start at 1
+    const fh = id => files[Math.round(id)];
+    const openFile = (name, mode, data, text) => { files.push({ name: normFile(name), mode, data, pos: 0, text }); return files.length - 1; };
+    // binary files: mode 0 read, 1 write, 2 both
+    B.file_bin_open = (f, mode) => {
+        const cur = vfsRead(normFile(f));
+        if (cur === null && Math.round(mode) === 0) return -1;
+        return openFile(f, Math.round(mode), Array.from(cur || '', ch => ch.charCodeAt(0) & 255), false);
+    };
+    B.file_bin_rewrite = id => { const h = fh(id); if (h) { h.data = []; h.pos = 0; } return 0; };
+    B.file_bin_close = id => {
+        const h = fh(id); if (!h) return 0;
+        if (h.mode > 0) vfsWrite(h.name, h.data.map(b => String.fromCharCode(b)).join(''));
+        files[Math.round(id)] = null; return 0;
+    };
+    B.file_bin_size = id => { const h = fh(id); return h ? h.data.length : 0; };
+    B.file_bin_position = id => { const h = fh(id); return h ? h.pos : 0; };
+    B.file_bin_seek = (id, pos) => { const h = fh(id); if (h) h.pos = Math.max(0, Math.round(pos)); return 0; };
+    B.file_bin_read_byte = id => { const h = fh(id); if (!h) return 0; const v = h.data[h.pos]; h.pos++; return v === undefined ? 0 : v; };
+    B.file_bin_write_byte = (id, v) => {
+        const h = fh(id); if (!h || h.mode === 0) return 0;
+        while (h.data.length < h.pos) h.data.push(0);
+        h.data[h.pos++] = Math.round(v) & 255; return 0;
+    };
+    // text files
+    B.file_text_open_read = f => { const cur = vfsRead(normFile(f)); return cur === null ? -1 : openFile(f, 0, cur.replace(/\r\n/g, '\n'), true); };
+    B.file_text_open_write = f => openFile(f, 1, '', true);
+    B.file_text_open_append = f => { const h = fh(openFile(f, 1, vfsRead(normFile(f)) || '', true)); h.pos = h.data.length; return files.length - 1; };
+    B.file_text_close = id => {
+        const h = fh(id); if (!h) return 0;
+        if (h.mode > 0) vfsWrite(h.name, h.data.replace(/\n/g, '\r\n'));
+        files[Math.round(id)] = null; return 0;
+    };
+    B.file_text_write_string = (id, str) => { const h = fh(id); if (h && h.mode > 0) h.data += B.string(str); return 0; };
+    B.file_text_write_real = (id, v) => { const h = fh(id); if (h && h.mode > 0) h.data += ' ' + (Number.isInteger(+v) ? String(+v) : (+v).toFixed(4)); return 0; };
+    B.file_text_writeln = id => { const h = fh(id); if (h && h.mode > 0) h.data += '\n'; return 0; };
+    B.file_text_eof = id => { const h = fh(id); return !h || h.pos >= h.data.length; };
+    B.file_text_read_string = id => {
+        const h = fh(id); if (!h) return ''; let e = h.data.indexOf('\n', h.pos); if (e < 0) e = h.data.length;
+        const out = h.data.slice(h.pos, e); h.pos = e; return out;
+    };
+    B.file_text_read_real = id => {
+        const h = fh(id); if (!h) return 0;
+        const m = /^[ \t]*([-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?)/.exec(h.data.slice(h.pos));
+        if (!m) return 0; h.pos += m[0].length; return parseFloat(m[1]);
+    };
+    B.file_text_readln = id => { const h = fh(id); if (!h) return 0; const e = h.data.indexOf('\n', h.pos); h.pos = e < 0 ? h.data.length : e + 1; return 0; };
+    // the old single-file API (file_open_read etc.) uses one implicit handle
+    let oldFile = -1;
+    B.file_open_read = f => { oldFile = B.file_text_open_read(f); return 0; };
+    B.file_open_write = f => { oldFile = B.file_text_open_write(f); return 0; };
+    B.file_open_append = f => { oldFile = B.file_text_open_append(f); return 0; };
+    B.file_close = () => { B.file_text_close(oldFile); oldFile = -1; return 0; };
+    B.file_read_string = () => B.file_text_read_string(oldFile);
+    B.file_read_real = () => B.file_text_read_real(oldFile);
+    B.file_readln = () => B.file_text_readln(oldFile);
+    B.file_write_string = s => B.file_text_write_string(oldFile, s);
+    B.file_write_real = v => B.file_text_write_real(oldFile, v);
+    B.file_writeln = () => B.file_text_writeln(oldFile);
+    B.file_eof = () => B.file_text_eof(oldFile);
 
     // ------------------------------------------------------------------ INI files (kept in localStorage, per game)
     // GM8 games save settings and progress with ini_open/ini_write_*/ini_close. In the browser each INI
@@ -1773,7 +2217,7 @@ const B = (() => {
     }
 
     function forEachLive(fn) {
-        for (const i of [...R.instances]) if (!i.__dead) fn(i);
+        for (const i of [...R.instances]) if (!i.__dead && !i.__inactive) fn(i);
     }
 
     const MOUSE_EV = { 1: [0, 4, 7, 50, 53, 56], 2: [1, 5, 8, 51, 54, 57], 3: [2, 6, 9, 52, 55, 58] };
@@ -1880,42 +2324,54 @@ const B = (() => {
             else if (i.image_index < 0) { i.image_index += n; runEvent(i, 'other_7', i); }
         });
         R.psys.forEach((ps, k) => { if (ps && ps.autoUpdate) B.part_system_update(k); });
+        for (let n = 0; n < 8; n++) {                                              // background scrolling
+            if (B.background_hspeed[n]) B.background_x[n] += B.background_hspeed[n];
+            if (B.background_vspeed[n]) B.background_y[n] += B.background_vspeed[n];
+        }
         compact();
         m.wheel = 0;
+    }
+
+    // The view transform: view 0's region onto its port, rotated by view_angle about the view's centre.
+    function viewMatrix() {
+        if (!B.view_enabled) return IDENT;
+        const vw = B.view_wview[0], vh = B.view_hview[0], pw = B.view_wport[0], ph = B.view_hport[0];
+        const sx = pw / vw, sy = ph / vh, ang = +B.view_angle[0] || 0;
+        if (!ang) return { a: sx, b: 0, c: 0, d: sy, e: -B.view_xview[0] * sx, f: -B.view_yview[0] * sy };
+        let m = mT(-(B.view_xview[0] + vw / 2), -(B.view_yview[0] + vh / 2));
+        m = mulM(mS(sx, sy), m); m = mulM(mR(-ang), m); return mulM(mT(pw / 2, ph / 2), m);
     }
 
     function draw() {
         const ctx = R.ctx;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-        ctx.fillStyle = R.roomData.draw_color ? css(R.roomData.color) : '#000'; ctx.fillRect(0, 0, R.canvas.width, R.canvas.height);
+        ctx.fillStyle = B.background_showcolor ? css(B.background_color) : '#000'; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         updateView();
-        if (B.view_enabled) {
-            const sx = B.view_wport[0] / B.view_wview[0], sy = B.view_hport[0] / B.view_hview[0];
-            ctx.setTransform(sx, 0, 0, sy, -B.view_xview[0] * sx, -B.view_yview[0] * sy);
-            R.base = { a: sx, b: 0, c: 0, d: sy, e: -B.view_xview[0] * sx, f: -B.view_yview[0] * sy };
-        } else R.base = IDENT;
+        const V = viewMatrix();
+        R.curView = V; setBase(ctx, mulM(V, R.world));
         drawRoomBackgrounds(false);
         const list = R.instances.filter(i => !i.__dead && i.visible);
-        for (const t of R.roomData.tiles || []) list.push(t.__d || (t.__d = { __tile: t, depth: t.depth, __order: -1 }));
+        for (const t of R.tiles) if (t.visible !== false) list.push(t.__d || (t.__d = { __tile: t, depth: t.depth, __order: -1 }));
         R.psys.forEach((ps, k) => { if (ps && ps.autoDraw) list.push({ __psys: k, depth: ps.depth, __order: -2 }); });
         list.sort((a, b) => (b.depth - a.depth) || (a.__order - b.__order));
         for (const i of list) {
             if (!(i instanceof Instance) && i.__psys !== undefined) { B.part_system_drawit(i.__psys); continue; }
             if (!(i instanceof Instance) && i.__tile) {
                 const t = i.__tile, bg = R.backgrounds[t.bg];
-                if (bg && bg.image) { ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(bg.image, t.tx, t.ty, t.w, t.h, t.x, t.y, t.w, t.h); }
+                if (bg && bg.image) { ctx.globalAlpha = t.alpha ?? 1; ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(bg.image, t.tx, t.ty, t.w, t.h, t.x, t.y, t.w * (t.xscale ?? 1), t.h * (t.yscale ?? 1)); ctx.globalAlpha = 1; }
                 continue;
             }
             if (i.__dead) continue;
             if (!runEvent(i, 'draw_0', i)) {
                 if (i.sprite_index >= 0) B.draw_self(i);
             }
-            R.ctx = ctx; R.surfaceTarget = null;
+            if (R.ctx !== ctx || R.surfaceTarget) { R.ctx = ctx; R.surfaceTarget = null; R.curView = V; setBase(ctx, mulM(V, R.world)); }
         }
         drawRoomBackgrounds(true);
         if (B.cursor_sprite >= 0) B.draw_sprite(null, B.cursor_sprite, R.frameCount / 2, B.mouse_x, B.mouse_y);
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        // drawing outside the draw event (screen_refresh effects, transitions) is in window coordinates
+        R.curView = IDENT; setBase(ctx, R.world);
         let cap = B.room_caption;
         if (B.show_score) cap += ' ' + B.caption_score + B.score;
         if (B.show_lives) cap += ' ' + B.caption_lives + lives;
@@ -1924,27 +2380,74 @@ const B = (() => {
         if (cap && document.title !== cap) document.title = cap;
     }
 
-    function drawRoomBackgrounds(fore) {
+    function tileBackground(img, x0, y0, w, h, htiled, vtiled) {
+        // tile over the visible area: the view (or the room) the drawing is going to
         const ctx = R.ctx;
-        for (const rb of R.roomData.backgrounds || []) {
-            if (!rb.visible || rb.foreground !== fore) continue;
-            const bg = R.backgrounds[rb.index]; if (!bg || !bg.image) continue;
-            rb.__x = (rb.__x ?? rb.x) + rb.hspeed; rb.__y = (rb.__y ?? rb.y) + rb.vspeed;
-            ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-            if (rb.stretch) { ctx.drawImage(bg.image, 0, 0, B.room_width, B.room_height); continue; }
-            const w = bg.width, h = bg.height;
-            let x0 = rb.__x, y0 = rb.__y;
-            if (rb.htiled) x0 = ((x0 % w) + w) % w - w;
-            if (rb.vtiled) y0 = ((y0 % h) + h) % h - h;
-            for (let x = x0; x < B.room_width; x += w) {
-                for (let y = y0; y < B.room_height; y += h) {
-                    ctx.drawImage(bg.image, Math.round(x), Math.round(y));
-                    if (!rb.vtiled) break;
-                }
-                if (!rb.htiled) break;
+        const vx = B.view_enabled && R.curView !== IDENT ? B.view_xview[0] : 0, vy = B.view_enabled && R.curView !== IDENT ? B.view_yview[0] : 0;
+        const vw = B.view_enabled && R.curView !== IDENT ? B.view_wview[0] : Math.max(B.room_width, ctx.canvas.width);
+        const vh = B.view_enabled && R.curView !== IDENT ? B.view_hview[0] : Math.max(B.room_height, ctx.canvas.height);
+        // a rotated view shows more than its rectangle: cover the circle around it
+        const pad = +B.view_angle[0] ? Math.hypot(vw, vh) / 2 : 0;
+        const left = vx - pad, top = vy - pad, right = vx + vw + pad, bottom = vy + vh + pad;
+        if (w < 1 || h < 1) return;
+        if (htiled) x0 = left + ((((x0 - left) % w) + w) % w) - w;
+        if (vtiled) y0 = top + ((((y0 - top) % h) + h) % h) - h;
+        for (let x = x0; x < right; x += w) {
+            for (let y = y0; y < bottom; y += h) {
+                ctx.drawImage(img, Math.round(x), Math.round(y), w, h);
+                if (!vtiled) break;
             }
+            if (!htiled) break;
         }
     }
+
+    function drawRoomBackgrounds(fore) {
+        const ctx = R.ctx;
+        for (let n = 0; n < 8; n++) {
+            if (!B.T(B.background_visible[n]) || B.T(B.background_foreground[n]) !== fore) continue;
+            const bg = R.backgrounds[Math.round(B.background_index[n])]; if (!bg || !bg.image) continue;
+            ctx.globalAlpha = Math.max(0, Math.min(1, B.background_alpha[n] ?? 1)); ctx.globalCompositeOperation = 'source-over';
+            const img = tinted(bg.image, 'bg' + Math.round(B.background_index[n]), B.background_blend[n] ?? 16777215);
+            if (B.T(B.background_stretch[n])) ctx.drawImage(img, 0, 0, B.room_width, B.room_height);
+            else tileBackground(img, +B.background_x[n] || 0, +B.background_y[n] || 0, bg.width * (B.background_xscale[n] ?? 1),
+                bg.height * (B.background_yscale[n] ?? 1), B.T(B.background_htiled[n]), B.T(B.background_vtiled[n]));
+            ctx.globalAlpha = 1;
+        }
+    }
+    B.draw_background_tiled = (b, x, y) => B.draw_background_tiled_ext(b, x, y, 1, 1, 16777215, D.alpha);
+    B.draw_background_tiled_ext = (b, x, y, xs, ys, col, alpha) => {
+        const bg = R.backgrounds[Math.round(b)]; if (!bg || !bg.image) return 0;
+        R.ctx.globalAlpha = Math.max(0, Math.min(1, alpha)); applyBlend();
+        tileBackground(tinted(bg.image, 'bg' + Math.round(b), col), x, y, bg.width * xs, bg.height * ys, true, true);
+        R.ctx.globalAlpha = 1; return 0;
+    };
+    B.draw_sprite_tiled = (self, spr, sub, x, y) => {
+        const sp = R.sprites[Math.round(spr)]; if (!sp) return 0; const f = frameOf(sp, sub, self); if (f < 0) return 0;
+        R.ctx.globalAlpha = Math.max(0, Math.min(1, D.alpha)); applyBlend();
+        tileBackground(sp.frames[f], x - sp.xoffset, y - sp.yoffset, sp.width, sp.height, true, true); R.ctx.globalAlpha = 1; return 0;
+    };
+
+    // ---- tiles: each room's tiles are copied when it starts, so tile_add and friends don't change the room itself
+    R.tiles = []; let nextTileId = 20000000;
+    B.tile_add = (bg, l, t, w, h, x, y, depth) => {
+        const id = nextTileId++; R.tiles.push({ bg, tx: l, ty: t, w, h, x, y, depth, id }); return id;
+    };
+    const tileById = id => R.tiles.find(t => t.id === Math.round(id));
+    B.tile_exists = id => !!tileById(id);
+    B.tile_delete = id => { R.tiles = R.tiles.filter(t => t.id !== Math.round(id)); return 0; };
+    B.tile_get_x = id => (tileById(id) || { x: 0 }).x; B.tile_get_y = id => (tileById(id) || { y: 0 }).y;
+    B.tile_get_depth = id => (tileById(id) || { depth: 0 }).depth;
+    B.tile_set_position = (id, x, y) => { const t = tileById(id); if (t) { t.x = x; t.y = y; } return 0; };
+    B.tile_set_depth = (id, d) => { const t = tileById(id); if (t) { t.depth = d; if (t.__d) t.__d.depth = d; } return 0; };
+    B.tile_set_visible = (id, v) => { const t = tileById(id); if (t) t.visible = B.T(v); return 0; };
+    B.tile_set_alpha = (id, a) => { const t = tileById(id); if (t) t.alpha = a; return 0; };
+    B.tile_set_scale = (id, xs, ys) => { const t = tileById(id); if (t) { t.xscale = xs; t.yscale = ys; } return 0; };
+    B.tile_layer_delete = d => { R.tiles = R.tiles.filter(t => t.depth !== d); return 0; };
+    B.tile_layer_hide = d => { for (const t of R.tiles) if (t.depth === d) t.visible = false; return 0; };
+    B.tile_layer_show = d => { for (const t of R.tiles) if (t.depth === d) t.visible = true; return 0; };
+    B.tile_layer_shift = (d, x, y) => { for (const t of R.tiles) if (t.depth === d) { t.x += x; t.y += y; } return 0; };
+    B.tile_layer_find = (d, x, y) => { const t = R.tiles.find(t => t.depth === d && x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h); return t ? t.id : -1; };
+    B.tile_find = (x, y, fore) => { const t = R.tiles.find(t => x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h); return t ? t.id : -1; };
 
     function frame() {
         if (R.modal || R.queue.length) return;             // a dialog or captured frames are showing: paused
@@ -2114,7 +2617,8 @@ const B = (() => {
             const dt = Math.min(250, now - last); last = now; acc += dt;
             const stepMs = 1000 / B.room_speed;
             let n = 0;
-            if (R.queue.length || R.modal) { acc = 0; requestAnimationFrame(loop); return; }
+            // captured frames / messages are showing; also covers ones queued outside a frame (e.g. sleep() at game start)
+            if (R.queue.length || R.modal) { acc = 0; if (R.queue.length && !R.modal) pump(); requestAnimationFrame(loop); return; }
             while (acc >= stepMs && n < 4) { frame(); acc -= stepMs; n++; frames++; if (R.queue.length || R.modal) break; }
             if (n === 4) acc = 0;
             if (now - R.fpsTime >= 1000) { R.fps = Math.round(frames * 1000 / (now - R.fpsTime)); frames = 0; R.fpsTime = now; }
@@ -2154,8 +2658,11 @@ const B = (() => {
         R.paths = (typeof PATHS !== 'undefined' ? PATHS : []).map(p => p && { points: p.points.map(q => ({ ...q })), closed: p.closed });
         for (const f of (typeof EXTRA_FILES !== 'undefined' ? EXTRA_FILES : [])) {
             const key = normFile(f);
+            const play = typeof EXTRA_PLAY !== 'undefined' && EXTRA_PLAY[f];
             if (/\.(png|jpe?g|gif|bmp)$/i.test(f)) jobs.push(track(loadImg('files/' + f)).then(im => { R.extraFiles[key] = im; }));
-            else R.extraFiles[key] = 'files/' + f;
+            else R.extraFiles[key] = 'files/' + (play || f);       // music the build rendered to .ogg/.mp3
+            if (/\.(txt|ini)$/i.test(f) && typeof fetch !== 'undefined')
+                jobs.push(fetch('files/' + f).then(r => (r.ok ? r.text() : null)).then(t => { if (t !== null) R.extraText[key] = t; }).catch(() => { }));
         }
         await Promise.all(jobs);
     };
